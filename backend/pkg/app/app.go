@@ -28,7 +28,15 @@ func (a *App) Handler() http.Handler {
 
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
+			origin := r.Header.Get("Origin")
+			allowed := map[string]bool{
+				"http://localhost:5173":  true,
+				"http://localhost:4173":  true,
+				"https://contactsapp.unexev.workers.dev": true,
+			}
+			if allowed[origin] {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+			}
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 			if r.Method == "OPTIONS" {
