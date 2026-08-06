@@ -173,5 +173,9 @@ func getCORSOrigins() []string {
 	if v == "" {
 		v = "http://localhost:5173,http://localhost:4173"
 	}
-	return strings.Split(v, ",")
+	var out []string
+	for _, o := range strings.Split(v, ",") {
+		out = append(out, strings.TrimRight(strings.TrimSpace(o), "/"))
+	}
+	return out
 }
