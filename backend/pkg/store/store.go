@@ -47,7 +47,7 @@ func (s *Store) Register(email, name, passwordHash string) (model.User, error) {
 		Status: "active",
 	}
 	_, err := s.pool.Exec(context.Background(),
-		`INSERT INTO users (user_id, email, name, password_hash, role, status)
+		`INSERT INTO app_users (user_id, email, name, password_hash, role, status)
 		 VALUES ($1, $2, $3, $4, $5, $6)`,
 		u.UserID, u.Email, u.Name, passwordHash, u.Role, u.Status,
 	)
@@ -57,7 +57,7 @@ func (s *Store) Register(email, name, passwordHash string) (model.User, error) {
 func (s *Store) GetUserByEmail(email string) (model.User, error) {
 	var u model.User
 	err := s.pool.QueryRow(context.Background(),
-		`SELECT user_id, email, name, role, status FROM users WHERE email = $1`, email,
+		`SELECT user_id, email, name, role, status FROM app_users WHERE email = $1`, email,
 	).Scan(&u.UserID, &u.Email, &u.Name, &u.Role, &u.Status)
 	return u, err
 }
@@ -70,7 +70,7 @@ func (s *Store) GetUserByEmailWithHash(email string) (model.User, string, error)
 
 	for attempt := 0; attempt < 3; attempt++ {
 		err = s.pool.QueryRow(ctx,
-			`SELECT user_id, email, name, role, status, password_hash FROM users WHERE email = $1`, email,
+			`SELECT user_id, email, name, role, status, password_hash FROM app_users WHERE email = $1`, email,
 		).Scan(&u.UserID, &u.Email, &u.Name, &u.Role, &u.Status, &hash)
 		if err == nil {
 			return u, hash, nil
@@ -83,7 +83,7 @@ func (s *Store) GetUserByEmailWithHash(email string) (model.User, string, error)
 func (s *Store) GetUserByID(userID string) (model.User, error) {
 	var u model.User
 	err := s.pool.QueryRow(context.Background(),
-		`SELECT user_id, email, name, role, status FROM users WHERE user_id = $1`, userID,
+		`SELECT user_id, email, name, role, status FROM app_users WHERE user_id = $1`, userID,
 	).Scan(&u.UserID, &u.Email, &u.Name, &u.Role, &u.Status)
 	return u, err
 }
