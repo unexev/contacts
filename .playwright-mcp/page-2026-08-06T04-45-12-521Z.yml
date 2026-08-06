@@ -1,0 +1,15 @@
+- main [ref=f3e3]:
+  - generic [ref=f3e5]:
+    - heading "Iniciar Sesión" [level=1] [ref=f3e6]
+    - generic [ref=f3e7]:
+      - generic [ref=f3e8]:
+        - generic [ref=f3e9]: Correo electrónico
+        - textbox "Correo electrónico" [ref=f3e10]: admin@contacts.com
+      - generic [ref=f3e11]:
+        - generic [ref=f3e12]: Contraseña
+        - textbox "Contraseña" [ref=f3e13]: Admin123!
+      - button "Entrar" [ref=f3e14] [cursor=pointer]
+    - paragraph [ref=f3e15]:
+      - text: ¿No tienes cuenta?
+      - link "Regístrate" [ref=f3e16] [cursor=pointer]:
+        - /url: /register
