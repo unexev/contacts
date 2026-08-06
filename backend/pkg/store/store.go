@@ -39,13 +39,6 @@ func clampLimit(limit int) int {
 // ──────────────────────────── Auth ────────────────────────────
 
 func (s *Store) Register(email, name, passwordHash string) (model.User, error) {
-	ctx := context.Background()
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return model.User{}, err
-	}
-	defer tx.Rollback(ctx)
-
 	u := model.User{
 		UserID: genID("usr"),
 		Email:  email,
@@ -53,17 +46,11 @@ func (s *Store) Register(email, name, passwordHash string) (model.User, error) {
 		Role:   "user",
 		Status: "active",
 	}
-
-	_, err = tx.Exec(ctx,
+	_, err := s.pool.Exec(context.Background(),
 		`INSERT INTO users (user_id, email, name, password_hash, role, status, created_at)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		u.UserID, u.Email, u.Name, passwordHash, u.Role, u.Status, time.Now().UnixMilli(),
 	)
-	if err != nil {
-		return model.User{}, err
-	}
-
-	err = tx.Commit(ctx)
 	return u, err
 }
 
