@@ -93,18 +93,19 @@ func (s *Store) ListContacts(userID, search string, limit, offset int) ([]model.
 	var err error
 
 	if search != "" {
+		searchPattern := "%" + search + "%"
 		s.pool.QueryRow(ctx,
 			`SELECT COUNT(*) FROM contacts c
 			 WHERE c.user_id = $1 AND c.deleted = 0
-			   AND (c.first_name ILIKE '%' || $2 || '%'
-			        OR c.middle_name ILIKE '%' || $2 || '%'
-			        OR c.surname ILIKE '%' || $2 || '%'
+			   AND (c.first_name ILIKE $2
+			        OR c.middle_name ILIKE $2
+			        OR c.surname ILIKE $2
 			        OR EXISTS (
 			            SELECT 1 FROM contact_keywords ck
 			            WHERE ck.user_id = c.user_id AND ck.contact_id = c.contact_id
-			              AND ck.keyword ILIKE '%' || $2 || '%'
+			              AND ck.keyword ILIKE $2
 			        ))`,
-			userID, search,
+			userID, searchPattern,
 		).Scan(&total)
 
 		rows, err = s.pool.Query(ctx,
@@ -113,17 +114,17 @@ func (s *Store) ListContacts(userID, search string, limit, offset int) ([]model.
 			 FROM contacts c
 			 LEFT JOIN marital_status ms ON c.status_id = ms.status_id
 			 WHERE c.user_id = $1 AND c.deleted = 0
-			   AND (c.first_name ILIKE '%' || $2 || '%'
-			        OR c.middle_name ILIKE '%' || $2 || '%'
-			        OR c.surname ILIKE '%' || $2 || '%'
+			   AND (c.first_name ILIKE $2
+			        OR c.middle_name ILIKE $2
+			        OR c.surname ILIKE $2
 			        OR EXISTS (
 			            SELECT 1 FROM contact_keywords ck
 			            WHERE ck.user_id = c.user_id AND ck.contact_id = c.contact_id
-			              AND ck.keyword ILIKE '%' || $2 || '%'
+			              AND ck.keyword ILIKE $2
 			        ))
 			 ORDER BY c.first_name, c.surname
 			 LIMIT $3 OFFSET $4`,
-			userID, search, limit, offset,
+			userID, searchPattern, limit, offset,
 		)
 	} else {
 		s.pool.QueryRow(ctx,
