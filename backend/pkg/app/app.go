@@ -31,6 +31,12 @@ func (a *App) Handler() http.Handler {
 	r.Use(rateLimit(30))
 
 	r.Route("/api", func(r chi.Router) {
+		r.Get("/debug/cors", func(w http.ResponseWriter, r *http.Request) {
+			writeJSON(w, 200, map[string]interface{}{
+				"cors_origins": getCORSOrigins(),
+				"origin":       r.Header.Get("Origin"),
+			})
+		})
 		r.Post("/auth/register", a.register)
 		r.Post("/auth/login", a.login)
 		r.Group(func(r chi.Router) {
