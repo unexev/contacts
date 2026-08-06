@@ -185,7 +185,8 @@ func (a *App) register(w http.ResponseWriter, r *http.Request) {
 
 	user, err := a.store.Register(req.Email, req.Name, string(hash))
 	if err != nil {
-		errResp(w, http.StatusConflict, "email already exists")
+		log.Printf("register error: %v", err)
+		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
