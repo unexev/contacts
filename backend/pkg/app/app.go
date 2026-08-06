@@ -127,12 +127,37 @@ func dataResp(w http.ResponseWriter, status int, v any) {
 	writeJSON(w, status, map[string]any{"data": v})
 }
 
+func paginatedResp(w http.ResponseWriter, status int, data any, total, limit, offset int) {
+	writeJSON(w, status, map[string]any{
+		"data":   data,
+		"total":  total,
+		"limit":  limit,
+		"offset": offset,
+	})
+}
+
 func errResp(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
 
 func decodeJSON(r *http.Request, v any) error {
 	return json.NewDecoder(r.Body).Decode(v)
+}
+
+func parsePagination(r *http.Request) (limit, offset int) {
+	limit = 50
+	offset = 0
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			limit = n
+		}
+	}
+	if v := r.URL.Query().Get("offset"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+			offset = n
+		}
+	}
+	return
 }
 
 // --- auth handlers ---
@@ -218,8 +243,9 @@ func (a *App) me(w http.ResponseWriter, r *http.Request) {
 func (a *App) listContacts(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	search := r.URL.Query().Get("search")
+	limit, offset := parsePagination(r)
 
-	contacts, err := a.store.ListContacts(claims.UserID, search)
+	contacts, total, err := a.store.ListContacts(claims.UserID, search, limit, offset)
 	if err != nil {
 		log.Printf("listContacts error: %v", err)
 		errResp(w, http.StatusInternalServerError, "failed to list contacts")
@@ -228,7 +254,7 @@ func (a *App) listContacts(w http.ResponseWriter, r *http.Request) {
 	if contacts == nil {
 		contacts = []model.Contact{}
 	}
-	dataResp(w, http.StatusOK, contacts)
+	paginatedResp(w, http.StatusOK, contacts, total, limit, offset)
 }
 
 func (a *App) createContact(w http.ResponseWriter, r *http.Request) {
@@ -294,8 +320,9 @@ func (a *App) deleteContact(w http.ResponseWriter, r *http.Request) {
 func (a *App) listPhones(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
+	limit, offset := parsePagination(r)
 
-	items, err := a.store.ListPhones(claims.UserID, contactID)
+	items, total, err := a.store.ListPhones(claims.UserID, contactID, limit, offset)
 	if err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to list phones")
 		return
@@ -303,7 +330,7 @@ func (a *App) listPhones(w http.ResponseWriter, r *http.Request) {
 	if items == nil {
 		items = []model.ContactPhone{}
 	}
-	dataResp(w, http.StatusOK, items)
+	paginatedResp(w, http.StatusOK, items, total, limit, offset)
 }
 
 func (a *App) createPhone(w http.ResponseWriter, r *http.Request) {
@@ -362,8 +389,9 @@ func (a *App) deletePhone(w http.ResponseWriter, r *http.Request) {
 func (a *App) listEmails(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
+	limit, offset := parsePagination(r)
 
-	items, err := a.store.ListEmails(claims.UserID, contactID)
+	items, total, err := a.store.ListEmails(claims.UserID, contactID, limit, offset)
 	if err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to list emails")
 		return
@@ -371,7 +399,7 @@ func (a *App) listEmails(w http.ResponseWriter, r *http.Request) {
 	if items == nil {
 		items = []model.ContactEmail{}
 	}
-	dataResp(w, http.StatusOK, items)
+	paginatedResp(w, http.StatusOK, items, total, limit, offset)
 }
 
 func (a *App) createEmail(w http.ResponseWriter, r *http.Request) {
@@ -430,8 +458,9 @@ func (a *App) deleteEmail(w http.ResponseWriter, r *http.Request) {
 func (a *App) listURLs(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
+	limit, offset := parsePagination(r)
 
-	items, err := a.store.ListUrls(claims.UserID, contactID)
+	items, total, err := a.store.ListUrls(claims.UserID, contactID, limit, offset)
 	if err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to list urls")
 		return
@@ -439,7 +468,7 @@ func (a *App) listURLs(w http.ResponseWriter, r *http.Request) {
 	if items == nil {
 		items = []model.ContactUrl{}
 	}
-	dataResp(w, http.StatusOK, items)
+	paginatedResp(w, http.StatusOK, items, total, limit, offset)
 }
 
 func (a *App) createURL(w http.ResponseWriter, r *http.Request) {
@@ -498,8 +527,9 @@ func (a *App) deleteURL(w http.ResponseWriter, r *http.Request) {
 func (a *App) listNotes(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
+	limit, offset := parsePagination(r)
 
-	items, err := a.store.ListNotes(claims.UserID, contactID)
+	items, total, err := a.store.ListNotes(claims.UserID, contactID, limit, offset)
 	if err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to list notes")
 		return
@@ -507,7 +537,7 @@ func (a *App) listNotes(w http.ResponseWriter, r *http.Request) {
 	if items == nil {
 		items = []model.ContactNote{}
 	}
-	dataResp(w, http.StatusOK, items)
+	paginatedResp(w, http.StatusOK, items, total, limit, offset)
 }
 
 func (a *App) createNote(w http.ResponseWriter, r *http.Request) {
@@ -566,8 +596,9 @@ func (a *App) deleteNote(w http.ResponseWriter, r *http.Request) {
 func (a *App) listKeywords(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
+	limit, offset := parsePagination(r)
 
-	items, err := a.store.ListKeywords(claims.UserID, contactID)
+	items, total, err := a.store.ListKeywords(claims.UserID, contactID, limit, offset)
 	if err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to list keywords")
 		return
@@ -575,7 +606,7 @@ func (a *App) listKeywords(w http.ResponseWriter, r *http.Request) {
 	if items == nil {
 		items = []model.ContactKeyword{}
 	}
-	dataResp(w, http.StatusOK, items)
+	paginatedResp(w, http.StatusOK, items, total, limit, offset)
 }
 
 func (a *App) createKeyword(w http.ResponseWriter, r *http.Request) {
@@ -622,8 +653,9 @@ func (a *App) deleteKeyword(w http.ResponseWriter, r *http.Request) {
 func (a *App) listCards(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
+	limit, offset := parsePagination(r)
 
-	items, err := a.store.ListCards(claims.UserID, contactID)
+	items, total, err := a.store.ListCards(claims.UserID, contactID, limit, offset)
 	if err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to list cards")
 		return
@@ -631,7 +663,7 @@ func (a *App) listCards(w http.ResponseWriter, r *http.Request) {
 	if items == nil {
 		items = []model.IdentityCard{}
 	}
-	dataResp(w, http.StatusOK, items)
+	paginatedResp(w, http.StatusOK, items, total, limit, offset)
 }
 
 func (a *App) createCard(w http.ResponseWriter, r *http.Request) {
@@ -690,8 +722,9 @@ func (a *App) deleteCard(w http.ResponseWriter, r *http.Request) {
 func (a *App) listBankAccounts(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
+	limit, offset := parsePagination(r)
 
-	items, err := a.store.ListBankAccounts(claims.UserID, contactID)
+	items, total, err := a.store.ListBankAccounts(claims.UserID, contactID, limit, offset)
 	if err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to list bank accounts")
 		return
@@ -699,7 +732,7 @@ func (a *App) listBankAccounts(w http.ResponseWriter, r *http.Request) {
 	if items == nil {
 		items = []model.ContactBankAccount{}
 	}
-	dataResp(w, http.StatusOK, items)
+	paginatedResp(w, http.StatusOK, items, total, limit, offset)
 }
 
 func (a *App) createBankAccount(w http.ResponseWriter, r *http.Request) {
@@ -758,8 +791,9 @@ func (a *App) deleteBankAccount(w http.ResponseWriter, r *http.Request) {
 func (a *App) listRelationships(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
+	limit, offset := parsePagination(r)
 
-	items, err := a.store.ListRelationships(claims.UserID, contactID)
+	items, total, err := a.store.ListRelationships(claims.UserID, contactID, limit, offset)
 	if err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to list relationships")
 		return
@@ -767,7 +801,7 @@ func (a *App) listRelationships(w http.ResponseWriter, r *http.Request) {
 	if items == nil {
 		items = []model.ContactRelationship{}
 	}
-	dataResp(w, http.StatusOK, items)
+	paginatedResp(w, http.StatusOK, items, total, limit, offset)
 }
 
 func (a *App) createRelationship(w http.ResponseWriter, r *http.Request) {
@@ -812,8 +846,9 @@ func (a *App) deleteRelationship(w http.ResponseWriter, r *http.Request) {
 func (a *App) listContactOrganizations(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
+	limit, offset := parsePagination(r)
 
-	items, err := a.store.ListOrganizations(claims.UserID, contactID)
+	items, total, err := a.store.ListOrganizations(claims.UserID, contactID, limit, offset)
 	if err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to list contact organizations")
 		return
@@ -821,7 +856,7 @@ func (a *App) listContactOrganizations(w http.ResponseWriter, r *http.Request) {
 	if items == nil {
 		items = []model.ContactOrganization{}
 	}
-	dataResp(w, http.StatusOK, items)
+	paginatedResp(w, http.StatusOK, items, total, limit, offset)
 }
 
 func (a *App) createContactOrganization(w http.ResponseWriter, r *http.Request) {
@@ -961,7 +996,9 @@ func (a *App) getBirthdays(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contacts, err := a.store.GetBirthdaysThisMonth(claims.UserID, month, year)
+	limit, offset := parsePagination(r)
+
+	contacts, total, err := a.store.GetBirthdaysThisMonth(claims.UserID, month, year, limit, offset)
 	if err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to get birthdays")
 		return
@@ -969,5 +1006,5 @@ func (a *App) getBirthdays(w http.ResponseWriter, r *http.Request) {
 	if contacts == nil {
 		contacts = []model.Contact{}
 	}
-	dataResp(w, http.StatusOK, contacts)
+	paginatedResp(w, http.StatusOK, contacts, total, limit, offset)
 }

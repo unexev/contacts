@@ -25,6 +25,10 @@
   async function handleSave(e) {
     e.preventDefault();
     error = '';
+    if (!first_name.trim()) { error = 'First name is required'; return; }
+    if (!surname.trim()) { error = 'Surname is required'; return; }
+    if (first_name.length > 255) { error = 'First name too long'; return; }
+    if (surname.length > 255) { error = 'Surname too long'; return; }
     saving = true;
     try {
       const body = { first_name, middle_name, surname, gender };

@@ -26,6 +26,16 @@ func genID(prefix string) string {
 	return fmt.Sprintf("%s_%08x%08x", prefix, b[:4], b[4:])
 }
 
+func clampLimit(limit int) int {
+	if limit <= 0 {
+		return 50
+	}
+	if limit > 100 {
+		return 100
+	}
+	return limit
+}
+
 // ──────────────────────────── Auth ────────────────────────────
 
 func (s *Store) Register(email, name, passwordHash string) (model.User, error) {
@@ -71,12 +81,32 @@ func (s *Store) GetUserByID(userID string) (model.User, error) {
 
 // ──────────────────────────── Contacts ────────────────────────
 
-func (s *Store) ListContacts(userID, search string) ([]model.Contact, error) {
+func (s *Store) ListContacts(userID, search string, limit, offset int) ([]model.Contact, int, error) {
 	ctx := context.Background()
+	limit = clampLimit(limit)
+	if offset < 0 {
+		offset = 0
+	}
+	var total int
+
 	var rows pgx.Rows
 	var err error
 
 	if search != "" {
+		s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM contacts c
+			 WHERE c.user_id = $1 AND c.deleted = 0
+			   AND (c.first_name ILIKE '%' || $2 || '%'
+			        OR c.middle_name ILIKE '%' || $2 || '%'
+			        OR c.surname ILIKE '%' || $2 || '%'
+			        OR EXISTS (
+			            SELECT 1 FROM contact_keywords ck
+			            WHERE ck.user_id = c.user_id AND ck.contact_id = c.contact_id
+			              AND ck.keyword ILIKE '%' || $2 || '%'
+			        ))`,
+			userID, search,
+		).Scan(&total)
+
 		rows, err = s.pool.Query(ctx,
 			`SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
 			        c.birthdate, c.gender, c.status_id, COALESCE(ms.marital_status, ''), c.updated_at
@@ -91,22 +121,30 @@ func (s *Store) ListContacts(userID, search string) ([]model.Contact, error) {
 			            WHERE ck.user_id = c.user_id AND ck.contact_id = c.contact_id
 			              AND ck.keyword ILIKE '%' || $2 || '%'
 			        ))
-			 ORDER BY c.first_name, c.surname`,
-			userID, search,
+			 ORDER BY c.first_name, c.surname
+			 LIMIT $3 OFFSET $4`,
+			userID, search, limit, offset,
 		)
 	} else {
+		s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM contacts c
+			 WHERE c.user_id = $1 AND c.deleted = 0`,
+			userID,
+		).Scan(&total)
+
 		rows, err = s.pool.Query(ctx,
 			`SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
 			        c.birthdate, c.gender, c.status_id, COALESCE(ms.marital_status, ''), c.updated_at
 			 FROM contacts c
 			 LEFT JOIN marital_status ms ON c.status_id = ms.status_id
 			 WHERE c.user_id = $1 AND c.deleted = 0
-			 ORDER BY c.first_name, c.surname`,
-			userID,
+			 ORDER BY c.first_name, c.surname
+			 LIMIT $2 OFFSET $3`,
+			userID, limit, offset,
 		)
 	}
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -117,11 +155,11 @@ func (s *Store) ListContacts(userID, search string) ([]model.Contact, error) {
 			&c.UserID, &c.ContactID, &c.FirstName, &c.MiddleName, &c.Surname,
 			&c.Birthdate, &c.Gender, &c.StatusID, &c.MaritalStatus, &c.UpdatedAt,
 		); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		contacts = append(contacts, c)
 	}
-	return contacts, rows.Err()
+	return contacts, total, rows.Err()
 }
 
 func (s *Store) GetContact(userID, contactID string) (model.Contact, error) {
@@ -196,35 +234,35 @@ func (s *Store) GetContactFull(userID, contactID string) (map[string]interface{}
 		"updated_at":  c.UpdatedAt,
 	}
 
-	if phones, err := s.ListPhones(userID, contactID); err == nil {
+	if phones, _, err := s.ListPhones(userID, contactID, 10000, 0); err == nil {
 		result["phones"] = phones
 	}
-	if emails, err := s.ListEmails(userID, contactID); err == nil {
+	if emails, _, err := s.ListEmails(userID, contactID, 10000, 0); err == nil {
 		result["emails"] = emails
 	}
-	if urls, err := s.ListUrls(userID, contactID); err == nil {
+	if urls, _, err := s.ListUrls(userID, contactID, 10000, 0); err == nil {
 		result["urls"] = urls
 	}
-	if notes, err := s.ListNotes(userID, contactID); err == nil {
+	if notes, _, err := s.ListNotes(userID, contactID, 10000, 0); err == nil {
 		result["notes"] = notes
 	}
-	if keywords, err := s.ListKeywords(userID, contactID); err == nil {
+	if keywords, _, err := s.ListKeywords(userID, contactID, 10000, 0); err == nil {
 		kws := make([]string, len(keywords))
 		for i, k := range keywords {
 			kws[i] = k.Keyword
 		}
 		result["keywords"] = kws
 	}
-	if cards, err := s.ListCards(userID, contactID); err == nil {
+	if cards, _, err := s.ListCards(userID, contactID, 10000, 0); err == nil {
 		result["identity_cards"] = cards
 	}
-	if banks, err := s.ListBankAccounts(userID, contactID); err == nil {
+	if banks, _, err := s.ListBankAccounts(userID, contactID, 10000, 0); err == nil {
 		result["bank_accounts"] = banks
 	}
-	if rels, err := s.ListRelationships(userID, contactID); err == nil {
+	if rels, _, err := s.ListRelationships(userID, contactID, 10000, 0); err == nil {
 		result["relationships"] = rels
 	}
-	if orgs, err := s.ListOrganizations(userID, contactID); err == nil {
+	if orgs, _, err := s.ListOrganizations(userID, contactID, 10000, 0); err == nil {
 		result["organizations"] = orgs
 	}
 
@@ -233,26 +271,38 @@ func (s *Store) GetContactFull(userID, contactID string) (map[string]interface{}
 
 // ──────────────────────────── Phones ──────────────────────────
 
-func (s *Store) ListPhones(userID, contactID string) ([]model.ContactPhone, error) {
-	rows, err := s.pool.Query(context.Background(),
+func (s *Store) ListPhones(userID, contactID string, limit, offset int) ([]model.ContactPhone, int, error) {
+	ctx := context.Background()
+	limit = clampLimit(limit)
+	if offset < 0 {
+		offset = 0
+	}
+	var total int
+	s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM contact_phones WHERE user_id = $1 AND contact_id = $2`,
+		userID, contactID,
+	).Scan(&total)
+
+	rows, err := s.pool.Query(ctx,
 		`SELECT user_id, contact_id, phone_id, phone, label
 		 FROM contact_phones WHERE user_id = $1 AND contact_id = $2
-		 ORDER BY phone_id`,
-		userID, contactID,
+		 ORDER BY phone_id
+		 LIMIT $3 OFFSET $4`,
+		userID, contactID, limit, offset,
 	)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	var items []model.ContactPhone
 	for rows.Next() {
 		var p model.ContactPhone
 		if err := rows.Scan(&p.UserID, &p.ContactID, &p.PhoneID, &p.Phone, &p.Label); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		items = append(items, p)
 	}
-	return items, rows.Err()
+	return items, total, rows.Err()
 }
 
 func (s *Store) CreatePhone(userID, contactID string, p model.ContactPhone) (model.ContactPhone, error) {
@@ -288,26 +338,38 @@ func (s *Store) DeletePhone(userID, contactID, phoneID string) error {
 
 // ──────────────────────────── Emails ──────────────────────────
 
-func (s *Store) ListEmails(userID, contactID string) ([]model.ContactEmail, error) {
-	rows, err := s.pool.Query(context.Background(),
+func (s *Store) ListEmails(userID, contactID string, limit, offset int) ([]model.ContactEmail, int, error) {
+	ctx := context.Background()
+	limit = clampLimit(limit)
+	if offset < 0 {
+		offset = 0
+	}
+	var total int
+	s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM contact_emails WHERE user_id = $1 AND contact_id = $2`,
+		userID, contactID,
+	).Scan(&total)
+
+	rows, err := s.pool.Query(ctx,
 		`SELECT user_id, contact_id, email_id, email, label
 		 FROM contact_emails WHERE user_id = $1 AND contact_id = $2
-		 ORDER BY email_id`,
-		userID, contactID,
+		 ORDER BY email_id
+		 LIMIT $3 OFFSET $4`,
+		userID, contactID, limit, offset,
 	)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	var items []model.ContactEmail
 	for rows.Next() {
 		var e model.ContactEmail
 		if err := rows.Scan(&e.UserID, &e.ContactID, &e.EmailID, &e.Email, &e.Label); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		items = append(items, e)
 	}
-	return items, rows.Err()
+	return items, total, rows.Err()
 }
 
 func (s *Store) CreateEmail(userID, contactID string, e model.ContactEmail) (model.ContactEmail, error) {
@@ -343,26 +405,38 @@ func (s *Store) DeleteEmail(userID, contactID, emailID string) error {
 
 // ──────────────────────────── URLs ────────────────────────────
 
-func (s *Store) ListUrls(userID, contactID string) ([]model.ContactUrl, error) {
-	rows, err := s.pool.Query(context.Background(),
+func (s *Store) ListUrls(userID, contactID string, limit, offset int) ([]model.ContactUrl, int, error) {
+	ctx := context.Background()
+	limit = clampLimit(limit)
+	if offset < 0 {
+		offset = 0
+	}
+	var total int
+	s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM contact_urls WHERE user_id = $1 AND contact_id = $2`,
+		userID, contactID,
+	).Scan(&total)
+
+	rows, err := s.pool.Query(ctx,
 		`SELECT user_id, contact_id, url_id, url, label
 		 FROM contact_urls WHERE user_id = $1 AND contact_id = $2
-		 ORDER BY url_id`,
-		userID, contactID,
+		 ORDER BY url_id
+		 LIMIT $3 OFFSET $4`,
+		userID, contactID, limit, offset,
 	)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	var items []model.ContactUrl
 	for rows.Next() {
 		var u model.ContactUrl
 		if err := rows.Scan(&u.UserID, &u.ContactID, &u.URLID, &u.URL, &u.Label); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		items = append(items, u)
 	}
-	return items, rows.Err()
+	return items, total, rows.Err()
 }
 
 func (s *Store) CreateUrl(userID, contactID string, u model.ContactUrl) (model.ContactUrl, error) {
@@ -398,26 +472,38 @@ func (s *Store) DeleteUrl(userID, contactID, urlID string) error {
 
 // ──────────────────────────── Notes ───────────────────────────
 
-func (s *Store) ListNotes(userID, contactID string) ([]model.ContactNote, error) {
-	rows, err := s.pool.Query(context.Background(),
+func (s *Store) ListNotes(userID, contactID string, limit, offset int) ([]model.ContactNote, int, error) {
+	ctx := context.Background()
+	limit = clampLimit(limit)
+	if offset < 0 {
+		offset = 0
+	}
+	var total int
+	s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM contact_notes WHERE user_id = $1 AND contact_id = $2`,
+		userID, contactID,
+	).Scan(&total)
+
+	rows, err := s.pool.Query(ctx,
 		`SELECT user_id, contact_id, note_id, note, updated_at
 		 FROM contact_notes WHERE user_id = $1 AND contact_id = $2
-		 ORDER BY updated_at DESC`,
-		userID, contactID,
+		 ORDER BY updated_at DESC
+		 LIMIT $3 OFFSET $4`,
+		userID, contactID, limit, offset,
 	)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	var items []model.ContactNote
 	for rows.Next() {
 		var n model.ContactNote
 		if err := rows.Scan(&n.UserID, &n.ContactID, &n.NoteID, &n.Note, &n.UpdatedAt); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		items = append(items, n)
 	}
-	return items, rows.Err()
+	return items, total, rows.Err()
 }
 
 func (s *Store) CreateNote(userID, contactID string, n model.ContactNote) (model.ContactNote, error) {
@@ -455,26 +541,38 @@ func (s *Store) DeleteNote(userID, contactID, noteID string) error {
 
 // ──────────────────────────── Keywords ────────────────────────
 
-func (s *Store) ListKeywords(userID, contactID string) ([]model.ContactKeyword, error) {
-	rows, err := s.pool.Query(context.Background(),
+func (s *Store) ListKeywords(userID, contactID string, limit, offset int) ([]model.ContactKeyword, int, error) {
+	ctx := context.Background()
+	limit = clampLimit(limit)
+	if offset < 0 {
+		offset = 0
+	}
+	var total int
+	s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM contact_keywords WHERE user_id = $1 AND contact_id = $2`,
+		userID, contactID,
+	).Scan(&total)
+
+	rows, err := s.pool.Query(ctx,
 		`SELECT user_id, contact_id, keyword
 		 FROM contact_keywords WHERE user_id = $1 AND contact_id = $2
-		 ORDER BY keyword`,
-		userID, contactID,
+		 ORDER BY keyword
+		 LIMIT $3 OFFSET $4`,
+		userID, contactID, limit, offset,
 	)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	var items []model.ContactKeyword
 	for rows.Next() {
 		var k model.ContactKeyword
 		if err := rows.Scan(&k.UserID, &k.ContactID, &k.Keyword); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		items = append(items, k)
 	}
-	return items, rows.Err()
+	return items, total, rows.Err()
 }
 
 func (s *Store) AddKeyword(userID, contactID, keyword string) error {
@@ -496,15 +594,27 @@ func (s *Store) DeleteKeyword(userID, contactID, keyword string) error {
 
 // ──────────────────────────── Identity Cards ──────────────────
 
-func (s *Store) ListCards(userID, contactID string) ([]model.IdentityCard, error) {
-	rows, err := s.pool.Query(context.Background(),
+func (s *Store) ListCards(userID, contactID string, limit, offset int) ([]model.IdentityCard, int, error) {
+	ctx := context.Background()
+	limit = clampLimit(limit)
+	if offset < 0 {
+		offset = 0
+	}
+	var total int
+	s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM identity_cards WHERE user_id = $1 AND contact_id = $2`,
+		userID, contactID,
+	).Scan(&total)
+
+	rows, err := s.pool.Query(ctx,
 		`SELECT user_id, contact_id, card_id, doc_type, card_number, issue_date, expiry_date
 		 FROM identity_cards WHERE user_id = $1 AND contact_id = $2
-		 ORDER BY card_id`,
-		userID, contactID,
+		 ORDER BY card_id
+		 LIMIT $3 OFFSET $4`,
+		userID, contactID, limit, offset,
 	)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	var items []model.IdentityCard
@@ -512,11 +622,11 @@ func (s *Store) ListCards(userID, contactID string) ([]model.IdentityCard, error
 		var c model.IdentityCard
 		if err := rows.Scan(&c.UserID, &c.ContactID, &c.CardID, &c.DocType,
 			&c.CardNumber, &c.IssueDate, &c.ExpiryDate); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		items = append(items, c)
 	}
-	return items, rows.Err()
+	return items, total, rows.Err()
 }
 
 func (s *Store) CreateCard(userID, contactID string, c model.IdentityCard) (model.IdentityCard, error) {
@@ -552,15 +662,27 @@ func (s *Store) DeleteCard(userID, contactID, cardID string) error {
 
 // ──────────────────────────── Bank Accounts ───────────────────
 
-func (s *Store) ListBankAccounts(userID, contactID string) ([]model.ContactBankAccount, error) {
-	rows, err := s.pool.Query(context.Background(),
+func (s *Store) ListBankAccounts(userID, contactID string, limit, offset int) ([]model.ContactBankAccount, int, error) {
+	ctx := context.Background()
+	limit = clampLimit(limit)
+	if offset < 0 {
+		offset = 0
+	}
+	var total int
+	s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM contact_bank_accounts WHERE user_id = $1 AND contact_id = $2`,
+		userID, contactID,
+	).Scan(&total)
+
+	rows, err := s.pool.Query(ctx,
 		`SELECT user_id, contact_id, bank_account_id, bank_name, account_number, account_type, label
 		 FROM contact_bank_accounts WHERE user_id = $1 AND contact_id = $2
-		 ORDER BY bank_account_id`,
-		userID, contactID,
+		 ORDER BY bank_account_id
+		 LIMIT $3 OFFSET $4`,
+		userID, contactID, limit, offset,
 	)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	var items []model.ContactBankAccount
@@ -568,11 +690,11 @@ func (s *Store) ListBankAccounts(userID, contactID string) ([]model.ContactBankA
 		var b model.ContactBankAccount
 		if err := rows.Scan(&b.UserID, &b.ContactID, &b.BankAccountID, &b.BankName,
 			&b.AccountNumber, &b.AccountType, &b.Label); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		items = append(items, b)
 	}
-	return items, rows.Err()
+	return items, total, rows.Err()
 }
 
 func (s *Store) CreateBankAccount(userID, contactID string, b model.ContactBankAccount) (model.ContactBankAccount, error) {
@@ -608,8 +730,19 @@ func (s *Store) DeleteBankAccount(userID, contactID, bankAccountID string) error
 
 // ──────────────────────────── Relationships ───────────────────
 
-func (s *Store) ListRelationships(userID, contactID string) ([]model.ContactRelationship, error) {
-	rows, err := s.pool.Query(context.Background(),
+func (s *Store) ListRelationships(userID, contactID string, limit, offset int) ([]model.ContactRelationship, int, error) {
+	ctx := context.Background()
+	limit = clampLimit(limit)
+	if offset < 0 {
+		offset = 0
+	}
+	var total int
+	s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM contact_relationships r WHERE r.user_id = $1 AND r.contact_id = $2`,
+		userID, contactID,
+	).Scan(&total)
+
+	rows, err := s.pool.Query(ctx,
 		`SELECT r.user_id, r.contact_id, r.related_contact_id,
 		        COALESCE(c.first_name || ' ' || c.surname, '') AS related_contact_name,
 		        r.type_id, rt.label AS type_label
@@ -617,11 +750,12 @@ func (s *Store) ListRelationships(userID, contactID string) ([]model.ContactRela
 		 LEFT JOIN contacts c ON c.user_id = r.user_id AND c.contact_id = r.related_contact_id
 		 LEFT JOIN relationship_types rt ON rt.type_id = r.type_id
 		 WHERE r.user_id = $1 AND r.contact_id = $2
-		 ORDER BY r.related_contact_id`,
-		userID, contactID,
+		 ORDER BY r.related_contact_id
+		 LIMIT $3 OFFSET $4`,
+		userID, contactID, limit, offset,
 	)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	var items []model.ContactRelationship
@@ -629,11 +763,11 @@ func (s *Store) ListRelationships(userID, contactID string) ([]model.ContactRela
 		var r model.ContactRelationship
 		if err := rows.Scan(&r.UserID, &r.ContactID, &r.RelatedContactID,
 			&r.RelatedContactName, &r.TypeID, &r.TypeLabel); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		items = append(items, r)
 	}
-	return items, rows.Err()
+	return items, total, rows.Err()
 }
 
 func (s *Store) CreateRelationship(userID, contactID string, r model.ContactRelationship) (model.ContactRelationship, error) {
@@ -658,18 +792,30 @@ func (s *Store) DeleteRelationship(userID, contactID, relatedContactID, typeID s
 
 // ──────────────────────────── Contact Organizations ───────────
 
-func (s *Store) ListOrganizations(userID, contactID string) ([]model.ContactOrganization, error) {
-	rows, err := s.pool.Query(context.Background(),
+func (s *Store) ListOrganizations(userID, contactID string, limit, offset int) ([]model.ContactOrganization, int, error) {
+	ctx := context.Background()
+	limit = clampLimit(limit)
+	if offset < 0 {
+		offset = 0
+	}
+	var total int
+	s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM contact_organizations co WHERE co.user_id = $1 AND co.contact_id = $2`,
+		userID, contactID,
+	).Scan(&total)
+
+	rows, err := s.pool.Query(ctx,
 		`SELECT co.user_id, co.contact_id, co.organization_id, o.name AS organization_name,
 		        co.achievement, co.date
 		 FROM contact_organizations co
 		 LEFT JOIN organizations o ON o.organization_id = co.organization_id
 		 WHERE co.user_id = $1 AND co.contact_id = $2
-		 ORDER BY co.date DESC`,
-		userID, contactID,
+		 ORDER BY co.date DESC
+		 LIMIT $3 OFFSET $4`,
+		userID, contactID, limit, offset,
 	)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	var items []model.ContactOrganization
@@ -677,11 +823,11 @@ func (s *Store) ListOrganizations(userID, contactID string) ([]model.ContactOrga
 		var o model.ContactOrganization
 		if err := rows.Scan(&o.UserID, &o.ContactID, &o.OrganizationID,
 			&o.OrganizationName, &o.Achievement, &o.Date); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		items = append(items, o)
 	}
-	return items, rows.Err()
+	return items, total, rows.Err()
 }
 
 func (s *Store) CreateOrganization(userID, contactID string, o model.ContactOrganization) (model.ContactOrganization, error) {
@@ -794,8 +940,22 @@ func (s *Store) CreateOrganizationForUser(userID, name string) (model.Organizati
 
 // ──────────────────────────── Birthdays ───────────────────────
 
-func (s *Store) GetBirthdaysThisMonth(userID string, month, year int) ([]model.Contact, error) {
-	rows, err := s.pool.Query(context.Background(),
+func (s *Store) GetBirthdaysThisMonth(userID string, month, year, limit, offset int) ([]model.Contact, int, error) {
+	ctx := context.Background()
+	limit = clampLimit(limit)
+	if offset < 0 {
+		offset = 0
+	}
+	var total int
+	s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM contacts c
+		 WHERE c.user_id = $1 AND c.deleted = 0
+		   AND EXTRACT(MONTH FROM c.birthdate::date) = $2
+		   AND EXTRACT(YEAR  FROM c.birthdate::date) = $3`,
+		userID, month, year,
+	).Scan(&total)
+
+	rows, err := s.pool.Query(ctx,
 		`SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
 		        c.birthdate, c.gender, c.status_id, COALESCE(ms.marital_status, ''), c.updated_at
 		 FROM contacts c
@@ -803,11 +963,12 @@ func (s *Store) GetBirthdaysThisMonth(userID string, month, year int) ([]model.C
 		 WHERE c.user_id = $1 AND c.deleted = 0
 		   AND EXTRACT(MONTH FROM c.birthdate::date) = $2
 		   AND EXTRACT(YEAR  FROM c.birthdate::date) = $3
-		 ORDER BY EXTRACT(DAY FROM c.birthdate::date)`,
-		userID, month, year,
+		 ORDER BY EXTRACT(DAY FROM c.birthdate::date)
+		 LIMIT $4 OFFSET $5`,
+		userID, month, year, limit, offset,
 	)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	var items []model.Contact
@@ -816,9 +977,9 @@ func (s *Store) GetBirthdaysThisMonth(userID string, month, year int) ([]model.C
 		if err := rows.Scan(&c.UserID, &c.ContactID, &c.FirstName, &c.MiddleName,
 			&c.Surname, &c.Birthdate, &c.Gender, &c.StatusID,
 			&c.MaritalStatus, &c.UpdatedAt); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		items = append(items, c)
 	}
-	return items, rows.Err()
+	return items, total, rows.Err()
 }

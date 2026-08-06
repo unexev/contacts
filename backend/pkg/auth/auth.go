@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -38,6 +39,7 @@ func (m *Manager) Generate(userID, email, role string) (string, error) {
 		Email:  email,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    "contacts-saas",
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(m.ttl)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
@@ -48,6 +50,9 @@ func (m *Manager) Generate(userID, email, role string) (string, error) {
 
 func (m *Manager) Verify(tokenStr string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
 		return m.secret, nil
 	})
 	if err != nil {

@@ -16,6 +16,8 @@
   async function handleLogin(e) {
     e.preventDefault();
     error = '';
+    if (!email || !password) { error = 'Email and password are required'; return; }
+    if (password.length < 8) { error = 'Password must be at least 8 characters'; return; }
     loading = true;
     try {
       const data = await api('/api/auth/login', {

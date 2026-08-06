@@ -17,6 +17,9 @@
   async function handleRegister(e) {
     e.preventDefault();
     error = '';
+    if (!name || !email || !password) { error = 'All fields are required'; return; }
+    if (password.length < 8) { error = 'Password must be at least 8 characters'; return; }
+    if (name.length > 255) { error = 'Name too long'; return; }
     loading = true;
     try {
       const data = await api('/api/auth/register', {
