@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum GenderType {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model User {
+  user_id      String        @id @default(uuid())
+  email        String        @unique
+  name         String
+  password_hash String
+  role         Role          @default(USER)
+  status       AccountStatus @default(ACTIVE)
+  created_at   BigInt        @default(now())
+
+  contacts          Contact[]
+  contact_phones    ContactPhone[]
+  contact_emails    ContactEmail[]
+  contact_urls      ContactUrl[]
+  contact_notes     ContactNote[]
+  contact_keywords  ContactKeyword[]
+}
+
+model Contact {
+  user_id     String
+  contact_id  String      @id @default(uuid())
+  first_name  String
+  middle_name String?
+  surname     String?
+  birthdate   DateTime?
+  gender      GenderType?
+  status_id   Int?
+  updated_at  BigInt      @default(0)
+  deleted     Int         @default(0)
+
+  user User @relation(fields: [user_id], references: [user_id])
+
+  phones         ContactPhone[]
+  emails         ContactEmail[]
+  urls           ContactUrl[]
+  notes          ContactNote[]
+  keywords       ContactKeyword[]
+  identity_cards IdentityCard[]
+  bank_accounts  ContactBankAccount[]
+  relationships  ContactRelationship[]
+  organizations  ContactOrganization[]
+
+  @@index([user_id])
+}
+
+model ContactPhone {
+  user_id     String
+  contact_id  String
+  phone_id    String  @id @default(uuid())
+  phone       String
+  label       String?
+  is_primary  Boolean @default(false)
+  updated_at  BigInt  @default(0)
+  deleted     Int     @default(0)
+
+  contact Contact @relation(fields: [user_id, contact_id], references: [user_id, contact_id])
+
+  @@index([user_id, contact_id])
+}
+
+model ContactEmail {
+  user_id     String
+  contact_id  String
+  email_id    String  @id @default(uuid())
+  email       String
+  label       String?
+  is_primary  Boolean @default(false)
+  updated_at  BigInt  @default(0)
+  deleted     Int     @default(0)
+
+  contact Contact @relation(fields: [user_id, contact_id], references: [user_id, contact_id])
+
+  @@index([user_id, contact_id])
+}
+
+model ContactUrl {
+  user_id     String
+  contact_id  String
+  url_id      String  @id @default(uuid())
+  url         String
+  label       String?
+  is_primary  Boolean @default(false)
+  updated_at  BigInt  @default(0)
+  deleted     Int     @default(0)
+
+  contact Contact @relation(fields: [user_id, contact_id], references: [user_id, contact_id])
+
+  @@index([user_id, contact_id])
+}
+
+model ContactNote {
+  user_id     String
+  contact_id  String
+  note_id     String  @id @default(uuid())
+  note        String
+  updated_at  BigInt  @default(0)
+  deleted     Int     @default(0)
+
+  contact Contact @relation(fields: [user_id, contact_id], references: [user_id, contact_id])
+
+  @@index([user_id, contact_id])
+}
+
+model ContactKeyword {
+  user_id     String
+  contact_id  String
+  keyword_id  String  @id @default(uuid())
+  keyword     String
+  updated_at  BigInt  @default(0)
+  deleted     Int     @default(0)
+
+  contact Contact @relation(fields: [user_id, contact_id], references: [user_id, contact_id])
+
+  @@index([user_id, contact_id])
+}
+
+model IdentityCard {
+  user_id     String
+  contact_id  String
+  card_id     String    @id @default(uuid())
+  doc_type    String?
+  card_number String?
+  issue_date  DateTime?
+  expiry_date DateTime?
+  updated_at  BigInt    @default(0)
+  deleted     Int       @default(0)
+
+  contact Contact @relation(fields: [user_id, contact_id], references: [user_id, contact_id])
+
+  @@index([user_id, contact_id])
+}
+
+model ContactBankAccount {
+  user_id       String
+  contact_id    String
+  bank_account_id String @id @default(uuid())
+  bank_name     String?
+  account_number String?
+  account_type  String?
+  label         String?
+  updated_at    BigInt  @default(0)
+  deleted       Int     @default(0)
+
+  contact Contact @relation(fields: [user_id, contact_id], references: [user_id, contact_id])
+
+  @@index([user_id, contact_id])
+}
+
+model ContactRelationship {
+  user_id              String
+  contact_id           String
+  relationship_id      String @id @default(uuid())
+  related_contact_id   String?
+  type_id              Int?
+  updated_at           BigInt @default(0)
+  deleted              Int    @default(0)
+
+  contact Contact @relation(fields: [user_id, contact_id], references: [user_id, contact_id])
+
+  @@index([user_id, contact_id])
+}
+
+model ContactOrganization {
+  user_id         String
+  contact_id      String
+  org_id          String   @id @default(uuid())
+  organization_id Int?
+  achievement     String?
+  date            DateTime?
+  updated_at      BigInt   @default(0)
+  deleted         Int      @default(0)
+
+  contact Contact @relation(fields: [user_id, contact_id], references: [user_id, contact_id])
+
+  @@index([user_id, contact_id])
+}
+
+model MaritalStatus {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+
+  @@map("marital_status")
+}
+
+model RelationshipType {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+
+  @@map("relationship_type")
+}
+
+model Organization {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+
+  @@map("organization")
+}

@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+vendor/
+
+# SvelteKit
+.svelte-kit/
+build/
+dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vercel
+.vercel/
