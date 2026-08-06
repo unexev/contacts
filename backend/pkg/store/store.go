@@ -39,6 +39,13 @@ func clampLimit(limit int) int {
 // ──────────────────────────── Auth ────────────────────────────
 
 func (s *Store) Register(email, name, passwordHash string) (model.User, error) {
+	ctx := context.Background()
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return model.User{}, err
+	}
+	defer tx.Rollback(ctx)
+
 	u := model.User{
 		UserID: genID("usr"),
 		Email:  email,
@@ -46,11 +53,17 @@ func (s *Store) Register(email, name, passwordHash string) (model.User, error) {
 		Role:   "user",
 		Status: "active",
 	}
-	_, err := s.pool.Exec(context.Background(),
+
+	_, err = tx.Exec(ctx,
 		`INSERT INTO users (user_id, email, name, password_hash, role, status, created_at)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		u.UserID, u.Email, u.Name, passwordHash, u.Role, u.Status, time.Now().UnixMilli(),
 	)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	err = tx.Commit(ctx)
 	return u, err
 }
 
@@ -63,11 +76,20 @@ func (s *Store) GetUserByEmail(email string) (model.User, error) {
 }
 
 func (s *Store) GetUserByEmailWithHash(email string) (model.User, string, error) {
+	ctx := context.Background()
 	var u model.User
 	var hash string
-	err := s.pool.QueryRow(context.Background(),
-		`SELECT user_id, email, name, role, status, password_hash FROM users WHERE email = $1`, email,
-	).Scan(&u.UserID, &u.Email, &u.Name, &u.Role, &u.Status, &hash)
+	var err error
+
+	for attempt := 0; attempt < 3; attempt++ {
+		err = s.pool.QueryRow(ctx,
+			`SELECT user_id, email, name, role, status, password_hash FROM users WHERE email = $1`, email,
+		).Scan(&u.UserID, &u.Email, &u.Name, &u.Role, &u.Status, &hash)
+		if err == nil {
+			return u, hash, nil
+		}
+		time.Sleep(time.Duration(100*(attempt+1)) * time.Millisecond)
+	}
 	return u, hash, err
 }
 
