@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 
 	"contacts/pkg/auth"
 	"contacts/pkg/model"
@@ -29,10 +31,13 @@ func (a *App) Handler() http.Handler {
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
-			allowed := map[string]bool{
-				"http://localhost:5173":  true,
-				"http://localhost:4173":  true,
-				"https://contactsapp.unexev.workers.dev": true,
+			allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+			if allowedOrigins == "" {
+				allowedOrigins = "http://localhost:5173,http://localhost:4173"
+			}
+			allowed := make(map[string]bool)
+			for _, o := range strings.Split(allowedOrigins, ",") {
+				allowed[strings.TrimSpace(o)] = true
 			}
 			if allowed[origin] {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
