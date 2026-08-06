@@ -119,7 +119,7 @@ func (s *Store) ListContacts(userID, search string, limit, offset int) ([]model.
 
 		rows, err = s.pool.Query(ctx,
 			`SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
-			        c.birthdate, c.gender, COALESCE(c.status_id, ''), COALESCE(ms.marital_status, ''), c.updated_at
+			        c.birthdate, c.gender, c.status_id, ms.marital_status, c.updated_at
 			 FROM contacts c
 			 LEFT JOIN marital_status ms ON c.status_id = ms.status_id
 			 WHERE c.user_id = $1 AND c.deleted = 0
@@ -144,7 +144,7 @@ func (s *Store) ListContacts(userID, search string, limit, offset int) ([]model.
 
 		rows, err = s.pool.Query(ctx,
 			`SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
-			        c.birthdate, c.gender, COALESCE(c.status_id, ''), COALESCE(ms.marital_status, ''), c.updated_at
+			        c.birthdate, c.gender, c.status_id, ms.marital_status, c.updated_at
 			 FROM contacts c
 			 LEFT JOIN marital_status ms ON c.status_id = ms.status_id
 			 WHERE c.user_id = $1 AND c.deleted = 0
@@ -176,7 +176,7 @@ func (s *Store) GetContact(userID, contactID string) (model.Contact, error) {
 	var c model.Contact
 	err := s.pool.QueryRow(context.Background(),
 		`SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
-		        c.birthdate, c.gender, COALESCE(c.status_id, ''), COALESCE(ms.marital_status, ''), c.updated_at
+		        c.birthdate, c.gender, c.status_id, ms.marital_status, c.updated_at
 		 FROM contacts c
 		 LEFT JOIN marital_status ms ON c.status_id = ms.status_id
 		 WHERE c.user_id = $1 AND c.contact_id = $2 AND c.deleted = 0`,
@@ -967,7 +967,7 @@ func (s *Store) GetBirthdaysThisMonth(userID string, month, year, limit, offset 
 
 	rows, err := s.pool.Query(ctx,
 		`SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
-		        c.birthdate, c.gender, COALESCE(c.status_id, ''), COALESCE(ms.marital_status, ''), c.updated_at
+		        c.birthdate, c.gender, c.status_id, ms.marital_status, c.updated_at
 		 FROM contacts c
 		 LEFT JOIN marital_status ms ON c.status_id = ms.status_id
 		 WHERE c.user_id = $1 AND c.deleted = 0

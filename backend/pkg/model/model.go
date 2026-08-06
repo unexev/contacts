@@ -1,5 +1,10 @@
 package model
 
+import (
+	"database/sql"
+	"encoding/json"
+)
+
 type User struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
@@ -14,40 +19,67 @@ type AuthResponse struct {
 }
 
 type Contact struct {
-	UserID        string `json:"user_id"`
-	ContactID     string `json:"contact_id"`
-	FirstName     string `json:"first_name"`
-	MiddleName    string `json:"middle_name"`
-	Surname       string `json:"surname"`
-	Birthdate     string `json:"birthdate"`
-	Gender        string `json:"gender"`
-	StatusID      string `json:"status_id"`
-	MaritalStatus string `json:"marital_status"`
-	UpdatedAt     int64  `json:"updated_at"`
+	UserID        string         `json:"user_id"`
+	ContactID     string         `json:"contact_id"`
+	FirstName     string         `json:"first_name"`
+	MiddleName    sql.NullString `json:"middle_name"`
+	Surname       string         `json:"surname"`
+	Birthdate     sql.NullString `json:"birthdate"`
+	Gender        sql.NullString `json:"gender"`
+	StatusID      sql.NullString `json:"status_id"`
+	MaritalStatus sql.NullString `json:"marital_status"`
+	UpdatedAt     int64          `json:"updated_at"`
+}
+
+// MarshalJSON implements custom JSON marshaling to handle NullString
+func (c Contact) MarshalJSON() ([]byte, error) {
+	type Alias Contact
+	return json.Marshal(&struct {
+		Alias
+		MiddleName   string  `json:"middle_name"`
+		Birthdate    *string `json:"birthdate"`
+		Gender       *string `json:"gender"`
+		StatusID     *string `json:"status_id"`
+		MaritalStatus string `json:"marital_status"`
+	}{
+		Alias:         (Alias)(c),
+		MiddleName:    c.MiddleName.String,
+		Birthdate:     nullStrPtr(c.Birthdate),
+		Gender:        nullStrPtr(c.Gender),
+		StatusID:      nullStrPtr(c.StatusID),
+		MaritalStatus: c.MaritalStatus.String,
+	})
+}
+
+func nullStrPtr(ns sql.NullString) *string {
+	if ns.Valid {
+		return &ns.String
+	}
+	return nil
 }
 
 type ContactPhone struct {
-	UserID    string `json:"user_id"`
-	ContactID string `json:"contact_id"`
-	PhoneID   string `json:"phone_id"`
-	Phone     string `json:"phone"`
-	Label     string `json:"label"`
+	UserID    string         `json:"user_id"`
+	ContactID string         `json:"contact_id"`
+	PhoneID   string         `json:"phone_id"`
+	Phone     string         `json:"phone"`
+	Label     sql.NullString `json:"label"`
 }
 
 type ContactEmail struct {
-	UserID    string `json:"user_id"`
-	ContactID string `json:"contact_id"`
-	EmailID   string `json:"email_id"`
-	Email     string `json:"email"`
-	Label     string `json:"label"`
+	UserID    string         `json:"user_id"`
+	ContactID string         `json:"contact_id"`
+	EmailID   string         `json:"email_id"`
+	Email     string         `json:"email"`
+	Label     sql.NullString `json:"label"`
 }
 
 type ContactUrl struct {
-	UserID    string `json:"user_id"`
-	ContactID string `json:"contact_id"`
-	URLID     string `json:"url_id"`
-	URL       string `json:"url"`
-	Label     string `json:"label"`
+	UserID    string         `json:"user_id"`
+	ContactID string         `json:"contact_id"`
+	URLID     string         `json:"url_id"`
+	URL       string         `json:"url"`
+	Label     sql.NullString `json:"label"`
 }
 
 type ContactNote struct {
@@ -65,23 +97,23 @@ type ContactKeyword struct {
 }
 
 type IdentityCard struct {
-	UserID      string `json:"user_id"`
-	ContactID   string `json:"contact_id"`
-	CardID      string `json:"card_id"`
-	DocType     string `json:"doc_type"`
-	CardNumber  string `json:"card_number"`
-	IssueDate   string `json:"issue_date"`
-	ExpiryDate  string `json:"expiry_date"`
+	UserID      string         `json:"user_id"`
+	ContactID   string         `json:"contact_id"`
+	CardID      string         `json:"card_id"`
+	DocType     string         `json:"doc_type"`
+	CardNumber  string         `json:"card_number"`
+	IssueDate   sql.NullString `json:"issue_date"`
+	ExpiryDate  sql.NullString `json:"expiry_date"`
 }
 
 type ContactBankAccount struct {
-	UserID        string `json:"user_id"`
-	ContactID     string `json:"contact_id"`
-	BankAccountID string `json:"bank_account_id"`
-	BankName      string `json:"bank_name"`
-	AccountNumber string `json:"account_number"`
-	AccountType   string `json:"account_type"`
-	Label         string `json:"label"`
+	UserID        string         `json:"user_id"`
+	ContactID     string         `json:"contact_id"`
+	BankAccountID string         `json:"bank_account_id"`
+	BankName      sql.NullString `json:"bank_name"`
+	AccountNumber string         `json:"account_number"`
+	AccountType   sql.NullString `json:"account_type"`
+	Label         sql.NullString `json:"label"`
 }
 
 type ContactRelationship struct {
@@ -94,12 +126,12 @@ type ContactRelationship struct {
 }
 
 type ContactOrganization struct {
-	UserID           string `json:"user_id"`
-	ContactID        string `json:"contact_id"`
-	OrganizationID   string `json:"organization_id"`
-	OrganizationName string `json:"organization_name"`
-	Achievement      string `json:"achievement"`
-	Date             string `json:"date"`
+	UserID           string         `json:"user_id"`
+	ContactID        string         `json:"contact_id"`
+	OrganizationID   string         `json:"organization_id"`
+	OrganizationName string         `json:"organization_name"`
+	Achievement      sql.NullString `json:"achievement"`
+	Date             sql.NullString `json:"date"`
 }
 
 type MaritalStatus struct {

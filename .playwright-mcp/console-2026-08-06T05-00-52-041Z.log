@@ -1,0 +1,12 @@
+[   48266ms] TypeError: Cannot read properties of undefined (reading 'toUpperCase')
+    at https://contacts-9m7.pages.dev/_app/immutable/nodes/0.CCLcMIbw.js:1:1824
+    at $t (https://contacts-9m7.pages.dev/_app/immutable/chunks/BzrvKRcQ.js:1:21661)
+    at ft (https://contacts-9m7.pages.dev/_app/immutable/chunks/BzrvKRcQ.js:1:11338)
+    at Pt (https://contacts-9m7.pages.dev/_app/immutable/chunks/BzrvKRcQ.js:1:11388)
+    at De (https://contacts-9m7.pages.dev/_app/immutable/chunks/BzrvKRcQ.js:1:23656)
+    at Array.map (<anonymous>)
+    at https://contacts-9m7.pages.dev/_app/immutable/chunks/BzrvKRcQ.js:1:26007
+    at $t (https://contacts-9m7.pages.dev/_app/immutable/chunks/BzrvKRcQ.js:1:21661)
+    at pe (https://contacts-9m7.pages.dev/_app/immutable/chunks/BzrvKRcQ.js:1:22869)
+    at B (https://contacts-9m7.pages.dev/_app/immutable/chunks/BzrvKRcQ.js:1:25114)
+[   48741ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://contacts-lac-three.vercel.app/api/contacts:0

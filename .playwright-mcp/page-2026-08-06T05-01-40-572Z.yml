@@ -1,0 +1,9 @@
+- main [ref=f5e3]:
+  - generic [ref=f5e18]:
+    - generic [ref=f5e19]:
+      - generic: 🔍
+      - searchbox "Buscar contactos..." [ref=f5e20]
+    - generic [ref=f5e21]:
+      - generic [ref=f5e22]: ⌛
+      - generic [ref=f5e23]: Guardando...
+    - button "+" [ref=f5e24] [cursor=pointer]
