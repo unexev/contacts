@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 
 	"contacts/pkg/app"
@@ -12,6 +13,7 @@ import (
 	"contacts/pkg/migrate"
 	"contacts/pkg/store"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -31,7 +33,25 @@ func Handler() (http.Handler, error) {
 
 		ctx := context.Background()
 
-		pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+		pgxCfg, err := pgxpool.ParseConfig(cfg.DatabaseURL)
+		if err != nil {
+			initErr = err
+			return
+		}
+
+		// Supabase Transaction Pooler requires simple protocol
+		if strings.Contains(cfg.DatabaseURL, "pgbouncer=true") || strings.Contains(cfg.DatabaseURL, "pooler.supabase.com") {
+			pgxCfg.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+		}
+
+		if cfg.DBMaxConns > 0 {
+			pgxCfg.MaxConns = cfg.DBMaxConns
+		}
+		if cfg.DBMinConns > 0 {
+			pgxCfg.MinConns = cfg.DBMinConns
+		}
+
+		pool, err := pgxpool.NewWithConfig(ctx, pgxCfg)
 		if err != nil {
 			initErr = err
 			return
