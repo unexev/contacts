@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
-	"strings"
 
 	"contacts/pkg/auth"
 	"contacts/pkg/model"
@@ -28,29 +26,9 @@ func New(s *store.Store, a *auth.Manager) *App {
 func (a *App) Handler() http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			origin := r.Header.Get("Origin")
-			allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
-			if allowedOrigins == "" {
-				allowedOrigins = "http://localhost:5173,http://localhost:4173"
-			}
-			allowed := make(map[string]bool)
-			for _, o := range strings.Split(allowedOrigins, ",") {
-				allowed[strings.TrimSpace(o)] = true
-			}
-			if allowed[origin] {
-				w.Header().Set("Access-Control-Allow-Origin", origin)
-			}
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-			if r.Method == "OPTIONS" {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
-	})
+	r.Use(securityHeaders)
+	r.Use(CORS(getCORSOrigins()))
+	r.Use(rateLimit(30))
 
 	r.Route("/api", func(r chi.Router) {
 		r.Post("/auth/register", a.register)
