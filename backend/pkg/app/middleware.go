@@ -10,24 +10,24 @@ import (
 )
 
 // CORS permite los orígenes configurados (o todos si "*").
-func CORS(origins []string) func(http.Handler) http.Handler {
-	allowAll := false
-	set := map[string]bool{}
-	for _, o := range origins {
-		if o == "*" {
-			allowAll = true
-		}
-		set[o] = true
-	}
-
+// Lee CORS_ORIGINS de env en cada request para soportar cold starts de Vercel.
+func CORS() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
 			if origin != "" {
-				allowed := allowAll || set[origin]
-				if allowAll && !allowed {
-					allowed = false
+				origins := getCORSOrigins()
+				allowAll := false
+				set := map[string]bool{}
+				for _, o := range origins {
+					o = strings.TrimSpace(o)
+					if o == "*" {
+						allowAll = true
+					}
+					set[o] = true
 				}
+
+				allowed := allowAll || set[origin]
 				if allowed {
 					if allowAll {
 						w.Header().Set("Access-Control-Allow-Origin", "*")

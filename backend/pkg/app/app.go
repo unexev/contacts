@@ -27,7 +27,7 @@ func (a *App) Handler() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(securityHeaders)
-	r.Use(CORS(getCORSOrigins()))
+	r.Use(CORS())
 	r.Use(rateLimit(30))
 
 	r.Route("/api", func(r chi.Router) {
