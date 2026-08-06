@@ -47,9 +47,9 @@ func (s *Store) Register(email, name, passwordHash string) (model.User, error) {
 		Status: "active",
 	}
 	_, err := s.pool.Exec(context.Background(),
-		`INSERT INTO users (user_id, email, name, password_hash, role, status, created_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		u.UserID, u.Email, u.Name, passwordHash, u.Role, u.Status, time.Now().UnixMilli(),
+		`INSERT INTO users (user_id, email, name, password_hash, role, status)
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
+		u.UserID, u.Email, u.Name, passwordHash, u.Role, u.Status,
 	)
 	return u, err
 }
