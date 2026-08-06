@@ -248,7 +248,7 @@ func (a *App) listContacts(w http.ResponseWriter, r *http.Request) {
 
 	contacts, total, err := a.store.ListContacts(claims.UserID, search, limit, offset)
 	if err != nil {
-		log.Printf("listContacts error: %v", err)
+		log.Printf("listContacts error: user=%s search=%q limit=%d offset=%d err=%v", claims.UserID, search, limit, offset, err)
 		errResp(w, http.StatusInternalServerError, "failed to list contacts")
 		return
 	}

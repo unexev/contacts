@@ -2,7 +2,7 @@
 -- Adaptado de contacts-app-offline SQLite schema a PostgreSQL
 
 -- Usuarios
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS app_users (
     user_id TEXT PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
     name TEXT DEFAULT '',
