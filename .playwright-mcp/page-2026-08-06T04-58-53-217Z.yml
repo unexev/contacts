@@ -1,0 +1,16 @@
+- main [ref=f4e3]:
+  - generic [ref=f4e5]:
+    - heading "Iniciar Sesión" [level=1] [ref=f4e6]
+    - generic [ref=f4e18]: Failed to fetch
+    - generic [ref=f4e7]:
+      - generic [ref=f4e8]:
+        - generic [ref=f4e9]: Correo electrónico
+        - textbox "Correo electrónico" [ref=f4e10]: admin@contacts.com
+      - generic [ref=f4e11]:
+        - generic [ref=f4e12]: Contraseña
+        - textbox "Contraseña" [ref=f4e13]: Admin123!
+      - button "Entrar" [ref=f4e14] [cursor=pointer]
+    - paragraph [ref=f4e15]:
+      - text: ¿No tienes cuenta?
+      - link "Regístrate" [ref=f4e16] [cursor=pointer]:
+        - /url: /register

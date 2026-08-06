@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_BASE_URL || 'https://contacts-lac-three.vercel.app';
+const BASE = (import.meta.env.VITE_API_BASE_URL || 'https://contacts-lac-three.vercel.app').replace(/\/+$/, '');
 
 export const A = $state({ token: '', user: null });
 
