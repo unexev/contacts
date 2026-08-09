@@ -3,11 +3,21 @@ const BASE = (import.meta.env.VITE_API_BASE_URL || 'https://contacts-lac-three.v
 export const A = $state({ token: '', user: null });
 
 export function loadToken() {
-  // Token is now in httpOnly cookie, no need to load from localStorage
+  try {
+    const saved = localStorage.getItem('auth_token');
+    if (saved) A.token = saved;
+  } catch {}
 }
 
 export function setToken(t) {
   A.token = t;
+  try {
+    if (t) {
+      localStorage.setItem('auth_token', t);
+    } else {
+      localStorage.removeItem('auth_token');
+    }
+  } catch {}
 }
 
 export async function api(path, { method = 'GET', body, signal } = {}) {
