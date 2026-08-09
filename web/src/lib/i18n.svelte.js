@@ -4,6 +4,7 @@ const translations = {
   es: {
     appName: 'Contacts',
     navContacts: 'Contactos',
+    navCalendar: 'Calendario',
     navConfig: 'Configuración',
     loginTitle: 'Iniciar Sesión',
     loginEmail: 'Correo electrónico',
@@ -63,6 +64,7 @@ const translations = {
   en: {
     appName: 'Contacts',
     navContacts: 'Contacts',
+    navCalendar: 'Calendar',
     navConfig: 'Settings',
     loginTitle: 'Sign In',
     loginEmail: 'Email',

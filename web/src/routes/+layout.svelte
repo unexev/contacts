@@ -15,6 +15,7 @@
 
   let navItems = $derived([
     { href: '/contacts', label: t('navContacts') },
+    { href: '/calendar', label: t('navCalendar') },
     { href: '/config', label: t('navConfig') }
   ]);
 

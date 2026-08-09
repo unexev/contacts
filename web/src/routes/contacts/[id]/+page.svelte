@@ -47,7 +47,11 @@
 
   function formatValue(val) {
     if (val === null || val === undefined || val === '') return '—';
-    if (typeof val === 'object') return JSON.stringify(val);
+    if (typeof val === 'object') {
+      if (val.Valid !== undefined) return val.Valid && val.String ? val.String : '—';
+      if (val.time) return val.time;
+      return '—';
+    }
     return String(val);
   }
 
