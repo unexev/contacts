@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"crypto/rand"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -225,6 +226,13 @@ func (s *Store) DeleteContact(userID, contactID string) error {
 
 // ──────────────────────────── Contact Full ────────────────────
 
+func nullStr(ns sql.NullString) *string {
+	if ns.Valid {
+		return &ns.String
+	}
+	return nil
+}
+
 func (s *Store) GetContactFull(userID, contactID string) (map[string]interface{}, error) {
 	c, err := s.GetContact(userID, contactID)
 	if err != nil {
@@ -232,16 +240,16 @@ func (s *Store) GetContactFull(userID, contactID string) (map[string]interface{}
 	}
 
 	result := map[string]interface{}{
-		"user_id":     c.UserID,
-		"contact_id":  c.ContactID,
-		"first_name":  c.FirstName,
-		"middle_name": c.MiddleName,
-		"surname":     c.Surname,
-		"birthdate":   c.Birthdate,
-		"gender":      c.Gender,
-		"status_id":   c.StatusID,
-		"marital_status": c.MaritalStatus,
-		"updated_at":  c.UpdatedAt,
+		"user_id":        c.UserID,
+		"contact_id":     c.ContactID,
+		"first_name":     c.FirstName,
+		"middle_name":    nullStr(c.MiddleName),
+		"surname":        c.Surname,
+		"birthdate":      nullStr(c.Birthdate),
+		"gender":         nullStr(c.Gender),
+		"status_id":      nullStr(c.StatusID),
+		"marital_status": c.MaritalStatus.String,
+		"updated_at":     c.UpdatedAt,
 	}
 
 	if phones, _, err := s.ListPhones(userID, contactID, 10000, 0); err == nil {
