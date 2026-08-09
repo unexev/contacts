@@ -5,6 +5,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
+  import { ArrowLeft, Pencil, Trash2, RefreshCw, User } from '@lucide/svelte';
 
   let showDeleteModal = $state(false);
   let deleting = $state(false);
@@ -68,21 +69,41 @@
   function formatDate(d) {
     if (!d) return '—';
     try {
-      const date = new Date(d);
-      return date.toLocaleDateString();
-    } catch { return d; }
+      let dateStr = d;
+      if (typeof d === 'object' && d !== null) {
+        if (d.Valid && d.String) {
+          dateStr = d.String;
+        } else if (d.time) {
+          dateStr = d.time;
+        } else {
+          return '—';
+        }
+      }
+      if (!dateStr || dateStr === 'null' || dateStr === 'undefined') return '—';
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return '—';
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch {
+      return '—';
+    }
   }
 </script>
 
 <div class="detail-page animate-in">
   <div class="detail-header">
-    <button class="btn-ghost" onclick={() => goto('/contacts')}>{t('contactBack')}</button>
+    <button class="btn-ghost" onclick={() => goto('/contacts')}>
+      <ArrowLeft size={18} /> {t('contactBack')}
+    </button>
     <div class="detail-header-actions">
       <button class="btn-ghost" onclick={() => goto(`/contacts/${contactId}/edit`)}>
-        {t('contactEdit')}
+        <Pencil size={18} /> {t('contactEdit')}
       </button>
-      <button class="btn-ghost" style="color: var(--danger)" onclick={() => showDeleteModal = true}>
-        {t('contactDelete')}
+      <button class="btn-ghost danger" onclick={() => showDeleteModal = true}>
+        <Trash2 size={18} /> {t('contactDelete')}
       </button>
     </div>
   </div>
@@ -93,7 +114,7 @@
 
   {#if loading.value}
     <div class="empty-state">
-      <div class="empty-state-icon">&#8987;</div>
+      <RefreshCw class="spinning" size={48} />
     </div>
   {:else if currentContact.value}
     {@const c = currentContact.value}
@@ -279,8 +300,14 @@
 </div>
 
 {#if showDeleteModal}
-  <div class="modal-overlay" onclick={() => showDeleteModal = false}>
-    <div class="modal" onclick={(e) => e.stopPropagation()}>
+  <div
+    class="modal-overlay"
+    role="button"
+    tabindex="-1"
+    onclick={() => showDeleteModal = false}
+    onkeydown={(e) => e.key === 'Escape' && (showDeleteModal = false)}
+  >
+    <div class="modal" role="dialog" aria-modal="true" onclick={(e) => e.stopPropagation()}>
       <div class="modal-title">{t('contactDelete')}</div>
       <div class="modal-text">{t('contactDeleteHint')}</div>
       <div class="modal-actions">
@@ -308,6 +335,10 @@
   .detail-header-actions {
     display: flex;
     gap: 4px;
+  }
+
+  .btn-ghost.danger {
+    color: var(--danger);
   }
 
   .detail-avatar-section {
@@ -369,5 +400,14 @@
     font-size: 13px;
     color: var(--accent);
     border: 1px solid var(--border);
+  }
+
+  :global(.spinning) {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 </style>

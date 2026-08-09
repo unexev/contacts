@@ -1,6 +1,7 @@
 <script>
   import '../app.css';
   import { A, loadToken, setToken } from '$lib/api.svelte.js';
+  import { contacts } from '$lib/stores.svelte.js';
   import { locale, t } from '$lib/i18n.svelte.js';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
@@ -19,6 +20,7 @@
 
   let currentPath = $derived($page.url.pathname);
   let showNav = $derived(A.token && currentPath !== '/' && currentPath !== '/register');
+  let contactCount = $derived(contacts.value.length);
 
   function handleLogout() {
     setToken('');
@@ -42,6 +44,9 @@
             class:active={currentPath.startsWith(item.href)}
           >
             {item.label}
+            {#if item.href === '/contacts' && contactCount > 0}
+              <span class="badge">{contactCount}</span>
+            {/if}
           </a>
         {/each}
         <button class="topnav-lang" onclick={toggleLang}>
@@ -117,6 +122,21 @@
   .topnav-link.active {
     color: var(--accent);
     background: rgba(10, 132, 255, 0.1);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 5px;
+    margin-left: 6px;
+    background: var(--accent);
+    color: white;
+    border-radius: 9px;
+    font-size: 11px;
+    font-weight: 600;
   }
 
   .topnav-lang {

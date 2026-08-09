@@ -25,3 +25,19 @@ export async function api(path, { method = 'GET', body, signal } = {}) {
   }
   return raw?.data !== undefined ? raw.data : raw;
 }
+
+export async function apiRaw(path, { method = 'GET', body, signal } = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (A.token) headers.Authorization = 'Bearer ' + A.token;
+  const res = await fetch(BASE + path, { method, headers, body: body ? JSON.stringify(body) : undefined, signal, credentials: 'include' });
+  if (res.status === 401) { setToken(''); throw new Error('Invalid credentials'); }
+  const raw = await res.json().catch(() => null);
+  if (!res.ok) {
+    const safeMsg = res.status === 401 ? 'Invalid credentials' :
+                    res.status === 409 ? 'Invalid request' :
+                    res.status === 400 ? 'Invalid input' :
+                    'Something went wrong';
+    throw new Error(safeMsg);
+  }
+  return raw;
+}
