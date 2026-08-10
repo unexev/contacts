@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"contacts/pkg/model"
@@ -91,69 +90,87 @@ func (s *Store) GetUserByID(userID string) (model.User, error) {
 
 // ──────────────────────────── Contacts ────────────────────────
 
-func (s *Store) ListContacts(userID, search string, limit, offset int) ([]model.Contact, int, error) {
+func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCard, hasOrganization, hasMaritalStatus *bool, limit, offset int) ([]model.Contact, int, error) {
 	ctx := context.Background()
 	limit = clampLimit(limit)
 	if offset < 0 {
 		offset = 0
 	}
-	var total int
 
-	var rows pgx.Rows
-	var err error
+	where := []string{"c.user_id = $1", "c.deleted = 0"}
+	args := []any{userID}
+	argIdx := 2
 
 	if search != "" {
-		searchPattern := "%" + search + "%"
-		s.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM contacts c
-			 WHERE c.user_id = $1 AND c.deleted = 0
-			   AND (c.first_name ILIKE $2
-			        OR c.middle_name ILIKE $2
-			        OR c.surname ILIKE $2
-			        OR EXISTS (
-			            SELECT 1 FROM contact_keywords ck
-			            WHERE ck.user_id = c.user_id AND ck.contact_id = c.contact_id
-			              AND ck.keyword ILIKE $2
-			        ))`,
-			userID, searchPattern,
-		).Scan(&total)
-
-		rows, err = s.pool.Query(ctx,
-			`SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
-			        c.birthdate, c.gender, c.status_id, ms.marital_status, c.updated_at
-			 FROM contacts c
-			 LEFT JOIN marital_status ms ON c.status_id = ms.status_id
-			 WHERE c.user_id = $1 AND c.deleted = 0
-			   AND (c.first_name ILIKE $2
-			        OR c.middle_name ILIKE $2
-			        OR c.surname ILIKE $2
-			        OR EXISTS (
-			            SELECT 1 FROM contact_keywords ck
-			            WHERE ck.user_id = c.user_id AND ck.contact_id = c.contact_id
-			              AND ck.keyword ILIKE $2
-			        ))
-			 ORDER BY c.first_name, c.surname
-			 LIMIT $3 OFFSET $4`,
-			userID, searchPattern, limit, offset,
-		)
-	} else {
-		s.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM contacts c
-			 WHERE c.user_id = $1 AND c.deleted = 0`,
-			userID,
-		).Scan(&total)
-
-		rows, err = s.pool.Query(ctx,
-			`SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
-			        c.birthdate, c.gender, c.status_id, ms.marital_status, c.updated_at
-			 FROM contacts c
-			 LEFT JOIN marital_status ms ON c.status_id = ms.status_id
-			 WHERE c.user_id = $1 AND c.deleted = 0
-			 ORDER BY c.first_name, c.surname
-			 LIMIT $2 OFFSET $3`,
-			userID, limit, offset,
-		)
+		where = append(where, fmt.Sprintf("(c.first_name ILIKE $%d OR c.middle_name ILIKE $%d OR c.surname ILIKE $%d OR EXISTS (SELECT 1 FROM contact_keywords ck WHERE ck.user_id = c.user_id AND ck.contact_id = c.contact_id AND ck.keyword ILIKE $%d))", argIdx, argIdx, argIdx, argIdx))
+		args = append(args, "%"+search+"%")
+		argIdx++
 	}
+
+	if gender != "" {
+		where = append(where, fmt.Sprintf("c.gender = $%d", argIdx))
+		args = append(args, gender)
+		argIdx++
+	}
+
+	if hasBirthday != nil {
+		if *hasBirthday {
+			where = append(where, "c.birthdate IS NOT NULL AND c.birthdate != ''")
+		} else {
+			where = append(where, "(c.birthdate IS NULL OR c.birthdate = '')")
+		}
+	}
+
+	if hasIDCard != nil {
+		if *hasIDCard {
+			where = append(where, "EXISTS (SELECT 1 FROM identity_cards ic WHERE ic.user_id = c.user_id AND ic.contact_id = c.contact_id)")
+		} else {
+			where = append(where, "NOT EXISTS (SELECT 1 FROM identity_cards ic WHERE ic.user_id = c.user_id AND ic.contact_id = c.contact_id)")
+		}
+	}
+
+	if hasOrganization != nil {
+		if *hasOrganization {
+			where = append(where, "EXISTS (SELECT 1 FROM contact_organizations co WHERE co.user_id = c.user_id AND co.contact_id = c.contact_id)")
+		} else {
+			where = append(where, "NOT EXISTS (SELECT 1 FROM contact_organizations co WHERE co.user_id = c.user_id AND co.contact_id = c.contact_id)")
+		}
+	}
+
+	if hasMaritalStatus != nil {
+		if *hasMaritalStatus {
+			where = append(where, "c.status_id IS NOT NULL AND c.status_id != ''")
+		} else {
+			where = append(where, "(c.status_id IS NULL OR c.status_id = '')")
+		}
+	}
+
+	whereClause := ""
+	for i, w := range where {
+		if i == 0 {
+			whereClause = w
+		} else {
+			whereClause += " AND " + w
+		}
+	}
+
+	var total int
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM contacts c WHERE %s", whereClause)
+	s.pool.QueryRow(ctx, countQuery, args...).Scan(&total)
+
+	offsetIdx := argIdx
+	limitIdx := argIdx + 1
+	selectQuery := fmt.Sprintf(`
+		SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
+		       c.birthdate, c.gender, c.status_id, ms.marital_status, c.updated_at
+		FROM contacts c
+		LEFT JOIN marital_status ms ON c.status_id = ms.status_id
+		WHERE %s
+		ORDER BY c.first_name, c.surname
+		LIMIT $%d OFFSET $%d`, whereClause, limitIdx, offsetIdx)
+
+	queryArgs := append(args, limit, offset)
+	rows, err := s.pool.Query(ctx, selectQuery, queryArgs...)
 	if err != nil {
 		return nil, 0, err
 	}

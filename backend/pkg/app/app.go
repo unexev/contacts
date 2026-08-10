@@ -224,14 +224,46 @@ func (a *App) me(w http.ResponseWriter, r *http.Request) {
 
 // --- contacts ---
 
+type ContactFilters struct {
+	Search          string
+	Gender          string
+	HasBirthday     *bool
+	HasIDCard       *bool
+	HasOrganization *bool
+	HasMaritalStatus *bool
+}
+
+func parseBoolPtr(s string) *bool {
+	switch s {
+	case "true", "1", "yes":
+		v := true
+		return &v
+	case "false", "0", "no":
+		v := false
+		return &v
+	default:
+		return nil
+	}
+}
+
 func (a *App) listContacts(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
-	search := r.URL.Query().Get("search")
 	limit, offset := parsePagination(r)
 
-	contacts, total, err := a.store.ListContacts(claims.UserID, search, limit, offset)
+	filters := ContactFilters{
+		Search:           r.URL.Query().Get("search"),
+		Gender:           r.URL.Query().Get("gender"),
+		HasBirthday:      parseBoolPtr(r.URL.Query().Get("has_birthday")),
+		HasIDCard:        parseBoolPtr(r.URL.Query().Get("has_id_card")),
+		HasOrganization:  parseBoolPtr(r.URL.Query().Get("has_organization")),
+		HasMaritalStatus: parseBoolPtr(r.URL.Query().Get("has_marital_status")),
+	}
+
+	contacts, total, err := a.store.ListContacts(claims.UserID, filters.Search, filters.Gender,
+		filters.HasBirthday, filters.HasIDCard, filters.HasOrganization, filters.HasMaritalStatus,
+		limit, offset)
 	if err != nil {
-		log.Printf("listContacts error: user=%s search=%q limit=%d offset=%d err=%v", claims.UserID, search, limit, offset, err)
+		log.Printf("listContacts error: user=%s search=%q err=%v", claims.UserID, filters.Search, err)
 		errResp(w, http.StatusInternalServerError, "failed to list contacts")
 		return
 	}

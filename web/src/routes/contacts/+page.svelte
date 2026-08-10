@@ -4,13 +4,28 @@
   import { t } from '$lib/i18n.svelte.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { Search, RefreshCw, ArrowUpDown, Filter, ChevronRight } from '@lucide/svelte';
+  import { Search, RefreshCw, ArrowUpDown, Filter, ChevronRight, X, Check } from '@lucide/svelte';
 
   let debounceTimer = $state(null);
-  let sortBy = $state('name');
-  let sortDir = $state('asc');
   let showFilters = $state(false);
+  let showSort = $state(false);
+
   let filterGender = $state('');
+  let filterBirthday = $state('');
+  let filterIDCard = $state('');
+  let filterOrganization = $state('');
+  let filterMaritalStatus = $state('');
+
+  let sortBy = $state('firstname_az');
+
+  const sortOptions = [
+    { value: 'firstname_az', label: 'First name (A-Z)' },
+    { value: 'surname_az', label: 'Surname (A-Z)' },
+    { value: 'age_oldest', label: 'Age (oldest to youngest)' },
+    { value: 'age_youngest', label: 'Age (youngest to oldest)' },
+    { value: 'recent_newest', label: 'Recently added (newest first)' },
+    { value: 'recent_oldest', label: 'Recently added (oldest first)' }
+  ];
 
   onMount(() => {
     if (!A.token) { goto('/'); return; }
@@ -23,6 +38,14 @@
       let params = ['limit=500'];
       if (search.value) params.push(`search=${encodeURIComponent(search.value)}`);
       if (filterGender) params.push(`gender=${encodeURIComponent(filterGender)}`);
+      if (filterBirthday === 'yes') params.push('has_birthday=true');
+      if (filterBirthday === 'no') params.push('has_birthday=false');
+      if (filterIDCard === 'yes') params.push('has_id_card=true');
+      if (filterIDCard === 'no') params.push('has_id_card=false');
+      if (filterOrganization === 'yes') params.push('has_organization=true');
+      if (filterOrganization === 'no') params.push('has_organization=false');
+      if (filterMaritalStatus === 'yes') params.push('has_marital_status=true');
+      if (filterMaritalStatus === 'no') params.push('has_marital_status=false');
       const query = `?${params.join('&')}`;
       const raw = await apiRaw(`/api/contacts${query}`);
       const list = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
@@ -35,35 +58,40 @@
     }
   }
 
+  function getAge(birthdate) {
+    if (!birthdate) return 0;
+    let dateStr = birthdate;
+    if (typeof birthdate === 'object' && birthdate?.String) dateStr = birthdate.String;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 0;
+    const today = new Date();
+    let age = today.getFullYear() - d.getFullYear();
+    const m = today.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
+    return age;
+  }
+
   function sortContacts(list) {
     const sorted = [...list];
     sorted.sort((a, b) => {
-      let valA, valB;
-      if (sortBy === 'name') {
-        valA = `${a.first_name || ''} ${a.surname || ''}`.toLowerCase();
-        valB = `${b.first_name || ''} ${b.surname || ''}`.toLowerCase();
-      } else if (sortBy === 'updated') {
-        valA = a.updated_at || 0;
-        valB = b.updated_at || 0;
-      } else {
-        valA = a.first_name || '';
-        valB = b.first_name || '';
+      switch (sortBy) {
+        case 'firstname_az':
+          return (a.first_name || '').localeCompare(b.first_name || '');
+        case 'surname_az':
+          return (a.surname || '').localeCompare(b.surname || '');
+        case 'age_oldest':
+          return getAge(a.birthdate) - getAge(b.birthdate);
+        case 'age_youngest':
+          return getAge(b.birthdate) - getAge(a.birthdate);
+        case 'recent_newest':
+          return (b.updated_at || 0) - (a.updated_at || 0);
+        case 'recent_oldest':
+          return (a.updated_at || 0) - (b.updated_at || 0);
+        default:
+          return 0;
       }
-      if (valA < valB) return sortDir === 'asc' ? -1 : 1;
-      if (valA > valB) return sortDir === 'asc' ? 1 : -1;
-      return 0;
     });
     return sorted;
-  }
-
-  function toggleSort(field) {
-    if (sortBy === field) {
-      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-    } else {
-      sortBy = field;
-      sortDir = 'asc';
-    }
-    contacts.value = sortContacts(contacts.value);
   }
 
   function onSearchInput(val) {
@@ -72,9 +100,24 @@
     debounceTimer = setTimeout(fetchContacts, 300);
   }
 
-  function applyFilter() {
+  function applyFilters() {
     showFilters = false;
     fetchContacts();
+  }
+
+  function clearFilters() {
+    filterGender = '';
+    filterBirthday = '';
+    filterIDCard = '';
+    filterOrganization = '';
+    filterMaritalStatus = '';
+    fetchContacts();
+  }
+
+  function selectSort(val) {
+    sortBy = val;
+    showSort = false;
+    contacts.value = sortContacts(contacts.value);
   }
 
   function getInitials(c) {
@@ -92,6 +135,14 @@
     if (!e) return '';
     return typeof e === 'string' ? e : (e.address || e.email || e.value || '');
   }
+
+  let activeFilters = $derived(
+    (filterGender ? 1 : 0) +
+    (filterBirthday ? 1 : 0) +
+    (filterIDCard ? 1 : 0) +
+    (filterOrganization ? 1 : 0) +
+    (filterMaritalStatus ? 1 : 0)
+  );
 </script>
 
 <div class="contacts-page animate-in">
@@ -111,10 +162,13 @@
       <button class="icon-btn" onclick={() => fetchContacts()} title="Refresh">
         <RefreshCw size={18} />
       </button>
-      <button class="icon-btn" class:active={showFilters} onclick={() => showFilters = !showFilters} title="Filter">
+      <button class="icon-btn" class:active={showFilters} onclick={() => { showFilters = !showFilters; showSort = false; }} title="Filter">
         <Filter size={18} />
+        {#if activeFilters > 0}
+          <span class="filter-badge">{activeFilters}</span>
+        {/if}
       </button>
-      <button class="icon-btn" onclick={() => toggleSort('name')} title="Sort">
+      <button class="icon-btn" class:active={showSort} onclick={() => { showSort = !showSort; showFilters = false; }} title="Sort">
         <ArrowUpDown size={18} />
       </button>
     </div>
@@ -122,22 +176,80 @@
 
   {#if showFilters}
     <div class="filter-panel">
-      <div class="filter-group">
-        <label class="filter-label" for="gender-filter">Gender</label>
-        <select id="gender-filter" class="select" bind:value={filterGender}>
-          <option value="">All</option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-          <option value="other">Other</option>
-        </select>
+      <div class="filter-header">
+        <span class="filter-title">Filters</span>
+        <button class="filter-clear" onclick={clearFilters}>Clear all</button>
       </div>
-      <button class="btn btn-primary btn-full" onclick={applyFilter}>Apply</button>
+
+      <div class="filter-section">
+        <span class="filter-label">Gender</span>
+        <div class="filter-chips">
+          <button class="chip" class:active={filterGender === ''} onclick={() => filterGender = ''}>All</button>
+          <button class="chip" class:active={filterGender === 'male'} onclick={() => filterGender = 'male'}>Male</button>
+          <button class="chip" class:active={filterGender === 'female'} onclick={() => filterGender = 'female'}>Female</button>
+          <button class="chip" class:active={filterGender === 'other'} onclick={() => filterGender = 'other'}>No gender</button>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <span class="filter-label">Birthday</span>
+        <div class="filter-chips">
+          <button class="chip" class:active={filterBirthday === ''} onclick={() => filterBirthday = ''}>All</button>
+          <button class="chip" class:active={filterBirthday === 'yes'} onclick={() => filterBirthday = 'yes'}>With birthday</button>
+          <button class="chip" class:active={filterBirthday === 'no'} onclick={() => filterBirthday = 'no'}>No birthday</button>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <span class="filter-label">ID card</span>
+        <div class="filter-chips">
+          <button class="chip" class:active={filterIDCard === ''} onclick={() => filterIDCard = ''}>All</button>
+          <button class="chip" class:active={filterIDCard === 'yes'} onclick={() => filterIDCard = 'yes'}>With ID card</button>
+          <button class="chip" class:active={filterIDCard === 'no'} onclick={() => filterIDCard = 'no'}>Without ID card</button>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <span class="filter-label">Organization</span>
+        <div class="filter-chips">
+          <button class="chip" class:active={filterOrganization === ''} onclick={() => filterOrganization = ''}>All</button>
+          <button class="chip" class:active={filterOrganization === 'yes'} onclick={() => filterOrganization = 'yes'}>With organization</button>
+          <button class="chip" class:active={filterOrganization === 'no'} onclick={() => filterOrganization = 'no'}>Without organization</button>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <span class="filter-label">Marital status</span>
+        <div class="filter-chips">
+          <button class="chip" class:active={filterMaritalStatus === ''} onclick={() => filterMaritalStatus = ''}>All</button>
+          <button class="chip" class:active={filterMaritalStatus === 'yes'} onclick={() => filterMaritalStatus = 'yes'}>With marital status</button>
+          <button class="chip" class:active={filterMaritalStatus === 'no'} onclick={() => filterMaritalStatus = 'no'}>Without marital status</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick={applyFilters}>Apply filters</button>
+    </div>
+  {/if}
+
+  {#if showSort}
+    <div class="sort-panel">
+      <div class="sort-header">
+        <span class="sort-title">Sort by</span>
+      </div>
+      {#each sortOptions as opt}
+        <button class="sort-option" class:active={sortBy === opt.value} onclick={() => selectSort(opt.value)}>
+          <span>{opt.label}</span>
+          {#if sortBy === opt.value}
+            <Check size={18} class="sort-check" />
+          {/if}
+        </button>
+      {/each}
     </div>
   {/if}
 
   {#if loading.value && contacts.value.length === 0}
     <div class="empty-state">
-      <RefreshCw class="empty-state-icon spinning" size={48} />
+      <RefreshCw class="spinning" size={48} />
       <div class="empty-state-text">{t('msgSaving')}</div>
     </div>
   {:else if contacts.value.length === 0}
@@ -201,6 +313,7 @@
     color: var(--accent);
     cursor: pointer;
     transition: background 0.15s;
+    position: relative;
   }
 
   .icon-btn:hover {
@@ -211,6 +324,22 @@
     background: rgba(10, 132, 255, 0.2);
   }
 
+  .filter-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .filter-panel {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -219,15 +348,116 @@
     margin-bottom: 12px;
   }
 
-  .filter-group {
-    margin-bottom: 12px;
+  .filter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .filter-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .filter-clear {
+    font-size: 13px;
+    color: var(--accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .filter-section {
+    margin-bottom: 16px;
   }
 
   .filter-label {
     display: block;
     font-size: 13px;
     color: var(--text2);
-    margin-bottom: 6px;
+    margin-bottom: 8px;
+  }
+
+  .filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .chip {
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  .chip:hover {
+    border-color: var(--text2);
+  }
+
+  .chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  .sort-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+
+  .sort-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sort-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .sort-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 14px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 15px;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+
+  .sort-option:last-child {
+    border-bottom: none;
+  }
+
+  .sort-option:hover {
+    background: var(--surface2);
+  }
+
+  .sort-option.active {
+    color: var(--accent);
+  }
+
+  :global(.sort-check) {
+    color: var(--accent);
   }
 
   .contacts-list {
