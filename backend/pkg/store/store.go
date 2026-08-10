@@ -158,8 +158,8 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM contacts c WHERE %s", whereClause)
 	s.pool.QueryRow(ctx, countQuery, args...).Scan(&total)
 
-	offsetIdx := argIdx
-	limitIdx := argIdx + 1
+	limitIdx := argIdx
+	offsetIdx := argIdx + 1
 	selectQuery := fmt.Sprintf(`
 		SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
 		       c.birthdate, c.gender, c.status_id, ms.marital_status, c.updated_at
