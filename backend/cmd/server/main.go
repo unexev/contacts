@@ -3,12 +3,17 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"contacts/pkg/server"
 )
 
 func main() {
-	addr := ":8080"
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	addr := ":" + port
 	log.Printf("starting server on %s", addr)
 	h := server.HandlerOrFatal()
 	if err := http.ListenAndServe(addr, h); err != nil {

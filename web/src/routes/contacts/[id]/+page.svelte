@@ -6,6 +6,7 @@
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { ArrowLeft, Pencil, Trash2, RefreshCw, User } from '@lucide/svelte';
+  import { calculateAge, parseContactDate } from '$lib/date.js';
 
   let showDeleteModal = $state(false);
   let deleting = $state(false);
@@ -57,12 +58,12 @@
 
   function formatPhone(p) {
     if (typeof p === 'string') return p;
-    return p.number || p.value || '—';
+    return p.phone || p.number || p.value || '—';
   }
 
   function formatEmail(e) {
     if (typeof e === 'string') return e;
-    return e.address || e.email || e.value || '—';
+    return e.email || e.address || e.value || '—';
   }
 
   function formatUrl(u) {
@@ -84,8 +85,8 @@
         }
       }
       if (!dateStr || dateStr === 'null' || dateStr === 'undefined') return '—';
-      const date = new Date(dateStr);
-      if (isNaN(date.getTime())) return '—';
+      const date = parseContactDate(dateStr);
+      if (!date) return '—';
       return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -153,7 +154,7 @@
         </div>
         <div class="field-row">
           <span class="field-label">{t('contactBirthdate')}</span>
-          <span class="field-value">{formatDate(c.birthdate)}</span>
+          <span class="field-value">{formatDate(c.birthdate)}{#if calculateAge(c.birthdate) !== null}<small class="field-helper">{calculateAge(c.birthdate)} años</small>{/if}</span>
         </div>
         <div class="field-row">
           <span class="field-label">{t('contactGender')}</span>
@@ -211,13 +212,15 @@
       </div>
     {/if}
 
-    {#if c.notes}
+    {#if c.notes?.length}
       <div class="section-card">
         <div class="section-card-header">
           <span class="section-card-title">{t('contactNotes')}</span>
         </div>
         <div class="section-card-body">
-          <div class="notes-text">{c.notes}</div>
+          {#each c.notes as note}
+            <div class="notes-text">{note.note || note.text || formatValue(note)}</div>
+          {/each}
         </div>
       </div>
     {/if}
@@ -245,8 +248,8 @@
         <div class="section-card-body">
           {#each c.identity_cards as card}
             <div class="field-row">
-              <span class="field-label">{card.type || 'ID'}</span>
-              <span class="field-value">{card.number || card.value || '—'}</span>
+              <span class="field-label">{card.doc_type || card.type || 'ID'}</span>
+              <span class="field-value">{card.card_number || card.number || card.value || '—'}</span>
             </div>
           {/each}
         </div>
@@ -261,8 +264,8 @@
         <div class="section-card-body">
           {#each c.bank_accounts as acc}
             <div class="field-row">
-              <span class="field-label">{acc.bank || acc.name || 'Account'}</span>
-              <span class="field-value">{acc.number || acc.iban || acc.value || '—'}</span>
+              <span class="field-label">{acc.bank_name || acc.bank || acc.name || 'Account'}</span>
+              <span class="field-value">{acc.account_number || acc.number || acc.iban || acc.value || '—'}</span>
             </div>
           {/each}
         </div>
@@ -277,8 +280,8 @@
         <div class="section-card-body">
           {#each c.relationships as rel}
             <div class="field-row">
-              <span class="field-label">{rel.type || rel.name || 'Contact'}</span>
-              <span class="field-value">{rel.contact_name || rel.name || '—'}</span>
+              <span class="field-label">{rel.type_label || rel.type || rel.name || 'Contact'}</span>
+              <span class="field-value">{rel.related_contact_name || rel.contact_name || rel.name || '—'}</span>
             </div>
           {/each}
         </div>
@@ -293,8 +296,8 @@
         <div class="section-card-body">
           {#each c.organizations as org}
             <div class="field-row">
-              <span class="field-label">{org.name || 'Organization'}</span>
-              <span class="field-value">{org.role || org.title || '—'}</span>
+              <span class="field-label">{org.organization_name || org.name || 'Organization'}</span>
+              <span class="field-value">{org.achievement || org.role || org.title || '—'}</span>
             </div>
           {/each}
         </div>
@@ -405,6 +408,8 @@
     color: var(--accent);
     border: 1px solid var(--border);
   }
+
+  .field-helper { display: block; color: var(--text2); font-size: 12px; margin-top: 2px; }
 
   :global(.spinning) {
     animation: spin 1s linear infinite;

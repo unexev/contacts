@@ -1,6 +1,7 @@
 package app
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -225,11 +226,11 @@ func (a *App) me(w http.ResponseWriter, r *http.Request) {
 // --- contacts ---
 
 type ContactFilters struct {
-	Search          string
-	Gender          string
-	HasBirthday     *bool
-	HasIDCard       *bool
-	HasOrganization *bool
+	Search           string
+	Gender           string
+	HasBirthday      *bool
+	HasIDCard        *bool
+	HasOrganization  *bool
 	HasMaritalStatus *bool
 }
 
@@ -275,10 +276,25 @@ func (a *App) listContacts(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) createContact(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
-	var c model.Contact
-	if err := decodeJSON(r, &c); err != nil {
+	var req struct {
+		FirstName  string `json:"first_name"`
+		MiddleName string `json:"middle_name"`
+		Surname    string `json:"surname"`
+		Birthdate  string `json:"birthdate"`
+		Gender     string `json:"gender"`
+		StatusID   string `json:"status_id"`
+	}
+	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
+	}
+	c := model.Contact{
+		FirstName:  req.FirstName,
+		Surname:    req.Surname,
+		MiddleName: sql.NullString{String: req.MiddleName, Valid: req.MiddleName != ""},
+		Birthdate:  sql.NullString{String: req.Birthdate, Valid: req.Birthdate != ""},
+		Gender:     sql.NullString{String: req.Gender, Valid: req.Gender != ""},
+		StatusID:   sql.NullString{String: req.StatusID, Valid: req.StatusID != ""},
 	}
 
 	created, err := a.store.CreateContact(claims.UserID, c)
@@ -305,13 +321,26 @@ func (a *App) updateContact(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
 
-	var c model.Contact
-	if err := decodeJSON(r, &c); err != nil {
+	var req struct {
+		FirstName  string `json:"first_name"`
+		MiddleName string `json:"middle_name"`
+		Surname    string `json:"surname"`
+		Birthdate  string `json:"birthdate"`
+		Gender     string `json:"gender"`
+		StatusID   string `json:"status_id"`
+	}
+	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	c.UserID = claims.UserID
-	c.ContactID = contactID
+	c := model.Contact{
+		UserID: claims.UserID, ContactID: contactID,
+		FirstName: req.FirstName, Surname: req.Surname,
+		MiddleName: sql.NullString{String: req.MiddleName, Valid: req.MiddleName != ""},
+		Birthdate:  sql.NullString{String: req.Birthdate, Valid: req.Birthdate != ""},
+		Gender:     sql.NullString{String: req.Gender, Valid: req.Gender != ""},
+		StatusID:   sql.NullString{String: req.StatusID, Valid: req.StatusID != ""},
+	}
 
 	if err := a.store.UpdateContact(claims.UserID, c); err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to update contact")

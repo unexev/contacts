@@ -4,18 +4,17 @@
   import { contacts } from '$lib/stores.svelte.js';
   import { locale, t } from '$lib/i18n.svelte.js';
   import { page } from '$app/stores';
-  import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
 
   let { children } = $props();
 
-  onMount(() => {
-    loadToken();
-  });
+  // Restore the session before child routes run their access checks.
+  loadToken();
 
   let navItems = $derived([
     { href: '/contacts', label: t('navContacts') },
     { href: '/calendar', label: t('navCalendar') },
+    { href: '/menu', label: t('navMenu') },
     { href: '/config', label: t('navConfig') }
   ]);
 

@@ -31,9 +31,10 @@
     if (surname.length > 255) { error = 'Surname too long'; return; }
     saving = true;
     try {
-      const body = { first_name, middle_name, surname, gender };
+      const body = { first_name, middle_name, surname };
       if (birthdate) body.birthdate = birthdate;
-      if (marital_status) body.marital_status = marital_status;
+      if (gender) body.gender = gender;
+      if (marital_status) body.status_id = marital_status;
 
       const data = await api('/api/contacts', { method: 'POST', body });
       const id = data.contact_id || data.id;
@@ -112,9 +113,8 @@
         <label class="form-label" for="gender">{t('contactGender')}</label>
         <select id="gender" class="select" bind:value={gender}>
           <option value="">{t('contactGenderUnspecified')}</option>
-          <option value="male">{t('contactGenderMale')}</option>
-          <option value="female">{t('contactGenderFemale')}</option>
-          <option value="other">{t('contactGenderOther')}</option>
+           <option value="MALE">{t('contactGenderMale')}</option>
+           <option value="FEMALE">{t('contactGenderFemale')}</option>
         </select>
       </div>
 

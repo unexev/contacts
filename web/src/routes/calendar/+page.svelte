@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { ChevronLeft, ChevronRight, Cake } from '@lucide/svelte';
+  import { calculateAge, parseContactDate } from '$lib/date.js';
 
   let currentMonth = $state(new Date().getMonth());
   let currentYear = $state(new Date().getFullYear());
@@ -23,19 +24,15 @@
   });
 
   async function fetchBirthdays() {
-    loading.value = true;
+    loading = true;
     try {
       const data = await api(`/api/birthdays?month=${currentMonth + 1}&year=${currentYear}`);
       const list = Array.isArray(data) ? data : (data?.data || data?.contacts || []);
       const map = {};
       list.forEach(c => {
         if (!c.birthdate) return;
-        let dateStr = c.birthdate;
-        if (typeof c.birthdate === 'object' && c.birthdate?.String) {
-          dateStr = c.birthdate.String;
-        }
-        const d = new Date(dateStr);
-        if (!isNaN(d.getTime())) {
+        const d = parseContactDate(c.birthdate);
+        if (d) {
           const day = d.getDate();
           if (!map[day]) map[day] = [];
           map[day].push(c);
@@ -46,7 +43,7 @@
       if (err.message === 'unauthorized' || err.message === 'Invalid credentials') goto('/');
       birthdays = {};
     } finally {
-      loading.value = false;
+      loading = false;
     }
   }
 
@@ -94,19 +91,8 @@
 
   function getAge(birthdate) {
     if (!birthdate) return '';
-    let dateStr = birthdate;
-    if (typeof birthdate === 'object' && birthdate?.String) {
-      dateStr = birthdate.String;
-    }
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return '';
-    const today = new Date();
-    let age = today.getFullYear() - d.getFullYear();
-    const m = today.getMonth() - d.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < d.getDate())) {
-      age--;
-    }
-    return `Turns ${age} years`;
+    const age = calculateAge(birthdate);
+    return age === null ? '' : `Turns ${age} years`;
   }
 
   function getInitials(c) {

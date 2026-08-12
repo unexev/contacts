@@ -5,6 +5,7 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { Search, RefreshCw, ArrowUpDown, Filter, ChevronRight, X, Check } from '@lucide/svelte';
+  import { calculateAge } from '$lib/date.js';
 
   let debounceTimer = $state(null);
   let showFilters = $state(false);
@@ -60,15 +61,7 @@
 
   function getAge(birthdate) {
     if (!birthdate) return 0;
-    let dateStr = birthdate;
-    if (typeof birthdate === 'object' && birthdate?.String) dateStr = birthdate.String;
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return 0;
-    const today = new Date();
-    let age = today.getFullYear() - d.getFullYear();
-    const m = today.getMonth() - d.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
-    return age;
+    return calculateAge(birthdate) ?? 0;
   }
 
   function sortContacts(list) {

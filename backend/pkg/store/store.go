@@ -985,9 +985,8 @@ func (s *Store) GetBirthdaysThisMonth(userID string, month, year, limit, offset 
 	s.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM contacts c
 		 WHERE c.user_id = $1 AND c.deleted = 0
-		   AND EXTRACT(MONTH FROM c.birthdate::date) = $2
-		   AND EXTRACT(YEAR  FROM c.birthdate::date) = $3`,
-		userID, month, year,
+		   AND EXTRACT(MONTH FROM (CASE WHEN c.birthdate IS NULL OR c.birthdate = '' THEN NULL::date WHEN c.birthdate ~ '^\d{2}/\d{2}/\d{4}$' THEN to_date(c.birthdate, 'DD/MM/YYYY') ELSE c.birthdate::date END)) = $2`,
+		userID, month,
 	).Scan(&total)
 
 	rows, err := s.pool.Query(ctx,
@@ -996,11 +995,10 @@ func (s *Store) GetBirthdaysThisMonth(userID string, month, year, limit, offset 
 		 FROM contacts c
 		 LEFT JOIN marital_status ms ON c.status_id = ms.status_id
 		 WHERE c.user_id = $1 AND c.deleted = 0
-		   AND EXTRACT(MONTH FROM c.birthdate::date) = $2
-		   AND EXTRACT(YEAR  FROM c.birthdate::date) = $3
-		 ORDER BY EXTRACT(DAY FROM c.birthdate::date)
-		 LIMIT $4 OFFSET $5`,
-		userID, month, year, limit, offset,
+		   AND EXTRACT(MONTH FROM (CASE WHEN c.birthdate IS NULL OR c.birthdate = '' THEN NULL::date WHEN c.birthdate ~ '^\d{2}/\d{2}/\d{4}$' THEN to_date(c.birthdate, 'DD/MM/YYYY') ELSE c.birthdate::date END)) = $2
+		 ORDER BY EXTRACT(DAY FROM (CASE WHEN c.birthdate IS NULL OR c.birthdate = '' THEN NULL::date WHEN c.birthdate ~ '^\d{2}/\d{2}/\d{4}$' THEN to_date(c.birthdate, 'DD/MM/YYYY') ELSE c.birthdate::date END))
+		 LIMIT $3 OFFSET $4`,
+		userID, month, limit, offset,
 	)
 	if err != nil {
 		return nil, 0, err
