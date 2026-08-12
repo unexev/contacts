@@ -42,7 +42,7 @@ func main() {
 	hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	userID := fmt.Sprintf("usr_%d", time.Now().UnixNano()%0xFFFFFFFF)
 	_, err = pool.Exec(ctx,
-		`INSERT INTO users (user_id, email, name, password_hash, role, status, created_at)
+		`INSERT INTO app_users (user_id, email, name, password_hash, role, status, created_at)
 		 VALUES ($1, $2, $3, $4, 'user', 'active', $5)`,
 		userID, email, email, string(hash), time.Now().UnixMilli())
 	if err != nil {
@@ -72,6 +72,52 @@ func main() {
 	}
 	rows.Close()
 	fmt.Printf("Contacts: %d\n", count)
+
+	// Organizations and their contact links
+	orgRows, _ := sqlite.Query("SELECT organization_id, name FROM organization")
+	orgCount := 0
+	for orgRows.Next() {
+		var oid, name string
+		orgRows.Scan(&oid, &name)
+		_, _ = pool.Exec(ctx, `INSERT INTO organizations (organization_id, name) VALUES ($1, $2) ON CONFLICT (organization_id) DO NOTHING`, oid, name)
+		orgCount++
+	}
+	orgRows.Close()
+	fmt.Printf("Organizations: %d\n", orgCount)
+
+	coRows, _ := sqlite.Query("SELECT contact_id, organization_id, achievement, date FROM contact_organization")
+	coCount := 0
+	for coRows.Next() {
+		var cid, oid, achievement string
+		var date sql.NullString
+		coRows.Scan(&cid, &oid, &achievement, &date)
+		if nc, ok := contactMap[cid]; ok {
+			_, _ = pool.Exec(ctx,
+				`INSERT INTO contact_organizations (user_id, contact_id, organization_id, achievement, date, updated_at, deleted)
+				 VALUES ($1, $2, $3, $4, $5, $6, 0) ON CONFLICT DO NOTHING`,
+				userID, nc, oid, achievement, nullStr(date), time.Now().UnixMilli())
+			coCount++
+		}
+	}
+	coRows.Close()
+	fmt.Printf("Contact organizations: %d\n", coCount)
+
+	// Keywords
+	kwRows, _ := sqlite.Query("SELECT contact_id, keyword FROM contact_keyword")
+	kwCount := 0
+	for kwRows.Next() {
+		var cid, keyword string
+		kwRows.Scan(&cid, &keyword)
+		if nc, ok := contactMap[cid]; ok {
+			_, _ = pool.Exec(ctx,
+				`INSERT INTO contact_keywords (user_id, contact_id, keyword, updated_at, deleted)
+				 VALUES ($1, $2, $3, $4, 0) ON CONFLICT DO NOTHING`,
+				userID, nc, keyword, time.Now().UnixMilli())
+			kwCount++
+		}
+	}
+	kwRows.Close()
+	fmt.Printf("Keywords: %d\n", kwCount)
 
 	// Phones
 	phRows, _ := sqlite.Query("SELECT contact_id, phone, label FROM contact_phone")
