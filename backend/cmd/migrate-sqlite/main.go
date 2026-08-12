@@ -19,9 +19,10 @@ func main() {
 	pgURL := os.Getenv("DATABASE_URL")
 	email := os.Getenv("USER_EMAIL")
 	password := os.Getenv("USER_PASSWORD")
+	userID := os.Getenv("USER_ID")
 
-	if dbPath == "" || pgURL == "" || email == "" || password == "" {
-		log.Fatal("Set SQLITE_DB, DATABASE_URL, USER_EMAIL, USER_PASSWORD")
+	if dbPath == "" || pgURL == "" || (userID == "" && (email == "" || password == "")) {
+		log.Fatal("Set SQLITE_DB, DATABASE_URL and either USER_ID or USER_EMAIL/USER_PASSWORD")
 	}
 
 	fmt.Println("=== Migration ===")
@@ -38,15 +39,28 @@ func main() {
 	pool, _ := pgxpool.NewWithConfig(ctx, cfg)
 	defer pool.Close()
 
-	// Create user
-	hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	userID := fmt.Sprintf("usr_%d", time.Now().UnixNano()%0xFFFFFFFF)
-	_, err = pool.Exec(ctx,
-		`INSERT INTO app_users (user_id, email, name, password_hash, role, status, created_at)
-		 VALUES ($1, $2, $3, $4, 'user', 'active', $5)`,
-		userID, email, email, string(hash), time.Now().UnixMilli())
-	if err != nil {
-		log.Fatalf("user: %v", err)
+	if userID == "" {
+		// Create a user only when the migration is run as an import.
+		hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		userID = fmt.Sprintf("usr_%d", time.Now().UnixNano()%0xFFFFFFFF)
+		_, err = pool.Exec(ctx,
+			`INSERT INTO app_users (user_id, email, name, password_hash, role, status, created_at)
+			 VALUES ($1, $2, $3, $4, 'user', 'active', $5)`,
+			userID, email, email, string(hash), time.Now().UnixMilli())
+		if err != nil {
+			log.Fatalf("user: %v", err)
+		}
+	} else if os.Getenv("REPLACE_EXISTING") == "1" {
+		// Remove only this user's records; catalogs remain shared and untouched.
+		for _, table := range []string{
+			"contact_organizations", "contact_relationships", "contact_bank_accounts",
+			"identity_cards", "contact_keywords", "contact_notes", "contact_urls",
+			"contact_emails", "contact_phones", "contacts",
+		} {
+			if _, err = pool.Exec(ctx, "DELETE FROM "+table+" WHERE user_id = $1", userID); err != nil {
+				log.Fatalf("clear %s: %v", table, err)
+			}
+		}
 	}
 	fmt.Printf("User: %s\n", userID)
 
