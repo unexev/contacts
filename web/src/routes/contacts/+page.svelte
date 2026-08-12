@@ -5,7 +5,7 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { Search, RefreshCw, ArrowUpDown, Filter, ChevronRight, X, Check } from '@lucide/svelte';
-  import { calculateAge, formatAge } from '$lib/date.js';
+  import { calculateAge, formatAge, parseContactDate } from '$lib/date.js';
 
   let debounceTimer = $state(null);
   let showFilters = $state(false);
@@ -76,19 +76,23 @@
   function sortContacts(list) {
     const sorted = [...list];
     sorted.sort((a, b) => {
+      const birthA = parseContactDate(a.birthdate);
+      const birthB = parseContactDate(b.birthdate);
       switch (sortBy) {
         case 'firstname_az':
           return (a.first_name || '').localeCompare(b.first_name || '');
         case 'surname_az':
           return (a.surname || '').localeCompare(b.surname || '');
         case 'age_oldest':
-          if (!a.birthdate && b.birthdate) return 1;
-          if (a.birthdate && !b.birthdate) return -1;
-          return getAge(a.birthdate) - getAge(b.birthdate);
+          if (!birthA && birthB) return 1;
+          if (birthA && !birthB) return -1;
+          if (!birthA || !birthB) return 0;
+          return birthA.getTime() - birthB.getTime();
         case 'age_youngest':
-          if (!a.birthdate && b.birthdate) return 1;
-          if (a.birthdate && !b.birthdate) return -1;
-          return getAge(b.birthdate) - getAge(a.birthdate);
+          if (!birthA && birthB) return 1;
+          if (birthA && !birthB) return -1;
+          if (!birthA || !birthB) return 0;
+          return birthB.getTime() - birthA.getTime();
         case 'recent_newest':
           return (b.updated_at || 0) - (a.updated_at || 0);
         case 'recent_oldest':
