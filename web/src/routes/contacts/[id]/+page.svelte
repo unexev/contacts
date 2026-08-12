@@ -281,7 +281,13 @@
           {#each c.relationships as rel}
             <div class="field-row">
               <span class="field-label">{rel.type_label || rel.type || rel.name || 'Contact'}</span>
-              <span class="field-value">{rel.related_contact_name || rel.contact_name || rel.name || '—'}</span>
+              {#if rel.related_contact_id}
+                <a class="field-value related-contact" href={`/contacts/${rel.related_contact_id}`}>
+                  {rel.related_contact_name || rel.contact_name || rel.name || '—'}
+                </a>
+              {:else}
+                <span class="field-value">{rel.related_contact_name || rel.contact_name || rel.name || '—'}</span>
+              {/if}
             </div>
           {/each}
         </div>
@@ -410,6 +416,8 @@
   }
 
   .field-helper { display: block; color: var(--text2); font-size: 12px; margin-top: 2px; }
+  .related-contact { color: var(--accent); text-decoration: none; }
+  .related-contact:hover { text-decoration: underline; }
 
   :global(.spinning) {
     animation: spin 1s linear infinite;
