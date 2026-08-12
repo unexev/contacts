@@ -82,8 +82,12 @@
         case 'surname_az':
           return (a.surname || '').localeCompare(b.surname || '');
         case 'age_oldest':
+          if (!a.birthdate && b.birthdate) return 1;
+          if (a.birthdate && !b.birthdate) return -1;
           return getAge(a.birthdate) - getAge(b.birthdate);
         case 'age_youngest':
+          if (!a.birthdate && b.birthdate) return 1;
+          if (a.birthdate && !b.birthdate) return -1;
           return getAge(b.birthdate) - getAge(a.birthdate);
         case 'recent_newest':
           return (b.updated_at || 0) - (a.updated_at || 0);
