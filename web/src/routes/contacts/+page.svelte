@@ -191,9 +191,9 @@
         <span class="filter-label">Gender</span>
         <div class="filter-chips">
           <button class="chip" class:active={filterGender === ''} onclick={() => filterGender = ''}>All</button>
-          <button class="chip" class:active={filterGender === 'male'} onclick={() => filterGender = 'male'}>Male</button>
-          <button class="chip" class:active={filterGender === 'female'} onclick={() => filterGender = 'female'}>Female</button>
-          <button class="chip" class:active={filterGender === 'other'} onclick={() => filterGender = 'other'}>No gender</button>
+           <button class="chip" class:active={filterGender === 'MALE'} onclick={() => filterGender = 'MALE'}>Male</button>
+           <button class="chip" class:active={filterGender === 'FEMALE'} onclick={() => filterGender = 'FEMALE'}>Female</button>
+           <button class="chip" class:active={filterGender === 'NONE'} onclick={() => filterGender = 'NONE'}>No gender</button>
         </div>
       </div>
 

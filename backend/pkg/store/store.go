@@ -108,9 +108,13 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 	}
 
 	if gender != "" {
-		where = append(where, fmt.Sprintf("c.gender = $%d", argIdx))
-		args = append(args, gender)
-		argIdx++
+		if gender == "NONE" {
+			where = append(where, "(c.gender IS NULL OR c.gender = '')")
+		} else {
+			where = append(where, fmt.Sprintf("c.gender = $%d", argIdx))
+			args = append(args, gender)
+			argIdx++
+		}
 	}
 
 	if hasBirthday != nil {

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"contacts/pkg/auth"
 	"contacts/pkg/model"
@@ -253,7 +254,7 @@ func (a *App) listContacts(w http.ResponseWriter, r *http.Request) {
 
 	filters := ContactFilters{
 		Search:           r.URL.Query().Get("search"),
-		Gender:           r.URL.Query().Get("gender"),
+		Gender:           strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("gender"))),
 		HasBirthday:      parseBoolPtr(r.URL.Query().Get("has_birthday")),
 		HasIDCard:        parseBoolPtr(r.URL.Query().Get("has_id_card")),
 		HasOrganization:  parseBoolPtr(r.URL.Query().Get("has_organization")),
