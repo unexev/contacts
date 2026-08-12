@@ -156,6 +156,41 @@
     border-color: var(--text2);
   }
 
+  @media (max-width: 600px) {
+    .topnav-inner {
+      min-width: 0;
+      padding: 0 12px;
+    }
+
+    .topnav-logo {
+      flex: 0 0 auto;
+      font-size: 18px;
+    }
+
+    .topnav-links {
+      flex: 1 1 auto;
+      min-width: 0;
+      justify-content: flex-start;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .topnav-links::-webkit-scrollbar {
+      display: none;
+    }
+
+    .topnav-link,
+    .topnav-lang {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+
+    .topnav-link {
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+  }
+
   main {
     padding: 20px;
     max-width: 720px;
