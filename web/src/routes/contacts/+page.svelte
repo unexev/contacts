@@ -36,7 +36,7 @@
   async function fetchContacts() {
     loading.value = true;
     try {
-      let params = ['limit=500'];
+       let params = ['limit=100'];
       if (search.value) params.push(`search=${encodeURIComponent(search.value)}`);
       if (filterGender) params.push(`gender=${encodeURIComponent(filterGender)}`);
       if (filterBirthday === 'yes') params.push('has_birthday=true');
@@ -47,10 +47,19 @@
       if (filterOrganization === 'no') params.push('has_organization=false');
       if (filterMaritalStatus === 'yes') params.push('has_marital_status=true');
       if (filterMaritalStatus === 'no') params.push('has_marital_status=false');
-      const query = `?${params.join('&')}`;
-      const raw = await apiRaw(`/api/contacts${query}`);
-      const list = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
-      contacts.value = sortContacts(list);
+       let offset = 0;
+       let total = Infinity;
+       const list = [];
+       while (offset < total) {
+         const query = `?${params.join('&')}&offset=${offset}`;
+         const raw = await apiRaw(`/api/contacts${query}`);
+         const page = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
+         list.push(...page);
+         total = Number.isFinite(raw?.total) ? raw.total : list.length;
+         if (page.length === 0) break;
+         offset += page.length;
+       }
+       contacts.value = sortContacts(list);
     } catch (err) {
       if (err.message === 'unauthorized') goto('/');
       contacts.value = [];
