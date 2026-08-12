@@ -6,7 +6,7 @@
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { ArrowLeft, Pencil, Trash2, RefreshCw, User } from '@lucide/svelte';
-  import { formatAge, parseContactDate } from '$lib/date.js';
+  import { formatAge, formatAgeAt, parseContactDate } from '$lib/date.js';
 
   let showDeleteModal = $state(false);
   let deleting = $state(false);
@@ -305,7 +305,9 @@
               <span class="field-label">{org.organization_name || org.name || 'Organization'}</span>
               <span class="field-value">
                 {formatValue(org.achievement || org.role || org.title)}
-                {#if formatValue(org.date) !== '—'}<small class="field-helper">{formatValue(org.date)}</small>{/if}
+                {#if formatValue(org.date) !== '—'}
+                  <small class="field-helper">{formatValue(org.date)}{#if formatAgeAt(c.birthdate, org.date)} · {formatAgeAt(c.birthdate, org.date)}{/if}</small>
+                {/if}
               </span>
             </div>
           {/each}

@@ -44,7 +44,13 @@ export function calculateAgeParts(value, today = new Date()) {
 }
 
 export function formatAge(value) {
-  const age = calculateAgeParts(value);
+  return formatAgeAt(value, new Date());
+}
+
+export function formatAgeAt(value, target) {
+  const date = target instanceof Date ? target : parseContactDate(target);
+  if (!date) return null;
+  const age = calculateAgeParts(value, date);
   if (!age) return null;
   const parts = [];
   if (age.years) parts.push(`${age.years} ${age.years === 1 ? 'año' : 'años'}`);
