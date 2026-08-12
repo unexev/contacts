@@ -303,7 +303,10 @@
           {#each c.organizations as org}
             <div class="field-row">
               <span class="field-label">{org.organization_name || org.name || 'Organization'}</span>
-              <span class="field-value">{org.achievement || org.role || org.title || '—'}</span>
+              <span class="field-value">
+                {formatValue(org.achievement || org.role || org.title)}
+                {#if formatValue(org.date) !== '—'}<small class="field-helper">{formatValue(org.date)}</small>{/if}
+              </span>
             </div>
           {/each}
         </div>
