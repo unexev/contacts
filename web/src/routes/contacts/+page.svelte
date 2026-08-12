@@ -268,11 +268,16 @@
           onclick={() => goto(`/contacts/${contact.contact_id}`)}
         >
           <div class="avatar">{getInitials(contact)}</div>
-          <div class="list-item-content">
-            <div class="list-item-name">
-              {contact.first_name || ''} {contact.surname || ''}
-            </div>
-            {#if contact.phones?.length}
+            <div class="list-item-content">
+             <div class="list-item-name">
+               {contact.first_name || ''} {contact.middle_name || ''} {contact.surname || ''}
+             </div>
+             {#if sortBy === 'age_oldest' || sortBy === 'age_youngest'}
+               <div class="list-item-detail">
+                 {#if calculateAge(contact.birthdate) !== null}{calculateAge(contact.birthdate)} años{:else}Edad no registrada{/if}
+               </div>
+             {/if}
+             {#if contact.phones?.length}
               <div class="list-item-detail">{formatPhone(contact.phones[0])}</div>
             {/if}
             {#if contact.emails?.length}
