@@ -5,7 +5,7 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { Search, RefreshCw, ArrowUpDown, Filter, ChevronRight, X, Check } from '@lucide/svelte';
-  import { calculateAge } from '$lib/date.js';
+  import { calculateAge, formatAge } from '$lib/date.js';
 
   let debounceTimer = $state(null);
   let showFilters = $state(false);
@@ -274,7 +274,7 @@
              </div>
              {#if sortBy === 'age_oldest' || sortBy === 'age_youngest'}
                <div class="list-item-detail">
-                 {#if calculateAge(contact.birthdate) !== null}{calculateAge(contact.birthdate)} años{:else}Edad no registrada{/if}
+                 {formatAge(contact.birthdate) || 'Edad no registrada'}
                </div>
              {/if}
              {#if contact.phones?.length}

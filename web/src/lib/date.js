@@ -16,3 +16,39 @@ export function calculateAge(value) {
   if (today.getMonth() < birthdate.getMonth() || (today.getMonth() === birthdate.getMonth() && today.getDate() < birthdate.getDate())) age--;
   return age;
 }
+
+export function calculateAgeParts(value, today = new Date()) {
+  const birthdate = parseContactDate(value);
+  if (!birthdate) return null;
+
+  let years = today.getFullYear() - birthdate.getFullYear();
+  let anchor = new Date(birthdate.getFullYear() + years, birthdate.getMonth(), birthdate.getDate());
+  if (anchor > today) {
+    years--;
+    anchor = new Date(birthdate.getFullYear() + years, birthdate.getMonth(), birthdate.getDate());
+  }
+
+  let months = 0;
+  let cursor = new Date(anchor);
+  while (months < 12) {
+    const next = new Date(cursor.getFullYear(), cursor.getMonth() + 1, cursor.getDate());
+    if (next > today) break;
+    cursor = next;
+    months++;
+  }
+
+  const start = Date.UTC(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
+  const end = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  const days = Math.floor((end - start) / 86400000);
+  return { years, months, days };
+}
+
+export function formatAge(value) {
+  const age = calculateAgeParts(value);
+  if (!age) return null;
+  const parts = [];
+  if (age.years) parts.push(`${age.years} ${age.years === 1 ? 'año' : 'años'}`);
+  if (age.months) parts.push(`${age.months} ${age.months === 1 ? 'mes' : 'meses'}`);
+  if (age.days || parts.length === 0) parts.push(`${age.days} ${age.days === 1 ? 'día' : 'días'}`);
+  return parts.join(', ');
+}

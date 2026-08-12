@@ -6,7 +6,7 @@
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { ArrowLeft, Pencil, Trash2, RefreshCw, User } from '@lucide/svelte';
-  import { calculateAge, parseContactDate } from '$lib/date.js';
+  import { formatAge, parseContactDate } from '$lib/date.js';
 
   let showDeleteModal = $state(false);
   let deleting = $state(false);
@@ -154,7 +154,7 @@
         </div>
         <div class="field-row">
           <span class="field-label">{t('contactBirthdate')}</span>
-          <span class="field-value">{formatDate(c.birthdate)}{#if calculateAge(c.birthdate) !== null}<small class="field-helper">{calculateAge(c.birthdate)} años</small>{/if}</span>
+          <span class="field-value">{formatDate(c.birthdate)}{#if formatAge(c.birthdate)}<small class="field-helper">{formatAge(c.birthdate)}</small>{/if}</span>
         </div>
         <div class="field-row">
           <span class="field-label">{t('contactGender')}</span>
