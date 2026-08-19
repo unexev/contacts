@@ -3,6 +3,8 @@
   import { locale, t } from '$lib/i18n.svelte.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import { Bell, RefreshCw, ChevronRight, Sun, Moon, Monitor } from '@lucide/svelte';
+  import { userPrefersMode, setMode, resetMode } from 'mode-watcher';
 
   onMount(() => {
     if (!A.token) goto('/');
@@ -23,6 +25,18 @@
   <h1 class="config-title">{t('configTitle')}</h1>
 
   <div class="config-section">
+    <a class="config-item" href="/notifications">
+      <span class="config-icon"><Bell size={18} /></span>
+      <span class="config-copy"><strong>{t('menuNotifications')}</strong><small>{t('menuNotificationsDesc')}</small></span>
+      <ChevronRight size={18} />
+    </a>
+
+    <a class="config-item" href="/sync">
+      <span class="config-icon sync"><RefreshCw size={18} /></span>
+      <span class="config-copy"><strong>{t('menuSync')}</strong><small>{t('menuSyncDesc')}</small></span>
+      <ChevronRight size={18} />
+    </a>
+
     <div class="section-card">
       <div class="section-card-header">
         <span class="section-card-title">{t('configLanguage')}</span>
@@ -44,6 +58,23 @@
             <span>English</span>
           </button>
         </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-card-header">
+        <span class="section-card-title">Tema</span>
+      </div>
+      <div class="theme-switcher" role="group" aria-label="Tema">
+        <button class:active={userPrefersMode.current === 'light'} onclick={() => setMode('light')}>
+          <Sun size={16} /> Claro
+        </button>
+        <button class:active={userPrefersMode.current === 'dark'} onclick={() => setMode('dark')}>
+          <Moon size={16} /> Oscuro
+        </button>
+        <button class:active={userPrefersMode.current === 'system'} onclick={resetMode}>
+          <Monitor size={16} /> Sistema
+        </button>
       </div>
     </div>
 
@@ -91,9 +122,60 @@
     gap: 16px;
   }
 
+  .config-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .config-item:hover { background: var(--surface2); text-decoration: none; }
+  .config-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; color: var(--accent); background: rgba(10,132,255,.12); }
+  .config-icon.sync { color: #34c759; background: rgba(52,199,89,.12); }
+  .config-copy { display: flex; flex: 1; flex-direction: column; gap: 2px; }
+  .config-copy strong { font-size: 16px; }
+  .config-copy small { color: var(--text2); font-size: 12px; }
+
   .lang-options {
     display: flex;
     gap: 10px;
+  }
+
+  .theme-switcher {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 4px;
+    background: var(--surface2);
+    border-radius: 12px;
+  }
+
+  .theme-switcher button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 38px;
+    padding: 8px 6px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text2);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background .2s, color .2s, box-shadow .2s;
+  }
+
+  .theme-switcher button.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .16);
   }
 
   .lang-btn {

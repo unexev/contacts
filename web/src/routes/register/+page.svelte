@@ -4,7 +4,6 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
 
-  let name = $state('');
   let email = $state('');
   let password = $state('');
   let error = $state('');
@@ -17,14 +16,13 @@
   async function handleRegister(e) {
     e.preventDefault();
     error = '';
-    if (!name || !email || !password) { error = 'All fields are required'; return; }
+    if (!email || !password) { error = 'All fields are required'; return; }
     if (password.length < 8) { error = 'Password must be at least 8 characters'; return; }
-    if (name.length > 255) { error = 'Name too long'; return; }
     loading = true;
     try {
       const data = await api('/api/auth/register', {
         method: 'POST',
-        body: { name, email, password }
+        body: { email, password }
       });
       setToken(data.token);
       if (data.user) A.user = data.user;
@@ -46,19 +44,6 @@
     {/if}
 
     <form onsubmit={handleRegister}>
-      <div class="form-group">
-        <label class="form-label" for="name">{t('registerName')}</label>
-        <input
-          id="name"
-          class="input"
-          type="text"
-          bind:value={name}
-          required
-          autocomplete="name"
-          placeholder={t('registerName')}
-        />
-      </div>
-
       <div class="form-group">
         <label class="form-label" for="email">{t('registerEmail')}</label>
         <input

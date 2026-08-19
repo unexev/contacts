@@ -157,8 +157,8 @@ func (a *App) register(w http.ResponseWriter, r *http.Request) {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if req.Email == "" || req.Password == "" || req.Name == "" {
-		errResp(w, http.StatusBadRequest, "email, name, and password are required")
+ 	if req.Email == "" || req.Password == "" {
+ 		errResp(w, http.StatusBadRequest, "email and password are required")
 		return
 	}
 

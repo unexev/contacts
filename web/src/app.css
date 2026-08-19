@@ -15,15 +15,26 @@
 }
 
 :root {
+  color-scheme: light;
+  --bg: #f2f2f7;
+  --surface: #ffffff;
+  --surface2: #e5e5ea;
+  --text: #1c1c1e;
+  --text2: #6c6c70;
+  --accent: #0A84FF;
+  --danger: #FF453A;
+  --border: #d1d1d6;
+  --radius: 12px;
+}
+
+:root.dark {
+  color-scheme: dark;
   --bg: #000000;
   --surface: #1C1C1E;
   --surface2: #2C2C2E;
   --text: #FFFFFF;
   --text2: #8E8E93;
-  --accent: #0A84FF;
-  --danger: #FF453A;
   --border: #38383A;
-  --radius: 12px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -93,6 +104,7 @@ a:hover { text-decoration: underline; }
   background: transparent;
   color: var(--accent);
   padding: 8px 12px;
+  cursor: pointer;
 }
 
 .btn-full { width: 100%; }

@@ -5,6 +5,7 @@
   import { locale, t } from '$lib/i18n.svelte.js';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
+  import { ModeWatcher } from 'mode-watcher';
 
   let { children } = $props();
 
@@ -14,7 +15,6 @@
   let navItems = $derived([
     { href: '/contacts', label: t('navContacts') },
     { href: '/calendar', label: t('navCalendar') },
-    { href: '/menu', label: t('navMenu') },
     { href: '/config', label: t('navConfig') }
   ]);
 
@@ -31,6 +31,8 @@
     locale.value = locale.value === 'es' ? 'en' : 'es';
   }
 </script>
+
+<ModeWatcher themeColors={{ dark: '#000000', light: '#f2f2f7' }} />
 
 {#if showNav}
   <nav class="topnav">

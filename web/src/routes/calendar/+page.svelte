@@ -262,12 +262,12 @@
   }
 
   .day-cell.has-birthday {
-    border-color: #D4A017;
-    background: rgba(212, 160, 23, 0.1);
+    border-color: var(--accent);
+    background: rgba(10, 132, 255, 0.1);
   }
 
   .day-cell.has-birthday:hover {
-    background: rgba(212, 160, 23, 0.2);
+    background: rgba(10, 132, 255, 0.2);
   }
 
   .day-number {
@@ -284,7 +284,7 @@
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: #D4A017;
+    background: var(--accent);
   }
 
   .today .dot {
