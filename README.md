@@ -63,6 +63,14 @@ The app will be available at http://localhost:5173.
 
 ## Environment Variables
 
+## Product Requirements
+
+- The database schema and persisted business values must use English, stable machine-readable identifiers.
+- User-facing labels must be translated in the frontend through the i18n layer.
+- Identity document types use these database values: `national_id`, `passport`, `drivers_license`, `residence_permit`, and `other`.
+- Contact location types use these database values: `birth`, `residence`, `work`, and `other`.
+- Location coordinates (`latitude` and `longitude`) are optional numeric values.
+
 ### Root / Backend
 
 | Variable | Description | Default |

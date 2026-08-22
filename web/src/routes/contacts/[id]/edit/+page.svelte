@@ -9,6 +9,8 @@
   import { parseContactDate } from '$lib/date.js';
 
   let id = $derived($page.params.id);
+  let selectedSection = $derived($page.url.searchParams.get('section') || $page.url.searchParams.get('add') || '');
+  let editTitle = $derived(selectedSection ? ({ personal: 'Información personal', phone: 'Teléfonos', email: 'Correos', url: 'URLs', note: 'Notas', keyword: 'Palabras clave', card: 'Documentos de identidad', bank: 'Cuentas bancarias', relationship: 'Relaciones', organization: 'Organizaciones', location: 'Ubicaciones' }[selectedSection] || selectedSection) : t('contactEdit'));
   let first_name = $state('');
   let middle_name = $state('');
   let surname = $state('');
@@ -25,9 +27,27 @@
   let bankAccounts = $state([]);
   let relationships = $state([]);
   let organizations = $state([]);
-  let original = $state({ phones: [], emails: [], urls: [], notes: [], cards: [], bankAccounts: [], organizations: [], keywords: [], relationships: [] });
+  let locations = $state([]);
+  let original = $state({ phones: [], emails: [], urls: [], notes: [], cards: [], bankAccounts: [], organizations: [], locations: [], keywords: [], relationships: [] });
   let error = $state('');
   let saving = $state(false);
+  const documentTypes = [
+    { value: 'national_id', label: 'docTypeNationalId' },
+    { value: 'passport', label: 'docTypePassport' },
+    { value: 'drivers_license', label: 'docTypeDriversLicense' },
+    { value: 'residence_permit', label: 'docTypeResidencePermit' },
+    { value: 'other', label: 'docTypeOther' }
+  ];
+
+  function documentTypeValue(type) {
+    return ({
+      'Cédula': 'national_id',
+      'ID Card': 'national_id',
+      'Pasaporte': 'passport',
+      'Passport': 'passport',
+      'Licencia de conducir': 'drivers_license'
+    }[type] || type || '');
+  }
 
   const value = (item, key) => {
     const value = item?.[key];
@@ -51,7 +71,7 @@
     list = [...list];
   }
 
-  function addPhone() { phones = [...phones, { phone: '', label: '' }]; }
+  function addPhone() { phones = [...phones, { phone: '', label: '', is_active: true, created_at: 0 }]; }
   function addEmail() { emails = [...emails, { email: '', label: '' }]; }
   function addUrl() { urls = [...urls, { url: '', label: '' }]; }
   function addNote() { notes = [...notes, { note: '' }]; }
@@ -60,6 +80,7 @@
   function addBank() { bankAccounts = [...bankAccounts, { bank_name: '', account_number: '', account_type: '', label: '' }]; }
   function addRelationship() { relationships = [...relationships, { related_contact_id: '', type_id: '' }]; }
   function addOrganization() { organizations = [...organizations, { organization_id: '', achievement: '', date: '' }]; }
+  function addLocation() { locations = [...locations, { location_type: 'residence', address: '', city: '', region: '', country: '', postal_code: '', latitude: null, longitude: null }]; }
 
   onMount(async () => {
     if (!A.token) return goto('/');
@@ -70,22 +91,36 @@
       birthdate = dateInput(c.birthdate);
       gender = c.gender || '';
       marital_status = c.status_id || '';
-      phones = normalizeList(c.phones, ['phone', 'label']);
+      phones = normalizeList(c.phones, ['phone', 'label', 'created_at', 'is_active']).map(phone => ({ ...phone, is_active: phone.is_active !== false }));
       emails = normalizeList(c.emails, ['email', 'label']);
       urls = normalizeList(c.urls, ['url', 'label']);
       notes = normalizeList(c.notes, ['note']);
       keywords = (c.keywords || []).map(k => typeof k === 'string' ? k : k.keyword || '');
-      cards = normalizeList(c.identity_cards, ['doc_type', 'card_number', 'issue_date', 'expiry_date']).map(card => ({ ...card, issue_date: dateInput(card.issue_date), expiry_date: dateInput(card.expiry_date) }));
+      cards = normalizeList(c.identity_cards, ['doc_type', 'card_number', 'issue_date', 'expiry_date']).map(card => ({ ...card, doc_type: documentTypeValue(card.doc_type), issue_date: dateInput(card.issue_date), expiry_date: dateInput(card.expiry_date) }));
       bankAccounts = normalizeList(c.bank_accounts, ['bank_name', 'account_number', 'account_type', 'label']);
       relationships = normalizeList(c.relationships, ['related_contact_id', 'type_id']);
       organizations = normalizeList(c.organizations, ['organization_id', 'achievement', 'date']).map(org => ({ ...org, date: dateInput(org.date) }));
+      locations = normalizeList(c.locations, ['location_type', 'address', 'city', 'region', 'country', 'postal_code', 'latitude', 'longitude']);
       original = {
         phones: phones.map(x => x.phone_id).filter(Boolean), emails: emails.map(x => x.email_id).filter(Boolean),
         urls: urls.map(x => x.url_id).filter(Boolean), notes: notes.map(x => x.note_id).filter(Boolean),
         cards: cards.map(x => x.card_id).filter(Boolean), bankAccounts: bankAccounts.map(x => x.bank_account_id).filter(Boolean),
         organizations: organizations.map(x => x.organization_id).filter(Boolean), keywords: [...keywords],
+        locations: locations.map(x => x.location_id).filter(Boolean),
         relationships: relationships.map(x => ({ related_contact_id: x.related_contact_id, type_id: x.type_id }))
       };
+
+      const addSection = $page.url.searchParams.get('add');
+      if (addSection === 'phone') addPhone();
+      if (addSection === 'email') addEmail();
+      if (addSection === 'url') addUrl();
+      if (addSection === 'note') addNote();
+      if (addSection === 'keyword') addKeyword();
+      if (addSection === 'card') addCard();
+      if (addSection === 'bank') addBank();
+      if (addSection === 'relationship') addRelationship();
+      if (addSection === 'organization') addOrganization();
+      if (addSection === 'location') addLocation();
     } catch (e) { error = e.message; }
   });
 
@@ -110,63 +145,102 @@
     if (!first_name.trim() || !surname.trim()) { error = 'Nombre y apellido son obligatorios'; return; }
     saving = true;
     try {
-      await api(`/api/contacts/${id}`, { method: 'PUT', body: { first_name, middle_name, surname, birthdate, gender, status_id: marital_status } });
-      await Promise.all([
-        saveCollection(phones, original.phones, `/api/contacts/${id}/phones`, 'phone_id'),
-        saveCollection(emails, original.emails, `/api/contacts/${id}/emails`, 'email_id'),
-        saveCollection(urls, original.urls, `/api/contacts/${id}/urls`, 'url_id'),
-        saveCollection(notes, original.notes, `/api/contacts/${id}/notes`, 'note_id'),
-        saveCollection(cards, original.cards, `/api/contacts/${id}/cards`, 'card_id'),
-        saveCollection(bankAccounts, original.bankAccounts, `/api/contacts/${id}/bank-accounts`, 'bank_account_id'),
-        saveCollection(organizations, original.organizations, `/api/contacts/${id}/organizations`, 'organization_id'),
-        saveKeywords(), saveRelationships()
-      ]);
+      const saves = [];
+      if (!selectedSection || selectedSection === 'personal') {
+        saves.push(api(`/api/contacts/${id}`, { method: 'PUT', body: { first_name, middle_name, surname, birthdate, gender, status_id: marital_status } }));
+      }
+      if (!selectedSection || selectedSection === 'phone') saves.push(saveCollection(phones, original.phones, `/api/contacts/${id}/phones`, 'phone_id'));
+      if (!selectedSection || selectedSection === 'email') saves.push(saveCollection(emails, original.emails, `/api/contacts/${id}/emails`, 'email_id'));
+      if (!selectedSection || selectedSection === 'url') saves.push(saveCollection(urls, original.urls, `/api/contacts/${id}/urls`, 'url_id'));
+      if (!selectedSection || selectedSection === 'note') saves.push(saveCollection(notes, original.notes, `/api/contacts/${id}/notes`, 'note_id'));
+      if (!selectedSection || selectedSection === 'card') saves.push(saveCollection(cards, original.cards, `/api/contacts/${id}/cards`, 'card_id'));
+      if (!selectedSection || selectedSection === 'bank') saves.push(saveCollection(bankAccounts, original.bankAccounts, `/api/contacts/${id}/bank-accounts`, 'bank_account_id'));
+      if (!selectedSection || selectedSection === 'organization') saves.push(saveCollection(organizations, original.organizations, `/api/contacts/${id}/organizations`, 'organization_id'));
+      if (!selectedSection || selectedSection === 'location') saves.push(saveCollection(locations, original.locations, `/api/contacts/${id}/locations`, 'location_id'));
+      if (!selectedSection || selectedSection === 'keyword') saves.push(saveKeywords());
+      if (!selectedSection || selectedSection === 'relationship') saves.push(saveRelationships());
+      await Promise.all(saves);
       goto(`/contacts/${id}`);
     } catch (e) { error = e.message; } finally { saving = false; }
   }
 </script>
 
 <div class="new-contact-page animate-in">
-  <div class="form-header"><button class="btn-ghost" onclick={() => goto(`/contacts/${id}`)}>{t('contactCancel')}</button><h1 class="form-title">{t('contactEdit')}</h1><button class="btn-ghost" onclick={save} disabled={saving}>{saving ? '...' : t('contactSave')}</button></div>
+  <div class="form-header"><button class="btn-ghost" onclick={() => goto(`/contacts/${id}`)}>{t('contactCancel')}</button><h1 class="form-title">{selectedSection ? `Editar ${editTitle}` : editTitle}</h1><button class="btn-ghost" onclick={save} disabled={saving}>{saving ? '...' : t('contactSave')}</button></div>
   {#if error}<div class="form-error-banner">{error}</div>{/if}
   <form onsubmit={save}>
+    {#if !selectedSection || selectedSection === 'personal'}
     <div class="form-card"><h2 class="form-section-title">Datos personales</h2><div class="form-group"><label class="form-label" for="first_name">{t('contactFirstName')} *</label><input id="first_name" class="input" bind:value={first_name} /></div><div class="form-group"><label class="form-label" for="middle_name">{t('contactMiddleName')}</label><input id="middle_name" class="input" bind:value={middle_name} /></div><div class="form-group"><label class="form-label" for="surname">{t('contactSurname')} *</label><input id="surname" class="input" bind:value={surname} /></div><div class="form-group"><label class="form-label" for="birthdate">{t('contactBirthdate')}</label><input id="birthdate" class="input" type="date" bind:value={birthdate} /></div><div class="form-group"><label class="form-label" for="gender">{t('contactGender')}</label><select id="gender" class="select" bind:value={gender}><option value="">{t('contactGenderUnspecified')}</option><option value="MALE">{t('contactGenderMale')}</option><option value="FEMALE">{t('contactGenderFemale')}</option></select></div><div class="form-group"><label class="form-label" for="marital_status">{t('contactMaritalStatus')}</label><select id="marital_status" class="select" bind:value={marital_status}><option value="">—</option>{#each maritalStatuses as status}<option value={status.status_id}>{status.marital_status}</option>{/each}</select></div></div>
+    {/if}
 
+    {#if !selectedSection || selectedSection === 'phone'}
     <RelatedSection title="Teléfonos" add={addPhone}>
-      {#each phones as phone, i}<div class="related-row"><input class="input" placeholder="Teléfono" bind:value={phone.phone} /><input class="input" placeholder="Etiqueta" bind:value={phone.label} /><button type="button" class="icon-button danger" aria-label="Eliminar teléfono" onclick={() => removeAt(phones, i)}><Trash2 size={16} /></button></div>{/each}
+      {#each phones as phone, i}<div class="related-item"><div class="related-row"><input class="input" placeholder="Teléfono" bind:value={phone.phone} /><input class="input" placeholder="Etiqueta" bind:value={phone.label} /><button type="button" class="icon-button danger" aria-label="Eliminar teléfono" onclick={() => removeAt(phones, i)}><Trash2 size={16} /></button></div><label class="phone-status"><input type="checkbox" bind:checked={phone.is_active} /> {phone.is_active ? t('phoneInUse') : t('phoneNotInUse')}</label></div>{/each}
     </RelatedSection>
+    {/if}
+    {#if !selectedSection || selectedSection === 'email'}
     <RelatedSection title="Correos" add={addEmail}>
-      {#each emails as email, i}<div class="related-row"><input class="input" type="email" placeholder="Correo" bind:value={email.email} /><input class="input" placeholder="Etiqueta" bind:value={email.label} /><button type="button" class="icon-button danger" aria-label="Eliminar correo" onclick={() => removeAt(emails, i)}><Trash2 size={16} /></button></div>{/each}
+      {#each emails as email, i}<div class="related-item"><div class="related-row"><input class="input" type="email" placeholder="Correo" bind:value={email.email} /><input class="input" placeholder="Etiqueta" bind:value={email.label} /><button type="button" class="icon-button danger" aria-label="Eliminar correo" onclick={() => removeAt(emails, i)}><Trash2 size={16} /></button></div></div>{/each}
     </RelatedSection>
+    {/if}
+    {#if !selectedSection || selectedSection === 'url'}
     <RelatedSection title="URLs" add={addUrl}>
-      {#each urls as url, i}<div class="related-row"><input class="input" placeholder="URL" bind:value={url.url} /><input class="input" placeholder="Etiqueta" bind:value={url.label} /><button type="button" class="icon-button danger" aria-label="Eliminar URL" onclick={() => removeAt(urls, i)}><Trash2 size={16} /></button></div>{/each}
+      {#each urls as url, i}<div class="related-item"><div class="related-row"><input class="input" placeholder="URL" bind:value={url.url} /><input class="input" placeholder="Etiqueta" bind:value={url.label} /><button type="button" class="icon-button danger" aria-label="Eliminar URL" onclick={() => removeAt(urls, i)}><Trash2 size={16} /></button></div></div>{/each}
     </RelatedSection>
+    {/if}
+    {#if !selectedSection || selectedSection === 'note'}
     <RelatedSection title="Notas" add={addNote}>
-      {#each notes as note, i}<div class="related-row"><textarea class="input" rows="2" placeholder="Nota" bind:value={note.note}></textarea><button type="button" class="icon-button danger" aria-label="Eliminar nota" onclick={() => removeAt(notes, i)}><Trash2 size={16} /></button></div>{/each}
+      {#each notes as note, i}<div class="related-item"><div class="related-row"><textarea class="input" rows="2" placeholder="Nota" bind:value={note.note}></textarea><button type="button" class="icon-button danger" aria-label="Eliminar nota" onclick={() => removeAt(notes, i)}><Trash2 size={16} /></button></div></div>{/each}
     </RelatedSection>
+    {/if}
+    {#if !selectedSection || selectedSection === 'keyword'}
     <RelatedSection title="Palabras clave" add={addKeyword}>
-      {#each keywords as keyword, i}<div class="related-row"><input class="input" placeholder="Palabra clave" bind:value={keywords[i]} /><button type="button" class="icon-button danger" aria-label="Eliminar palabra clave" onclick={() => removeAt(keywords, i)}><Trash2 size={16} /></button></div>{/each}
+      {#each keywords as keyword, i}<div class="related-item"><div class="related-row"><input class="input" placeholder="Palabra clave" bind:value={keywords[i]} /><button type="button" class="icon-button danger" aria-label="Eliminar palabra clave" onclick={() => removeAt(keywords, i)}><Trash2 size={16} /></button></div></div>{/each}
     </RelatedSection>
+    {/if}
+    {#if !selectedSection || selectedSection === 'card'}
     <RelatedSection title="Documentos de identidad" add={addCard}>
-      {#each cards as card, i}<div class="related-grid"><input class="input" placeholder="Tipo" bind:value={card.doc_type} /><input class="input" placeholder="Número" bind:value={card.card_number} /><input class="input" type="date" bind:value={card.issue_date} /><input class="input" type="date" bind:value={card.expiry_date} /><button type="button" class="icon-button danger" aria-label="Eliminar documento" onclick={() => removeAt(cards, i)}><Trash2 size={16} /></button></div>{/each}
+      {#each cards as card, i}<div class="related-item"><div class="related-grid"><select class="select" aria-label={t('docTypeLabel')} bind:value={card.doc_type}><option value="">{t('docTypeSelect')}</option>{#if card.doc_type && !documentTypes.some(type => type.value === card.doc_type)}<option value={card.doc_type}>{card.doc_type}</option>{/if}{#each documentTypes as type}<option value={type.value}>{t(type.label)}</option>{/each}</select><input class="input" placeholder="Número" bind:value={card.card_number} /><input class="input" type="date" bind:value={card.issue_date} /><input class="input" type="date" bind:value={card.expiry_date} /><button type="button" class="icon-button danger" aria-label="Eliminar documento" onclick={() => removeAt(cards, i)}><Trash2 size={16} /></button></div></div>{/each}
     </RelatedSection>
+    {/if}
+    {#if !selectedSection || selectedSection === 'bank'}
     <RelatedSection title="Cuentas bancarias" add={addBank}>
-      {#each bankAccounts as account, i}<div class="related-grid"><input class="input" placeholder="Banco" bind:value={account.bank_name} /><input class="input" placeholder="Número de cuenta" bind:value={account.account_number} /><input class="input" placeholder="Tipo" bind:value={account.account_type} /><input class="input" placeholder="Etiqueta" bind:value={account.label} /><button type="button" class="icon-button danger" aria-label="Eliminar cuenta" onclick={() => removeAt(bankAccounts, i)}><Trash2 size={16} /></button></div>{/each}
+      {#each bankAccounts as account, i}<div class="related-item"><div class="related-grid"><input class="input" placeholder="Banco" bind:value={account.bank_name} /><input class="input" placeholder="Número de cuenta" bind:value={account.account_number} /><input class="input" placeholder="Tipo" bind:value={account.account_type} /><input class="input" placeholder="Etiqueta" bind:value={account.label} /><button type="button" class="icon-button danger" aria-label="Eliminar cuenta" onclick={() => removeAt(bankAccounts, i)}><Trash2 size={16} /></button></div></div>{/each}
     </RelatedSection>
+    {/if}
+    {#if !selectedSection || selectedSection === 'relationship'}
     <RelatedSection title="Relaciones" add={addRelationship}>
-      {#each relationships as relation, i}<div class="related-grid"><input class="input" placeholder="ID del contacto relacionado" bind:value={relation.related_contact_id} /><input class="input" placeholder="ID del tipo de relación" bind:value={relation.type_id} /><button type="button" class="icon-button danger" aria-label="Eliminar relación" onclick={() => removeAt(relationships, i)}><Trash2 size={16} /></button></div>{/each}
+      {#each relationships as relation, i}<div class="related-item"><div class="related-grid"><input class="input" placeholder="ID del contacto relacionado" bind:value={relation.related_contact_id} /><input class="input" placeholder="ID del tipo de relación" bind:value={relation.type_id} /><button type="button" class="icon-button danger" aria-label="Eliminar relación" onclick={() => removeAt(relationships, i)}><Trash2 size={16} /></button></div></div>{/each}
     </RelatedSection>
+    {/if}
+    {#if !selectedSection || selectedSection === 'organization'}
     <RelatedSection title="Organizaciones" add={addOrganization}>
-      {#each organizations as organization, i}<div class="related-grid"><input class="input" placeholder="ID de organización" bind:value={organization.organization_id} /><input class="input" placeholder="Logro o cargo" bind:value={organization.achievement} /><input class="input" type="date" bind:value={organization.date} /><button type="button" class="icon-button danger" aria-label="Eliminar organización" onclick={() => removeAt(organizations, i)}><Trash2 size={16} /></button></div>{/each}
+      {#each organizations as organization, i}<div class="related-item"><div class="related-grid"><input class="input" placeholder="ID de organización" bind:value={organization.organization_id} /><input class="input" placeholder="Logro o cargo" bind:value={organization.achievement} /><input class="input" type="date" bind:value={organization.date} /><button type="button" class="icon-button danger" aria-label="Eliminar organización" onclick={() => removeAt(organizations, i)}><Trash2 size={16} /></button></div></div>{/each}
     </RelatedSection>
+    {/if}
+    {#if !selectedSection || selectedSection === 'location'}
+    <RelatedSection title={t('locationTitle')} add={addLocation}>
+      {#each locations as location, i}<div class="related-item"><div class="related-grid location-grid"><select class="select" aria-label={t('locationTypeLabel')} bind:value={location.location_type}><option value="">{t('locationTypeSelect')}</option><option value="birth">{t('locationBirth')}</option><option value="residence">{t('locationResidence')}</option><option value="work">{t('locationWork')}</option><option value="other">{t('locationOther')}</option></select><input class="input" placeholder={t('locationAddress')} bind:value={location.address} /><input class="input" placeholder={t('locationCity')} bind:value={location.city} /><input class="input" placeholder={t('locationCountry')} bind:value={location.country} /><button type="button" class="icon-button danger" aria-label="Eliminar ubicación" onclick={() => removeAt(locations, i)}><Trash2 size={16} /></button></div><input class="input location-extra" placeholder={t('locationRegion')} bind:value={location.region} /><input class="input location-extra" placeholder={t('locationPostalCode')} bind:value={location.postal_code} /><div class="coordinates"><input class="input" type="number" step="any" min="-90" max="90" placeholder={t('locationLatitude')} bind:value={location.latitude} /><input class="input" type="number" step="any" min="-180" max="180" placeholder={t('locationLongitude')} bind:value={location.longitude} /></div></div>{/each}
+    </RelatedSection>
+    {/if}
   </form>
 </div>
 
 <style>
+  .related-item {
+    padding: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
   .related-row, .related-grid { display: grid; grid-template-columns: 1fr 1fr auto; align-items: center; gap: 8px; }
   .related-grid { grid-template-columns: repeat(4, 1fr) auto; }
   textarea.input { resize: vertical; }
   .icon-button { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--text2); cursor: pointer; }
   .icon-button.danger:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
-  @media (max-width: 600px) { .related-row, .related-grid { grid-template-columns: 1fr auto; } .related-row .input:first-child, .related-grid .input:first-child { grid-column: 1 / -1; } }
+  .phone-status { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--text2); font-size: 14px; cursor: pointer; }
+  .phone-status input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .coordinates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  @media (max-width: 600px) { .related-row, .related-grid { grid-template-columns: 1fr auto; } .related-row .input:first-child, .related-grid .input:first-child { grid-column: 1 / -1; } .coordinates { grid-template-columns: 1fr; } }
 </style>

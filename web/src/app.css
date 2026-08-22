@@ -72,6 +72,7 @@ a:hover { text-decoration: underline; }
   align-items: center;
   justify-content: center;
   gap: 8px;
+  min-height: 44px;
   padding: 10px 20px;
   border-radius: var(--radius);
   border: none;
@@ -82,6 +83,7 @@ a:hover { text-decoration: underline; }
   text-decoration: none;
 }
 
+.btn:hover:not(:disabled) { filter: brightness(1.06); }
 .btn:active { transform: scale(0.97); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -101,10 +103,33 @@ a:hover { text-decoration: underline; }
 }
 
 .btn-ghost {
-  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  background: var(--surface2);
   color: var(--accent);
-  padding: 8px 12px;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--text2);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 2px;
 }
 
 .btn-full { width: 100%; }
@@ -251,6 +276,33 @@ a:hover { text-decoration: underline; }
 
 .section-card-body { padding: 14px 16px; }
 
+.new-contact-page { padding-bottom: 40px; }
+
+.form-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.form-title {
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.form-header .btn-ghost:last-child {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.form-header .btn-ghost:last-child:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 88%, black);
+  border-color: color-mix(in srgb, var(--accent) 88%, black);
+}
+
 .field-row {
   display: flex;
   justify-content: space-between;
@@ -309,6 +361,33 @@ a:hover { text-decoration: underline; }
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+}
+
+.icon-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.icon-btn,
+.add-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+@media (max-width: 600px) {
+  .form-header {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .form-title {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    font-size: 18px;
+  }
+
+  .form-header .btn-ghost:first-child { grid-column: 1; grid-row: 2; }
+  .form-header .btn-ghost:last-child { grid-column: 2; grid-row: 2; }
+  .form-header .btn-ghost { width: 100%; }
 }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }

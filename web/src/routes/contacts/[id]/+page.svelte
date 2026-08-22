@@ -5,7 +5,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
-  import { ArrowLeft, Pencil, Trash2, RefreshCw, User } from '@lucide/svelte';
+  import { ArrowLeft, Pencil, Plus, Trash2, RefreshCw, User } from '@lucide/svelte';
   import { formatAge, formatAgeAt, parseContactDate } from '$lib/date.js';
 
   let showDeleteModal = $state(false);
@@ -96,6 +96,20 @@
       return '—';
     }
   }
+
+  function formatSavedDate(timestamp) {
+    const date = new Date(Number(timestamp));
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString();
+  }
+
+  function editSection(section, add = false) {
+    goto(`/contacts/${contactId}/edit?${add ? 'add' : 'section'}=${section}`);
+  }
+
+  function locationType(type) {
+    const key = { birth: 'locationBirth', residence: 'locationResidence', work: 'locationWork', other: 'locationOther' }[type];
+    return key ? t(key) : (type || t('locationTitle'));
+  }
 </script>
 
 <div class="detail-page animate-in">
@@ -104,9 +118,6 @@
       <ArrowLeft size={18} /> {t('contactBack')}
     </button>
     <div class="detail-header-actions">
-      <button class="btn-ghost" onclick={() => goto(`/contacts/${contactId}/edit`)}>
-        <Pencil size={18} /> {t('contactEdit')}
-      </button>
       <button class="btn-ghost danger" onclick={() => showDeleteModal = true}>
         <Trash2 size={18} /> {t('contactDelete')}
       </button>
@@ -136,6 +147,7 @@
     <div class="section-card">
       <div class="section-card-header">
         <span class="section-card-title">{t('contactPersonal')}</span>
+        <button class="card-action" onclick={() => editSection('personal')}><Pencil size={16} /> Editar</button>
       </div>
       <div class="section-card-body">
         <div class="field-row">
@@ -171,11 +183,13 @@
       <div class="section-card">
         <div class="section-card-header">
           <span class="section-card-title">{t('contactPhones')}</span>
+          <button class="card-action" onclick={() => editSection('phone', true)}><Plus size={16} /> Agregar</button>
         </div>
         <div class="section-card-body">
           {#each c.phones as phone}
-            <div class="field-row">
-              <span class="field-value">{formatPhone(phone)}</span>
+            <div class="detail-item">
+              <div><span class:inactive-phone={!phone.is_active} class="field-value">{formatPhone(phone)}</span><small class="field-helper">{phone.is_active ? t('phoneInUse') : t('phoneNotInUse')}{#if phone.created_at} · {t('phoneSavedOn')} {formatSavedDate(phone.created_at)}{/if}</small></div>
+              <button class="card-action icon-only" aria-label="Editar teléfono" onclick={() => editSection('phone')}><Pencil size={16} /></button>
             </div>
           {/each}
         </div>
@@ -186,11 +200,13 @@
       <div class="section-card">
         <div class="section-card-header">
           <span class="section-card-title">{t('contactEmails')}</span>
+          <button class="card-action" onclick={() => editSection('email', true)}><Plus size={16} /> Agregar</button>
         </div>
         <div class="section-card-body">
           {#each c.emails as email}
-            <div class="field-row">
+            <div class="detail-item">
               <span class="field-value">{formatEmail(email)}</span>
+              <button class="card-action icon-only" aria-label="Editar correo" onclick={() => editSection('email')}><Pencil size={16} /></button>
             </div>
           {/each}
         </div>
@@ -201,11 +217,13 @@
       <div class="section-card">
         <div class="section-card-header">
           <span class="section-card-title">{t('contactUrls')}</span>
+          <button class="card-action" onclick={() => editSection('url', true)}><Plus size={16} /> Agregar</button>
         </div>
         <div class="section-card-body">
           {#each c.urls as url}
-            <div class="field-row">
+            <div class="detail-item">
               <span class="field-value">{formatUrl(url)}</span>
+              <button class="card-action icon-only" aria-label="Editar URL" onclick={() => editSection('url')}><Pencil size={16} /></button>
             </div>
           {/each}
         </div>
@@ -216,10 +234,11 @@
       <div class="section-card">
         <div class="section-card-header">
           <span class="section-card-title">{t('contactNotes')}</span>
+          <button class="card-action" onclick={() => editSection('note', true)}><Plus size={16} /> Agregar</button>
         </div>
         <div class="section-card-body">
           {#each c.notes as note}
-            <div class="notes-text">{note.note || note.text || formatValue(note)}</div>
+            <div class="detail-item"><div class="notes-text">{note.note || note.text || formatValue(note)}</div><button class="card-action icon-only" aria-label="Editar nota" onclick={() => editSection('note')}><Pencil size={16} /></button></div>
           {/each}
         </div>
       </div>
@@ -229,11 +248,12 @@
       <div class="section-card">
         <div class="section-card-header">
           <span class="section-card-title">{t('contactKeywords')}</span>
+          <button class="card-action" onclick={() => editSection('keyword', true)}><Plus size={16} /> Agregar</button>
         </div>
         <div class="section-card-body">
           <div class="keywords-list">
             {#each c.keywords as kw}
-              <span class="keyword-tag">{kw}</span>
+              <span class="keyword-item"><span class="keyword-tag">{kw}</span><button class="card-action icon-only" aria-label="Editar palabra clave" onclick={() => editSection('keyword')}><Pencil size={16} /></button></span>
             {/each}
           </div>
         </div>
@@ -244,12 +264,14 @@
       <div class="section-card">
         <div class="section-card-header">
           <span class="section-card-title">{t('contactIdentity')}</span>
+          <button class="card-action" onclick={() => editSection('card', true)}><Plus size={16} /> Agregar</button>
         </div>
         <div class="section-card-body">
           {#each c.identity_cards as card}
-            <div class="field-row">
+            <div class="detail-item">
               <span class="field-label">{card.doc_type || card.type || 'ID'}</span>
               <span class="field-value">{card.card_number || card.number || card.value || '—'}</span>
+              <button class="card-action icon-only" aria-label="Editar documento" onclick={() => editSection('card')}><Pencil size={16} /></button>
             </div>
           {/each}
         </div>
@@ -260,12 +282,14 @@
       <div class="section-card">
         <div class="section-card-header">
           <span class="section-card-title">{t('contactBank')}</span>
+          <button class="card-action" onclick={() => editSection('bank', true)}><Plus size={16} /> Agregar</button>
         </div>
         <div class="section-card-body">
           {#each c.bank_accounts as acc}
-            <div class="field-row">
+            <div class="detail-item">
               <span class="field-label">{acc.bank_name || acc.bank || acc.name || 'Account'}</span>
               <span class="field-value">{acc.account_number || acc.number || acc.iban || acc.value || '—'}</span>
+              <button class="card-action icon-only" aria-label="Editar cuenta bancaria" onclick={() => editSection('bank')}><Pencil size={16} /></button>
             </div>
           {/each}
         </div>
@@ -276,10 +300,11 @@
       <div class="section-card">
         <div class="section-card-header">
           <span class="section-card-title">{t('contactRelationships')}</span>
+          <button class="card-action" onclick={() => editSection('relationship', true)}><Plus size={16} /> Agregar</button>
         </div>
         <div class="section-card-body">
           {#each c.relationships as rel}
-            <div class="field-row">
+            <div class="detail-item">
               <span class="field-label">{rel.type_label || rel.type || rel.name || 'Contact'}</span>
               {#if rel.related_contact_id}
                 <a class="field-value related-contact" href={`/contacts/${rel.related_contact_id}`}>
@@ -288,6 +313,7 @@
               {:else}
                 <span class="field-value">{rel.related_contact_name || rel.contact_name || rel.name || '—'}</span>
               {/if}
+              <button class="card-action icon-only" aria-label="Editar relación" onclick={() => editSection('relationship')}><Pencil size={16} /></button>
             </div>
           {/each}
         </div>
@@ -298,10 +324,11 @@
       <div class="section-card">
         <div class="section-card-header">
           <span class="section-card-title">{t('contactOrganizations')}</span>
+          <button class="card-action" onclick={() => editSection('organization', true)}><Plus size={16} /> Agregar</button>
         </div>
         <div class="section-card-body">
           {#each c.organizations as org}
-            <div class="field-row">
+            <div class="detail-item">
               <span class="field-label">{org.organization_name || org.name || 'Organization'}</span>
               <span class="field-value">
                 {formatValue(org.achievement || org.role || org.title)}
@@ -309,11 +336,28 @@
                   <small class="field-helper">{formatValue(org.date)}{#if formatAgeAt(c.birthdate, org.date)} · {formatAgeAt(c.birthdate, org.date)}{/if}</small>
                 {/if}
               </span>
+              <button class="card-action icon-only" aria-label="Editar organización" onclick={() => editSection('organization')}><Pencil size={16} /></button>
             </div>
           {/each}
         </div>
       </div>
     {/if}
+
+      <div class="section-card">
+        <div class="section-card-header">
+          <span class="section-card-title">{t('locationTitle')}</span>
+          <button class="card-action" onclick={() => editSection('location', true)}><Plus size={16} /> Agregar</button>
+        </div>
+        <div class="section-card-body">
+          {#each c.locations as location}
+            <div class="detail-item">
+              <div><span class="field-label">{locationType(location.location_type)}</span><span class="field-value location-value">{[location.address, location.city, location.region, location.country, location.postal_code].filter(Boolean).join(', ') || '—'}</span>{#if location.latitude !== null && location.longitude !== null}<small class="field-helper">{location.latitude}, {location.longitude}</small>{/if}</div>
+              <button class="card-action icon-only" aria-label="Editar ubicación" onclick={() => editSection('location')}><Pencil size={16} /></button>
+            </div>
+          {/each}
+          {#if !c.locations?.length}<div class="empty-section">{t('locationEmpty')}</div>{/if}
+        </div>
+      </div>
   {/if}
 </div>
 
@@ -354,6 +398,53 @@
     display: flex;
     gap: 4px;
   }
+
+  .card-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface2);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .card-action:hover { background: var(--surface); border-color: var(--accent); }
+  .card-action.icon-only { width: 40px; padding: 8px; }
+
+  .detail-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+  }
+
+  .detail-item + .detail-item { border-top: 1px solid var(--border); }
+
+  .location-value { display: block; text-align: left; margin-top: 3px; }
+  .empty-section { padding: 8px 0; color: var(--text2); font-size: 14px; }
+  .inactive-phone { color: var(--text2); text-decoration: line-through; }
+
+  .keyword-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 4px 3px 12px;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    background: var(--surface2);
+  }
+
+  .keyword-item .keyword-tag { padding: 0; border: 0; background: transparent; }
+  .keyword-item .card-action { min-height: 32px; width: 32px; padding: 5px; border: 0; background: transparent; }
 
   .btn-ghost.danger {
     color: var(--danger);
@@ -431,5 +522,12 @@
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+  }
+
+  @media (max-width: 600px) {
+    .detail-header { align-items: flex-start; }
+    .detail-header-actions { flex-direction: column; }
+    .card-action { min-height: 44px; }
+    .detail-item { gap: 8px; }
   }
 </style>

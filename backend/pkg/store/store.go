@@ -304,8 +304,58 @@ func (s *Store) GetContactFull(userID, contactID string) (map[string]interface{}
 	if orgs, _, err := s.ListOrganizations(userID, contactID, 10000, 0); err == nil {
 		result["organizations"] = orgs
 	}
+	if locations, _, err := s.ListLocations(userID, contactID, 10000, 0); err == nil {
+		result["locations"] = locations
+	}
 
 	return result, nil
+}
+
+// ──────────────────────────── Locations ────────────────────────
+
+func (s *Store) ListLocations(userID, contactID string, limit, offset int) ([]model.ContactLocation, int, error) {
+	ctx := context.Background()
+	limit = clampLimit(limit)
+	if offset < 0 {
+		offset = 0
+	}
+	var total int
+	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM contact_locations WHERE user_id = $1 AND contact_id = $2`, userID, contactID).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := s.pool.Query(ctx, `SELECT user_id, contact_id, location_id, location_type, address, city, region, country, postal_code, latitude, longitude FROM contact_locations WHERE user_id = $1 AND contact_id = $2 ORDER BY location_id LIMIT $3 OFFSET $4`, userID, contactID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	items := []model.ContactLocation{}
+	for rows.Next() {
+		var location model.ContactLocation
+		if err := rows.Scan(&location.UserID, &location.ContactID, &location.LocationID, &location.LocationType, &location.Address, &location.City, &location.Region, &location.Country, &location.PostalCode, &location.Latitude, &location.Longitude); err != nil {
+			return nil, 0, err
+		}
+		items = append(items, location)
+	}
+	return items, total, rows.Err()
+}
+
+func (s *Store) CreateLocation(userID, contactID string, location model.ContactLocation) (model.ContactLocation, error) {
+	location.UserID, location.ContactID = userID, contactID
+	if location.LocationID == "" {
+		location.LocationID = genID("loc")
+	}
+	_, err := s.pool.Exec(context.Background(), `INSERT INTO contact_locations (user_id, contact_id, location_id, location_type, address, city, region, country, postal_code, latitude, longitude) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, location.UserID, location.ContactID, location.LocationID, location.LocationType, location.Address, location.City, location.Region, location.Country, location.PostalCode, location.Latitude, location.Longitude)
+	return location, err
+}
+
+func (s *Store) UpdateLocation(userID, contactID string, location model.ContactLocation) error {
+	_, err := s.pool.Exec(context.Background(), `UPDATE contact_locations SET location_type=$4, address=$5, city=$6, region=$7, country=$8, postal_code=$9, latitude=$10, longitude=$11 WHERE user_id=$1 AND contact_id=$2 AND location_id=$3`, userID, contactID, location.LocationID, location.LocationType, location.Address, location.City, location.Region, location.Country, location.PostalCode, location.Latitude, location.Longitude)
+	return err
+}
+
+func (s *Store) DeleteLocation(userID, contactID, locationID string) error {
+	_, err := s.pool.Exec(context.Background(), `DELETE FROM contact_locations WHERE user_id=$1 AND contact_id=$2 AND location_id=$3`, userID, contactID, locationID)
+	return err
 }
 
 // ──────────────────────────── Phones ──────────────────────────
@@ -323,7 +373,7 @@ func (s *Store) ListPhones(userID, contactID string, limit, offset int) ([]model
 	).Scan(&total)
 
 	rows, err := s.pool.Query(ctx,
-		`SELECT user_id, contact_id, phone_id, phone, label
+		`SELECT user_id, contact_id, phone_id, phone, label, created_at, is_active
 		 FROM contact_phones WHERE user_id = $1 AND contact_id = $2
 		 ORDER BY phone_id
 		 LIMIT $3 OFFSET $4`,
@@ -336,7 +386,7 @@ func (s *Store) ListPhones(userID, contactID string, limit, offset int) ([]model
 	var items []model.ContactPhone
 	for rows.Next() {
 		var p model.ContactPhone
-		if err := rows.Scan(&p.UserID, &p.ContactID, &p.PhoneID, &p.Phone, &p.Label); err != nil {
+		if err := rows.Scan(&p.UserID, &p.ContactID, &p.PhoneID, &p.Phone, &p.Label, &p.CreatedAt, &p.IsActive); err != nil {
 			return nil, 0, err
 		}
 		items = append(items, p)
@@ -350,19 +400,22 @@ func (s *Store) CreatePhone(userID, contactID string, p model.ContactPhone) (mod
 	if p.PhoneID == "" {
 		p.PhoneID = genID("phn")
 	}
+	if p.CreatedAt == 0 {
+		p.CreatedAt = time.Now().UnixMilli()
+	}
 	_, err := s.pool.Exec(context.Background(),
-		`INSERT INTO contact_phones (user_id, contact_id, phone_id, phone, label)
-		 VALUES ($1, $2, $3, $4, $5)`,
-		p.UserID, p.ContactID, p.PhoneID, p.Phone, p.Label,
+		`INSERT INTO contact_phones (user_id, contact_id, phone_id, phone, label, created_at, is_active)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		p.UserID, p.ContactID, p.PhoneID, p.Phone, p.Label, p.CreatedAt, p.IsActive,
 	)
 	return p, err
 }
 
 func (s *Store) UpdatePhone(userID, contactID string, p model.ContactPhone) error {
 	_, err := s.pool.Exec(context.Background(),
-		`UPDATE contact_phones SET phone = $4, label = $5
+		`UPDATE contact_phones SET phone = $4, label = $5, is_active = $6, updated_at = $7
 		 WHERE user_id = $1 AND contact_id = $2 AND phone_id = $3`,
-		userID, contactID, p.PhoneID, p.Phone, p.Label,
+		userID, contactID, p.PhoneID, p.Phone, p.Label, p.IsActive, time.Now().UnixMilli(),
 	)
 	return err
 }

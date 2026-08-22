@@ -45,6 +45,11 @@ func (a *App) Handler() http.Handler {
 			r.Put("/contacts/{id}", a.updateContact)
 			r.Delete("/contacts/{id}", a.deleteContact)
 
+			r.Get("/contacts/{id}/locations", a.listLocations)
+			r.Post("/contacts/{id}/locations", a.createLocation)
+			r.Put("/contacts/{id}/locations/{locationId}", a.updateLocation)
+			r.Delete("/contacts/{id}/locations/{locationId}", a.deleteLocation)
+
 			r.Get("/contacts/{id}/phones", a.listPhones)
 			r.Post("/contacts/{id}/phones", a.createPhone)
 			r.Put("/contacts/{id}/phones/{phoneId}", a.updatePhone)
@@ -157,8 +162,8 @@ func (a *App) register(w http.ResponseWriter, r *http.Request) {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
- 	if req.Email == "" || req.Password == "" {
- 		errResp(w, http.StatusBadRequest, "email and password are required")
+	if req.Email == "" || req.Password == "" {
+		errResp(w, http.StatusBadRequest, "email and password are required")
 		return
 	}
 
@@ -356,6 +361,59 @@ func (a *App) deleteContact(w http.ResponseWriter, r *http.Request) {
 
 	if err := a.store.DeleteContact(claims.UserID, contactID); err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to delete contact")
+		return
+	}
+	dataResp(w, http.StatusOK, map[string]string{"message": "deleted"})
+}
+
+// --- locations ---
+
+func (a *App) listLocations(w http.ResponseWriter, r *http.Request) {
+	claims := auth.GetUser(r)
+	limit, offset := parsePagination(r)
+	items, total, err := a.store.ListLocations(claims.UserID, chi.URLParam(r, "id"), limit, offset)
+	if err != nil {
+		errResp(w, http.StatusInternalServerError, "failed to list locations")
+		return
+	}
+	paginatedResp(w, http.StatusOK, items, total, limit, offset)
+}
+
+func (a *App) createLocation(w http.ResponseWriter, r *http.Request) {
+	claims := auth.GetUser(r)
+	var location model.ContactLocation
+	if err := decodeJSON(r, &location); err != nil {
+		errResp(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	created, err := a.store.CreateLocation(claims.UserID, chi.URLParam(r, "id"), location)
+	if err != nil {
+		errResp(w, http.StatusInternalServerError, "failed to create location")
+		return
+	}
+	dataResp(w, http.StatusCreated, created)
+}
+
+func (a *App) updateLocation(w http.ResponseWriter, r *http.Request) {
+	claims := auth.GetUser(r)
+	var location model.ContactLocation
+	if err := decodeJSON(r, &location); err != nil {
+		errResp(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	contactID, locationID := chi.URLParam(r, "id"), chi.URLParam(r, "locationId")
+	location.UserID, location.ContactID, location.LocationID = claims.UserID, contactID, locationID
+	if err := a.store.UpdateLocation(claims.UserID, contactID, location); err != nil {
+		errResp(w, http.StatusInternalServerError, "failed to update location")
+		return
+	}
+	dataResp(w, http.StatusOK, location)
+}
+
+func (a *App) deleteLocation(w http.ResponseWriter, r *http.Request) {
+	claims := auth.GetUser(r)
+	if err := a.store.DeleteLocation(claims.UserID, chi.URLParam(r, "id"), chi.URLParam(r, "locationId")); err != nil {
+		errResp(w, http.StatusInternalServerError, "failed to delete location")
 		return
 	}
 	dataResp(w, http.StatusOK, map[string]string{"message": "deleted"})
