@@ -70,7 +70,7 @@
     left: 0;
     right: 0;
     height: 56px;
-    background: rgba(0, 0, 0, 0.85);
+     background: color-mix(in srgb, var(--surface) 88%, transparent);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border);

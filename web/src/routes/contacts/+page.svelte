@@ -277,9 +277,12 @@
         >
           <div class="avatar">{getInitials(contact)}</div>
             <div class="list-item-content">
-             <div class="list-item-name">
-               {contact.first_name || ''} {contact.middle_name || ''} {contact.surname || ''}
-             </div>
+              <div class="list-item-name">
+                {contact.first_name || ''} {contact.middle_name || ''} {contact.surname || ''}
+              </div>
+              {#if contact.deceased}
+                <div class="list-item-status deceased-status">{t('contactDeceased')}</div>
+              {/if}
              {#if sortBy === 'age_oldest' || sortBy === 'age_youngest'}
                <div class="list-item-detail">
                  {formatAge(contact.birthdate) || 'Edad no registrada'}
@@ -501,13 +504,16 @@
     text-overflow: ellipsis;
   }
 
-  .list-item-detail {
+   .list-item-detail {
     font-size: 14px;
     color: var(--text2);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
+   }
+
+   .list-item-status { font-size: 12px; color: var(--text2); }
+   .deceased-status { color: var(--danger); }
 
   :global(.list-item-arrow) {
     color: var(--text2);

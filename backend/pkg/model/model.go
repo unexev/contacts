@@ -28,6 +28,7 @@ type Contact struct {
 	Gender        sql.NullString `json:"gender"`
 	StatusID      sql.NullString `json:"status_id"`
 	MaritalStatus sql.NullString `json:"marital_status"`
+	Deceased      bool           `json:"deceased"`
 	UpdatedAt     int64          `json:"updated_at"`
 }
 
@@ -41,6 +42,7 @@ func (c Contact) MarshalJSON() ([]byte, error) {
 		Gender        *string `json:"gender"`
 		StatusID      *string `json:"status_id"`
 		MaritalStatus string  `json:"marital_status"`
+		Deceased      bool    `json:"deceased"`
 	}{
 		Alias:         (Alias)(c),
 		MiddleName:    c.MiddleName.String,
@@ -48,6 +50,7 @@ func (c Contact) MarshalJSON() ([]byte, error) {
 		Gender:        nullStrPtr(c.Gender),
 		StatusID:      nullStrPtr(c.StatusID),
 		MaritalStatus: c.MaritalStatus.String,
+		Deceased:      c.Deceased,
 	})
 }
 

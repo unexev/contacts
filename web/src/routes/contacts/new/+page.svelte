@@ -9,7 +9,8 @@
   let surname = $state('');
   let birthdate = $state('');
   let gender = $state('');
-  let marital_status = $state('');
+   let marital_status = $state('');
+   let deceased = $state(false);
   let maritalStatuses = $state([]);
   let error = $state('');
   let saving = $state(false);
@@ -34,7 +35,8 @@
       const body = { first_name, middle_name, surname };
       if (birthdate) body.birthdate = birthdate;
       if (gender) body.gender = gender;
-      if (marital_status) body.status_id = marital_status;
+       if (marital_status) body.status_id = marital_status;
+       body.deceased = deceased;
 
       const data = await api('/api/contacts', { method: 'POST', body });
       const id = data.contact_id || data.id;
@@ -120,15 +122,17 @@
 
       <div class="form-group">
         <label class="form-label" for="marital_status">{t('contactMaritalStatus')}</label>
-        <select id="marital_status" class="select" bind:value={marital_status}>
+       <select id="marital_status" class="select" bind:value={marital_status}>
           <option value="">—</option>
           {#each maritalStatuses as status}
             <option value={status.status_id}>
               {status.marital_status}
             </option>
           {/each}
-        </select>
+       </select>
       </div>
+
+      <label class="deceased-toggle"><input type="checkbox" bind:checked={deceased} /> {t('contactDeceased')}</label>
     </div>
   </form>
 </div>

@@ -1,0 +1,22 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": [
+        {
+          "name": "mode-watcher-theme",
+          "value": ""
+        },
+        {
+          "name": "auth_token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNyXzI5MDU1NDQ5NDgiLCJlbWFpbCI6ImxvY2FsQGNvbnRhY3RzLmNvbSIsInJvbGUiOiJ1c2VyIiwiaXNzIjoiY29udGFjdHMtc2FhcyIsImV4cCI6MTc4ODM4OTAzMiwiaWF0IjoxNzg4MTI5ODMyfQ.a7qAIJVigz4EFmJUk33VO5MMa6ku2iqetkepVWM8lvQ"
+        },
+        {
+          "name": "mode-watcher-mode",
+          "value": "system"
+        }
+      ]
+    }
+  ]
+}

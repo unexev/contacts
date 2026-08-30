@@ -4,5 +4,5 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit()],
-  server: { proxy: { '/api': 'http://localhost:8081' } }
+  server: { proxy: { '/api': 'http://localhost:8080' } }
 });

@@ -12,6 +12,9 @@ dist/
 .env.local
 .env.*.local
 
+# Local development credentials
+LOCAL_CREDENTIALS.md
+
 # Database
 *.db
 
@@ -28,3 +31,4 @@ Thumbs.db
 
 # Playwright artifacts
 .playwright-mcp/
+.playwright/

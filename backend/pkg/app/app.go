@@ -289,6 +289,7 @@ func (a *App) createContact(w http.ResponseWriter, r *http.Request) {
 		Birthdate  string `json:"birthdate"`
 		Gender     string `json:"gender"`
 		StatusID   string `json:"status_id"`
+		Deceased   bool   `json:"deceased"`
 	}
 	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
@@ -301,6 +302,7 @@ func (a *App) createContact(w http.ResponseWriter, r *http.Request) {
 		Birthdate:  sql.NullString{String: req.Birthdate, Valid: req.Birthdate != ""},
 		Gender:     sql.NullString{String: req.Gender, Valid: req.Gender != ""},
 		StatusID:   sql.NullString{String: req.StatusID, Valid: req.StatusID != ""},
+		Deceased:   req.Deceased,
 	}
 
 	created, err := a.store.CreateContact(claims.UserID, c)
@@ -334,6 +336,7 @@ func (a *App) updateContact(w http.ResponseWriter, r *http.Request) {
 		Birthdate  string `json:"birthdate"`
 		Gender     string `json:"gender"`
 		StatusID   string `json:"status_id"`
+		Deceased   bool   `json:"deceased"`
 	}
 	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
@@ -346,6 +349,7 @@ func (a *App) updateContact(w http.ResponseWriter, r *http.Request) {
 		Birthdate:  sql.NullString{String: req.Birthdate, Valid: req.Birthdate != ""},
 		Gender:     sql.NullString{String: req.Gender, Valid: req.Gender != ""},
 		StatusID:   sql.NullString{String: req.StatusID, Valid: req.StatusID != ""},
+		Deceased:   req.Deceased,
 	}
 
 	if err := a.store.UpdateContact(claims.UserID, c); err != nil {
@@ -967,10 +971,19 @@ func (a *App) createContactOrganization(w http.ResponseWriter, r *http.Request) 
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
 
-	var co model.ContactOrganization
-	if err := decodeJSON(r, &co); err != nil {
+	var req struct {
+		OrganizationID string `json:"organization_id"`
+		Achievement    string `json:"achievement"`
+		Date           string `json:"date"`
+	}
+	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
+	}
+	co := model.ContactOrganization{
+		OrganizationID: req.OrganizationID,
+		Achievement:    sql.NullString{String: req.Achievement, Valid: req.Achievement != ""},
+		Date:           sql.NullString{String: req.Date, Valid: req.Date != ""},
 	}
 
 	created, err := a.store.CreateOrganization(claims.UserID, contactID, co)
@@ -986,14 +999,21 @@ func (a *App) updateContactOrganization(w http.ResponseWriter, r *http.Request) 
 	contactID := chi.URLParam(r, "id")
 	organizationID := chi.URLParam(r, "organizationId")
 
-	var co model.ContactOrganization
-	if err := decodeJSON(r, &co); err != nil {
+	var req struct {
+		Achievement string `json:"achievement"`
+		Date        string `json:"date"`
+	}
+	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	co.UserID = claims.UserID
-	co.ContactID = contactID
-	co.OrganizationID = organizationID
+	co := model.ContactOrganization{
+		UserID:         claims.UserID,
+		ContactID:      contactID,
+		OrganizationID: organizationID,
+		Achievement:    sql.NullString{String: req.Achievement, Valid: req.Achievement != ""},
+		Date:           sql.NullString{String: req.Date, Valid: req.Date != ""},
+	}
 
 	if err := a.store.UpdateOrganization(claims.UserID, contactID, co); err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to update contact organization")

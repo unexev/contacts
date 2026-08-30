@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS contacts (
     birthdate TEXT,
     gender TEXT,
     status_id TEXT,
+    deceased BOOLEAN NOT NULL DEFAULT FALSE,
     updated_at BIGINT DEFAULT 0,
     deleted INT DEFAULT 0,
     PRIMARY KEY (user_id, contact_id)

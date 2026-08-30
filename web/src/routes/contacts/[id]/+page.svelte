@@ -5,10 +5,11 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
-  import { ArrowLeft, Pencil, Plus, Trash2, RefreshCw, User } from '@lucide/svelte';
+  import { ArrowLeft, Pencil, Plus, Trash2, RefreshCw, Skull, X } from '@lucide/svelte';
   import { formatAge, formatAgeAt, parseContactDate } from '$lib/date.js';
 
   let showDeleteModal = $state(false);
+  let showAddMenu = $state(false);
   let deleting = $state(false);
   let error = $state('');
 
@@ -110,6 +111,14 @@
     const key = { birth: 'locationBirth', residence: 'locationResidence', work: 'locationWork', other: 'locationOther' }[type];
     return key ? t(key) : (type || t('locationTitle'));
   }
+
+  function sortedOrganizations(items) {
+    return [...(items || [])].sort((a, b) => {
+      const aDate = parseContactDate(a.date)?.getTime() || 0;
+      const bDate = parseContactDate(b.date)?.getTime() || 0;
+      return bDate - aDate;
+    });
+  }
 </script>
 
 <div class="detail-page animate-in">
@@ -137,11 +146,15 @@
 
     <div class="detail-avatar-section">
       <div class="detail-avatar">
-        {(c.first_name || '')[0] || '?'}{(c.surname || '')[0] || ''}
+         {#if c.deceased}
+           <Skull size={38} strokeWidth={1.8} aria-label={t('contactDeceased')} />
+         {:else}
+           {(c.first_name || '')[0] || '?'}{(c.surname || '')[0] || ''}
+         {/if}
       </div>
-      <h1 class="detail-name">
-        {c.first_name || ''} {c.middle_name || ''} {c.surname || ''}
-      </h1>
+       <h1 class="detail-name">
+         {c.first_name || ''} {c.middle_name || ''} {c.surname || ''}
+       </h1>
     </div>
 
     <div class="section-card">
@@ -150,16 +163,17 @@
         <button class="card-action" onclick={() => editSection('personal')}><Pencil size={16} /> Editar</button>
       </div>
       <div class="section-card-body">
-        <div class="field-row">
+         <div class="field-row">
           <span class="field-label">{t('contactFirstName')}</span>
           <span class="field-value">{formatValue(c.first_name)}</span>
-        </div>
-        {#if c.middle_name}
+         </div>
+         {#if c.middle_name}
           <div class="field-row">
             <span class="field-label">{t('contactMiddleName')}</span>
             <span class="field-value">{formatValue(c.middle_name)}</span>
-          </div>
-        {/if}
+     </div>
+
+         {/if}
         <div class="field-row">
           <span class="field-label">{t('contactSurname')}</span>
           <span class="field-value">{formatValue(c.surname)}</span>
@@ -176,8 +190,10 @@
           <span class="field-label">{t('contactMaritalStatus')}</span>
           <span class="field-value">{formatValue(c.marital_status)}</span>
         </div>
-      </div>
+     </div>
     </div>
+
+
 
     {#if c.phones?.length}
       <div class="section-card">
@@ -304,16 +320,23 @@
         </div>
         <div class="section-card-body">
           {#each c.relationships as rel}
-            <div class="detail-item">
-              <span class="field-label">{rel.type_label || rel.type || rel.name || 'Contact'}</span>
-              {#if rel.related_contact_id}
-                <a class="field-value related-contact" href={`/contacts/${rel.related_contact_id}`}>
-                  {rel.related_contact_name || rel.contact_name || rel.name || '—'}
-                </a>
-              {:else}
-                <span class="field-value">{rel.related_contact_name || rel.contact_name || rel.name || '—'}</span>
-              {/if}
-              <button class="card-action icon-only" aria-label="Editar relación" onclick={() => editSection('relationship')}><Pencil size={16} /></button>
+            <div class="detail-item relation-item" role="button" tabindex="0"
+                 onclick={() => rel.related_contact_id && goto(`/contacts/${rel.related_contact_id}`)}
+                 onkeydown={(e) => e.key === 'Enter' && rel.related_contact_id && goto(`/contacts/${rel.related_contact_id}`)}>
+              <div>
+                <span class="field-label">{rel.type_label || rel.type_id || 'Contact'}</span>
+                {#if rel.related_contact_id}
+                  <a class="field-value related-contact" href={`/contacts/${rel.related_contact_id}`} onclick={(e) => e.stopPropagation()}>
+                    {rel.related_contact_name || rel.contact_name || rel.name || rel.related_contact_id}
+                  </a>
+                {:else}
+                  <span class="field-value">{rel.related_contact_name || rel.contact_name || rel.name || '—'}</span>
+                {/if}
+              </div>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <span class="related-arrow" aria-hidden="true">›</span>
+                <button class="card-action icon-only" aria-label="Editar relación" onclick={(e) => { e.stopPropagation(); editSection('relationship'); }}><Pencil size={16} /></button>
+              </div>
             </div>
           {/each}
         </div>
@@ -327,15 +350,15 @@
           <button class="card-action" onclick={() => editSection('organization', true)}><Plus size={16} /> Agregar</button>
         </div>
         <div class="section-card-body">
-          {#each c.organizations as org}
-            <div class="detail-item">
-              <span class="field-label">{org.organization_name || org.name || 'Organization'}</span>
-              <span class="field-value">
-                {formatValue(org.achievement || org.role || org.title)}
-                {#if formatValue(org.date) !== '—'}
-                  <small class="field-helper">{formatValue(org.date)}{#if formatAgeAt(c.birthdate, org.date)} · {formatAgeAt(c.birthdate, org.date)}{/if}</small>
-                {/if}
-              </span>
+           {#each sortedOrganizations(c.organizations) as org}
+             <div class="detail-item organization-item">
+               <div class="organization-copy">
+                 <strong>{formatValue(org.achievement || org.role || org.title)}</strong>
+                 <span class="field-label">{org.organization_name || org.name || 'Organization'}</span>
+                 {#if formatValue(org.date) !== '—'}
+                   <small class="field-helper">{formatValue(org.date)}{#if formatAgeAt(c.birthdate, org.date)} · {formatAgeAt(c.birthdate, org.date)}{/if}</small>
+                 {/if}
+               </div>
               <button class="card-action icon-only" aria-label="Editar organización" onclick={() => editSection('organization')}><Pencil size={16} /></button>
             </div>
           {/each}
@@ -357,6 +380,22 @@
           {/each}
           {#if !c.locations?.length}<div class="empty-section">{t('locationEmpty')}</div>{/if}
         </div>
+      </div>
+
+      <!-- Agregar datos - botón único al final, desplegable mobile-friendly -->
+      <div class="add-data-footer">
+        <button class="{showAddMenu ? 'btn btn-secondary' : 'btn btn-primary'} add-main-btn" class:is-open={showAddMenu} onclick={() => showAddMenu = !showAddMenu} aria-expanded={showAddMenu} aria-haspopup="menu">
+          {#if showAddMenu}<X size={18} /> Cerrar{:else}<Plus size={18} /> Agregar{/if}
+        </button>
+        {#if showAddMenu}
+          <div class="add-menu" role="menu">
+            {#each [['phone', 'Teléfono'], ['email', 'Correo'], ['card', 'Documento'], ['organization', 'Organización'], ['location', 'Ubicación'], ['url', 'Sitio web'], ['note', 'Nota'], ['keyword', 'Palabra clave'], ['bank', 'Cuenta bancaria'], ['relationship', 'Relación']] as item}
+              <button class="add-menu-item" role="menuitem" onclick={() => { showAddMenu = false; editSection(item[0], true); }}>
+                <Plus size={14} /> {item[1]}
+              </button>
+            {/each}
+          </div>
+        {/if}
       </div>
   {/if}
 </div>
@@ -479,6 +518,21 @@
     letter-spacing: -0.3px;
   }
 
+  .deceased-status { color: var(--danger); }
+  .add-data-footer { margin-top: 24px; display: flex; flex-direction: column; gap: 12px; }
+  .add-main-btn { width: 100%; justify-content: center; min-height: 48px; font-size: 15px; gap: 8px; transition: all 0.2s ease; }
+  .add-main-btn.is-open { background: var(--surface2) !important; border-color: var(--border) !important; color: var(--text2) !important; }
+  .add-main-btn.is-open:hover { background: var(--surface) !important; color: var(--text) !important; border-color: var(--text2) !important; }
+  .add-menu { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; animation: fadeIn 0.15s ease; }
+  .add-menu-item { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer; justify-content: flex-start; }
+  .add-menu-item:hover { background: var(--surface); border-color: var(--accent); color: var(--accent); }
+  .organization-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+  .organization-copy strong { font-size: 15px; color: var(--text); }
+  .relation-item { cursor: pointer; border-radius: 10px; transition: background 0.15s ease; }
+  .relation-item:hover { background: var(--surface2); }
+  .relation-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .related-arrow { color: var(--text2); font-size: 20px; line-height: 1; padding: 0 4px; }
+
   .detail-error {
     background: rgba(255, 69, 58, 0.12);
     color: var(--danger);
@@ -524,10 +578,23 @@
     to { transform: rotate(360deg); }
   }
 
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
   @media (max-width: 600px) {
     .detail-header { align-items: flex-start; }
     .detail-header-actions { flex-direction: column; }
     .card-action { min-height: 44px; }
     .detail-item { gap: 8px; }
+  }
+
+  @media (min-width: 600px) {
+    .add-menu { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  @media (min-width: 900px) {
+    .add-menu { grid-template-columns: repeat(4, 1fr); }
   }
 </style>

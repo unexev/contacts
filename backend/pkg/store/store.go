@@ -166,7 +166,7 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 	offsetIdx := argIdx + 1
 	selectQuery := fmt.Sprintf(`
 		SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
-		       c.birthdate, c.gender, c.status_id, ms.marital_status, c.updated_at
+		       c.birthdate, c.gender, c.status_id, ms.marital_status, c.deceased, c.updated_at
 		FROM contacts c
 		LEFT JOIN marital_status ms ON c.status_id = ms.status_id
 		WHERE %s
@@ -185,7 +185,7 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 		var c model.Contact
 		if err := rows.Scan(
 			&c.UserID, &c.ContactID, &c.FirstName, &c.MiddleName, &c.Surname,
-			&c.Birthdate, &c.Gender, &c.StatusID, &c.MaritalStatus, &c.UpdatedAt,
+			&c.Birthdate, &c.Gender, &c.StatusID, &c.MaritalStatus, &c.Deceased, &c.UpdatedAt,
 		); err != nil {
 			return nil, 0, err
 		}
@@ -198,13 +198,13 @@ func (s *Store) GetContact(userID, contactID string) (model.Contact, error) {
 	var c model.Contact
 	err := s.pool.QueryRow(context.Background(),
 		`SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
-		        c.birthdate, c.gender, c.status_id, ms.marital_status, c.updated_at
+		        c.birthdate, c.gender, c.status_id, ms.marital_status, c.deceased, c.updated_at
 		 FROM contacts c
 		 LEFT JOIN marital_status ms ON c.status_id = ms.status_id
 		 WHERE c.user_id = $1 AND c.contact_id = $2 AND c.deleted = 0`,
 		userID, contactID,
 	).Scan(&c.UserID, &c.ContactID, &c.FirstName, &c.MiddleName, &c.Surname,
-		&c.Birthdate, &c.Gender, &c.StatusID, &c.MaritalStatus, &c.UpdatedAt)
+		&c.Birthdate, &c.Gender, &c.StatusID, &c.MaritalStatus, &c.Deceased, &c.UpdatedAt)
 	return c, err
 }
 
@@ -216,10 +216,10 @@ func (s *Store) CreateContact(userID string, c model.Contact) (model.Contact, er
 	c.UpdatedAt = time.Now().UnixMilli()
 	_, err := s.pool.Exec(context.Background(),
 		`INSERT INTO contacts (user_id, contact_id, first_name, middle_name, surname,
-		        birthdate, gender, status_id, updated_at, deleted)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0)`,
+		        birthdate, gender, status_id, deceased, updated_at, deleted)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0)`,
 		c.UserID, c.ContactID, c.FirstName, c.MiddleName, c.Surname,
-		c.Birthdate, c.Gender, c.StatusID, c.UpdatedAt,
+		c.Birthdate, c.Gender, c.StatusID, c.Deceased, c.UpdatedAt,
 	)
 	return c, err
 }
@@ -229,10 +229,10 @@ func (s *Store) UpdateContact(userID string, c model.Contact) error {
 	_, err := s.pool.Exec(context.Background(),
 		`UPDATE contacts
 		 SET first_name = $3, middle_name = $4, surname = $5, birthdate = $6,
-		     gender = $7, status_id = $8, updated_at = $9
+		     gender = $7, status_id = $8, deceased = $9, updated_at = $10
 		 WHERE user_id = $1 AND contact_id = $2 AND deleted = 0`,
 		userID, c.ContactID, c.FirstName, c.MiddleName, c.Surname,
-		c.Birthdate, c.Gender, c.StatusID, c.UpdatedAt,
+		c.Birthdate, c.Gender, c.StatusID, c.Deceased, c.UpdatedAt,
 	)
 	return err
 }
@@ -270,6 +270,7 @@ func (s *Store) GetContactFull(userID, contactID string) (map[string]interface{}
 		"gender":         nullStr(c.Gender),
 		"status_id":      nullStr(c.StatusID),
 		"marital_status": c.MaritalStatus.String,
+		"deceased":       c.Deceased,
 		"updated_at":     c.UpdatedAt,
 	}
 
@@ -1048,7 +1049,7 @@ func (s *Store) GetBirthdaysThisMonth(userID string, month, year, limit, offset 
 
 	rows, err := s.pool.Query(ctx,
 		`SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
-		        c.birthdate, c.gender, c.status_id, ms.marital_status, c.updated_at
+		        c.birthdate, c.gender, c.status_id, ms.marital_status, c.deceased, c.updated_at
 		 FROM contacts c
 		 LEFT JOIN marital_status ms ON c.status_id = ms.status_id
 		 WHERE c.user_id = $1 AND c.deleted = 0
@@ -1066,7 +1067,7 @@ func (s *Store) GetBirthdaysThisMonth(userID string, month, year, limit, offset 
 		var c model.Contact
 		if err := rows.Scan(&c.UserID, &c.ContactID, &c.FirstName, &c.MiddleName,
 			&c.Surname, &c.Birthdate, &c.Gender, &c.StatusID,
-			&c.MaritalStatus, &c.UpdatedAt); err != nil {
+			&c.MaritalStatus, &c.Deceased, &c.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
 		items = append(items, c)
