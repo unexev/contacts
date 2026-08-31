@@ -6,13 +6,9 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "preview": "vite preview",
-    "test": "playwright test",
-    "test:auth": "playwright test --project=authenticated",
-    "test:unauth": "playwright test --project=unauthenticated"
+    "preview": "vite preview"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1",
     "@sveltejs/adapter-static": "^3.0.0",
     "@sveltejs/kit": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
