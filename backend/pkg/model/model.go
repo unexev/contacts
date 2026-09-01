@@ -153,6 +153,15 @@ type ContactLocation struct {
 	Longitude    *float64 `json:"longitude"`
 }
 
+type ContactNationality struct {
+	UserID        string         `json:"user_id"`
+	ContactID     string         `json:"contact_id"`
+	NationalityID string         `json:"nationality_id"`
+	CountryCode   string         `json:"country_code"`
+	AcquiredAt    sql.NullString `json:"acquired_at"`
+	Note          sql.NullString `json:"note"`
+}
+
 type MaritalStatus struct {
 	StatusID      string `json:"status_id"`
 	MaritalStatus string `json:"marital_status"`

@@ -50,6 +50,11 @@ func (a *App) Handler() http.Handler {
 			r.Put("/contacts/{id}/locations/{locationId}", a.updateLocation)
 			r.Delete("/contacts/{id}/locations/{locationId}", a.deleteLocation)
 
+			r.Get("/contacts/{id}/nationalities", a.listNationalities)
+			r.Post("/contacts/{id}/nationalities", a.createNationality)
+			r.Put("/contacts/{id}/nationalities/{nationalityId}", a.updateNationality)
+			r.Delete("/contacts/{id}/nationalities/{nationalityId}", a.deleteNationality)
+
 			r.Get("/contacts/{id}/phones", a.listPhones)
 			r.Post("/contacts/{id}/phones", a.createPhone)
 			r.Put("/contacts/{id}/phones/{phoneId}", a.updatePhone)
@@ -191,6 +196,12 @@ type cardRequest struct {
 	CardNumber string `json:"card_number"`
 	IssueDate  string `json:"issue_date"`
 	ExpiryDate string `json:"expiry_date"`
+}
+
+type nationalityRequest struct {
+	CountryCode string `json:"country_code"`
+	AcquiredAt  string `json:"acquired_at"`
+	Note        string `json:"note"`
 }
 
 // --- auth handlers ---
@@ -461,6 +472,83 @@ func (a *App) deleteLocation(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	if err := a.store.DeleteLocation(claims.UserID, chi.URLParam(r, "id"), chi.URLParam(r, "locationId")); err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to delete location")
+		return
+	}
+	dataResp(w, http.StatusOK, map[string]string{"message": "deleted"})
+}
+
+// --- nationalities ---
+
+func (a *App) listNationalities(w http.ResponseWriter, r *http.Request) {
+	claims := auth.GetUser(r)
+	contactID := chi.URLParam(r, "id")
+	limit, offset := parsePagination(r)
+	items, total, err := a.store.ListNationalities(claims.UserID, contactID, limit, offset)
+	if err != nil {
+		errResp(w, http.StatusInternalServerError, "failed to list nationalities")
+		return
+	}
+	if items == nil {
+		items = []model.ContactNationality{}
+	}
+	paginatedResp(w, http.StatusOK, items, total, limit, offset)
+}
+
+func (a *App) createNationality(w http.ResponseWriter, r *http.Request) {
+	claims := auth.GetUser(r)
+	contactID := chi.URLParam(r, "id")
+	var req nationalityRequest
+	if err := decodeJSON(r, &req); err != nil {
+		errResp(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if strings.TrimSpace(req.CountryCode) == "" {
+		errResp(w, http.StatusBadRequest, "country_code is required")
+		return
+	}
+	n := model.ContactNationality{
+		CountryCode: strings.ToUpper(strings.TrimSpace(req.CountryCode)),
+		AcquiredAt:  nullString(req.AcquiredAt),
+		Note:        nullString(req.Note),
+	}
+	created, err := a.store.CreateNationality(claims.UserID, contactID, n)
+	if err != nil {
+		errResp(w, http.StatusInternalServerError, "failed to create nationality")
+		return
+	}
+	dataResp(w, http.StatusCreated, created)
+}
+
+func (a *App) updateNationality(w http.ResponseWriter, r *http.Request) {
+	claims := auth.GetUser(r)
+	contactID := chi.URLParam(r, "id")
+	nationalityID := chi.URLParam(r, "nationalityId")
+	var req nationalityRequest
+	if err := decodeJSON(r, &req); err != nil {
+		errResp(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	n := model.ContactNationality{
+		UserID:        claims.UserID,
+		ContactID:     contactID,
+		NationalityID: nationalityID,
+		CountryCode:   strings.ToUpper(strings.TrimSpace(req.CountryCode)),
+		AcquiredAt:    nullString(req.AcquiredAt),
+		Note:          nullString(req.Note),
+	}
+	if err := a.store.UpdateNationality(claims.UserID, contactID, n); err != nil {
+		errResp(w, http.StatusInternalServerError, "failed to update nationality")
+		return
+	}
+	dataResp(w, http.StatusOK, n)
+}
+
+func (a *App) deleteNationality(w http.ResponseWriter, r *http.Request) {
+	claims := auth.GetUser(r)
+	contactID := chi.URLParam(r, "id")
+	nationalityID := chi.URLParam(r, "nationalityId")
+	if err := a.store.DeleteNationality(claims.UserID, contactID, nationalityID); err != nil {
+		errResp(w, http.StatusInternalServerError, "failed to delete nationality")
 		return
 	}
 	dataResp(w, http.StatusOK, map[string]string{"message": "deleted"})

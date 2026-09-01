@@ -308,6 +308,9 @@ func (s *Store) GetContactFull(userID, contactID string) (map[string]interface{}
 	if locations, _, err := s.ListLocations(userID, contactID, 10000, 0); err == nil {
 		result["locations"] = locations
 	}
+	if nationalities, _, err := s.ListNationalities(userID, contactID, 10000, 0); err == nil {
+		result["nationalities"] = nationalities
+	}
 
 	return result, nil
 }
@@ -356,6 +359,53 @@ func (s *Store) UpdateLocation(userID, contactID string, location model.ContactL
 
 func (s *Store) DeleteLocation(userID, contactID, locationID string) error {
 	_, err := s.pool.Exec(context.Background(), `DELETE FROM contact_locations WHERE user_id=$1 AND contact_id=$2 AND location_id=$3`, userID, contactID, locationID)
+	return err
+}
+
+// ──────────────────────────── Nationalities ────────────────────
+
+func (s *Store) ListNationalities(userID, contactID string, limit, offset int) ([]model.ContactNationality, int, error) {
+	ctx := context.Background()
+	limit = clampLimit(limit)
+	if offset < 0 {
+		offset = 0
+	}
+	var total int
+	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM contact_nationalities WHERE user_id = $1 AND contact_id = $2`, userID, contactID).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := s.pool.Query(ctx, `SELECT user_id, contact_id, nationality_id, country_code, acquired_at, note FROM contact_nationalities WHERE user_id = $1 AND contact_id = $2 ORDER BY country_code LIMIT $3 OFFSET $4`, userID, contactID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	items := []model.ContactNationality{}
+	for rows.Next() {
+		var n model.ContactNationality
+		if err := rows.Scan(&n.UserID, &n.ContactID, &n.NationalityID, &n.CountryCode, &n.AcquiredAt, &n.Note); err != nil {
+			return nil, 0, err
+		}
+		items = append(items, n)
+	}
+	return items, total, rows.Err()
+}
+
+func (s *Store) CreateNationality(userID, contactID string, n model.ContactNationality) (model.ContactNationality, error) {
+	n.UserID, n.ContactID = userID, contactID
+	if n.NationalityID == "" {
+		n.NationalityID = genID("nat")
+	}
+	_, err := s.pool.Exec(context.Background(), `INSERT INTO contact_nationalities (user_id, contact_id, nationality_id, country_code, acquired_at, note) VALUES ($1,$2,$3,$4,$5,$6)`, n.UserID, n.ContactID, n.NationalityID, n.CountryCode, n.AcquiredAt, n.Note)
+	return n, err
+}
+
+func (s *Store) UpdateNationality(userID, contactID string, n model.ContactNationality) error {
+	_, err := s.pool.Exec(context.Background(), `UPDATE contact_nationalities SET country_code=$4, acquired_at=$5, note=$6 WHERE user_id=$1 AND contact_id=$2 AND nationality_id=$3`, userID, contactID, n.NationalityID, n.CountryCode, n.AcquiredAt, n.Note)
+	return err
+}
+
+func (s *Store) DeleteNationality(userID, contactID, nationalityID string) error {
+	_, err := s.pool.Exec(context.Background(), `DELETE FROM contact_nationalities WHERE user_id=$1 AND contact_id=$2 AND nationality_id=$3`, userID, contactID, nationalityID)
 	return err
 }
 

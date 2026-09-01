@@ -8,10 +8,11 @@
   import RelatedSection from '$lib/components/RelatedSection.svelte';
   import { parseContactDate } from '$lib/date.js';
   import { DOCUMENT_TYPES, normalizeDocType } from '$lib/docTypes.js';
+  import { COUNTRIES } from '$lib/countries.js';
 
   let id = $derived($page.params.id);
   let selectedSection = $derived($page.url.searchParams.get('section') || $page.url.searchParams.get('add') || '');
-  let editTitle = $derived(selectedSection ? ({ personal: 'Información personal', phone: 'Teléfonos', email: 'Correos', url: 'URLs', note: 'Notas', keyword: 'Palabras clave', card: 'Documentos de identidad', bank: 'Cuentas bancarias', relationship: 'Relaciones', organization: 'Organizaciones', location: 'Ubicaciones' }[selectedSection] || selectedSection) : t('contactEdit'));
+  let editTitle = $derived(selectedSection ? ({ personal: 'Información personal', phone: 'Teléfonos', email: 'Correos', url: 'URLs', note: 'Notas', keyword: 'Palabras clave', card: 'Documentos de identidad', bank: 'Cuentas bancarias', relationship: 'Relaciones', organization: 'Organizaciones', location: 'Ubicaciones', nationality: 'Nacionalidades' }[selectedSection] || selectedSection) : t('contactEdit'));
   let first_name = $state('');
   let middle_name = $state('');
   let surname = $state('');
@@ -33,7 +34,8 @@
   let relationships = $state([]);
   let organizations = $state([]);
   let locations = $state([]);
-  let original = $state({ phones: [], emails: [], urls: [], notes: [], cards: [], bankAccounts: [], organizations: [], locations: [], keywords: [], relationships: [] });
+  let nationalities = $state([]);
+  let original = $state({ phones: [], emails: [], urls: [], notes: [], cards: [], bankAccounts: [], organizations: [], locations: [], keywords: [], relationships: [], nationalities: [] });
   let error = $state('');
   let saving = $state(false);
   const documentTypes = DOCUMENT_TYPES;
@@ -74,6 +76,7 @@
   function addRelationship() { relationships = [...relationships, { related_contact_id: '', type_id: '' }]; }
   function addOrganization() { organizations = [...organizations, { organization_id: '', organization_name: '', newName: '', achievement: '', date: '' }]; }
   function addLocation() { locations = [...locations, { location_type: 'residence', address: '', city: '', region: '', country: '', postal_code: '', latitude: null, longitude: null }]; }
+  function addNationality() { nationalities = [...nationalities, { country_code: '', acquired_at: '', note: '' }]; }
 
   onMount(async () => {
     if (!A.token) return goto('/');
@@ -108,12 +111,13 @@
       relationships = normalizeList(c.relationships, ['related_contact_id', 'type_id']);
       organizations = normalizeList(c.organizations, ['organization_id', 'organization_name', 'achievement', 'date']).map(org => ({ ...org, date: dateInput(org.date), newName: '' }));
       locations = normalizeList(c.locations, ['location_type', 'address', 'city', 'region', 'country', 'postal_code', 'latitude', 'longitude']);
+      nationalities = normalizeList(c.nationalities, ['country_code', 'acquired_at', 'note']).map(n => ({ ...n, acquired_at: dateInput(n.acquired_at) }));
       original = {
         phones: phones.map(x => x.phone_id).filter(Boolean), emails: emails.map(x => x.email_id).filter(Boolean),
         urls: urls.map(x => x.url_id).filter(Boolean), notes: notes.map(x => x.note_id).filter(Boolean),
         cards: cards.map(x => x.card_id).filter(Boolean), bankAccounts: bankAccounts.map(x => x.bank_account_id).filter(Boolean),
         organizations: organizations.map(x => x.organization_id).filter(Boolean), keywords: [...keywords],
-        locations: locations.map(x => x.location_id).filter(Boolean),
+        locations: locations.map(x => x.location_id).filter(Boolean), nationalities: nationalities.map(x => x.nationality_id).filter(Boolean),
         relationships: relationships.map(x => ({ related_contact_id: x.related_contact_id, type_id: x.type_id }))
       };
 
@@ -128,6 +132,7 @@
       if (addSection === 'relationship') addRelationship();
       if (addSection === 'organization') addOrganization();
       if (addSection === 'location') addLocation();
+      if (addSection === 'nationality') addNationality();
     } catch (e) { error = e.message; }
   });
 
@@ -189,6 +194,7 @@
     if (shouldSave('card')) tasks.push(saveCollection(cards, original.cards, `/api/contacts/${id}/cards`, 'card_id'));
     if (shouldSave('bank')) tasks.push(saveCollection(bankAccounts, original.bankAccounts, `/api/contacts/${id}/bank-accounts`, 'bank_account_id'));
     if (shouldSave('location')) tasks.push(saveCollection(locations, original.locations, `/api/contacts/${id}/locations`, 'location_id'));
+    if (shouldSave('nationality')) tasks.push(saveCollection(nationalities, original.nationalities, `/api/contacts/${id}/nationalities`, 'nationality_id'));
     if (shouldSave('keyword')) tasks.push(saveKeywords());
     if (shouldSave('relationship')) tasks.push(saveRelationships());
     if (shouldSave('organization')) tasks.push(saveOrganizations());
@@ -341,6 +347,24 @@
       {#each locations as location, i}<div class="related-item"><div class="related-grid location-grid"><select class="select" aria-label={t('locationTypeLabel')} bind:value={location.location_type}><option value="">{t('locationTypeSelect')}</option><option value="birth">{t('locationBirth')}</option><option value="residence">{t('locationResidence')}</option><option value="work">{t('locationWork')}</option><option value="other">{t('locationOther')}</option></select><input class="input" placeholder={t('locationAddress')} bind:value={location.address} /><input class="input" placeholder={t('locationCity')} bind:value={location.city} /><input class="input" placeholder={t('locationCountry')} bind:value={location.country} /><button type="button" class="icon-button danger" aria-label="Eliminar ubicación" onclick={() => removeAt(locations, i)}><Trash2 size={16} /></button></div><input class="input location-extra" placeholder={t('locationRegion')} bind:value={location.region} /><input class="input location-extra" placeholder={t('locationPostalCode')} bind:value={location.postal_code} /><div class="coordinates"><input class="input" type="number" step="any" min="-90" max="90" placeholder={t('locationLatitude')} bind:value={location.latitude} /><input class="input" type="number" step="any" min="-180" max="180" placeholder={t('locationLongitude')} bind:value={location.longitude} /></div></div>{/each}
     </RelatedSection>
     {/if}
+    {#if !selectedSection || selectedSection === 'nationality'}
+    <RelatedSection title={t('nationalityTitle')} add={addNationality}>
+      {#each nationalities as nat, i}
+        <div class="related-item">
+          <div class="nationality-grid">
+            <select class="select" aria-label={t('nationalityCountry')} bind:value={nat.country_code}>
+              <option value="">{t('nationalitySelect')}</option>
+              {#each COUNTRIES as c}<option value={c.value}>{t(c.label)}</option>{/each}
+            </select>
+            <input class="input" type="date" aria-label={t('nationalityAcquired')} bind:value={nat.acquired_at} title={t('nationalityAcquired')} />
+            <input class="input" placeholder={t('nationalityNote')} bind:value={nat.note} />
+            <button type="button" class="icon-button danger" aria-label="Eliminar nacionalidad" onclick={() => removeAt(nationalities, i)}><Trash2 size={16} /></button>
+          </div>
+          {#if nat.country_code}<small class="form-hint">{nat.country_code}</small>{/if}
+        </div>
+      {/each}
+    </RelatedSection>
+    {/if}
   </form>
 </div>
 
@@ -357,8 +381,10 @@
   .related-row, .related-grid { display: grid; grid-template-columns: 1fr 1fr auto; align-items: center; gap: 8px; }
   .related-grid { grid-template-columns: repeat(4, 1fr) auto; }
   .card-grid { grid-template-columns: 1fr 1fr 1fr 1fr auto; }
-  .org-grid { display: grid; grid-template-columns: 1.4fr 1fr 1.1fr auto; align-items: center; gap: 8px; }
-  .org-grid .select, .org-grid .input, .related-grid .select, .related-grid .input { min-width: 0; }
+  .org-grid, .nationality-grid { display: grid; gap: 8px; align-items: center; }
+  .org-grid { grid-template-columns: 1.4fr 1fr 1.1fr auto; }
+  .nationality-grid { grid-template-columns: 1.2fr 1fr 1fr auto; }
+  .org-grid .select, .org-grid .input, .nationality-grid .select, .nationality-grid .input, .related-grid .select, .related-grid .input { min-width: 0; }
   .org-extra { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; align-items: center; }
   .org-extra-label { color: var(--text2); font-size: 12px; grid-column: 1; align-self: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .form-hint { color: var(--text2); font-size: 12px; }
@@ -372,7 +398,7 @@
    .deceased-toggle { display: inline-flex; align-items: center; gap: 8px; color: var(--text2); font-size: 14px; cursor: pointer; }
   .phone-status input { width: 18px; height: 18px; accent-color: var(--accent); }
   .coordinates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-  @media (max-width: 900px) { .card-grid { grid-template-columns: 1fr 1fr auto; } .card-grid .date-field { grid-column: span 1; } .org-grid { grid-template-columns: 1fr 1fr auto; } }
+  @media (max-width: 900px) { .card-grid { grid-template-columns: 1fr 1fr auto; } .card-grid .date-field { grid-column: span 1; } .org-grid { grid-template-columns: 1fr 1fr auto; } .nationality-grid { grid-template-columns: 1fr 1fr auto; } }
   @media (max-width: 600px) {
     .related-row, .related-grid { grid-template-columns: 1fr auto; }
     .related-row .input:first-child, .related-grid .input:first-child { grid-column: 1 / -1; }
@@ -380,8 +406,9 @@
     .card-grid select, .card-grid > input { grid-column: 1 / -1; }
     .card-grid .date-field { grid-column: 1 / -1; }
     .coordinates { grid-template-columns: 1fr; }
-    .org-grid { grid-template-columns: 1fr auto; }
-    .org-grid > *:first-child { grid-column: 1 / -1; }
+    .org-grid, .nationality-grid { grid-template-columns: 1fr auto; }
+    .org-grid > *:first-child, .nationality-grid > *:first-child { grid-column: 1 / -1; }
+    .nationality-grid > input[type="date"] { grid-column: 1 / -1; }
     .org-extra { grid-template-columns: 1fr; }
     .related-item { padding: 10px; }
   }

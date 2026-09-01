@@ -9,6 +9,7 @@
   import { formatAge, formatAgeAt, parseContactDate } from '$lib/date.js';
   import { formatValue, formatPhone, formatEmail, formatUrl, formatDate, formatSavedDate } from '$lib/format.js';
   import { resolveDocTypeLabel } from '$lib/docTypes.js';
+  import { resolveCountryLabel } from '$lib/countries.js';
 
   let showDeleteModal = $state(false);
   let showAddMenu = $state(false);
@@ -332,6 +333,26 @@
         </div>
       </div>
 
+      <div class="section-card">
+        <div class="section-card-header">
+          <span class="section-card-title">{t('nationalityTitle')}</span>
+          <button class="card-action" onclick={() => editSection('nationality', true)}><Plus size={16} /> Agregar</button>
+        </div>
+        <div class="section-card-body">
+          {#each c.nationalities || [] as nat}
+            <div class="detail-item">
+              <div>
+                <span class="field-label">{resolveCountryLabel(nat.country_code, t)}</span>
+                {#if formatValue(nat.note) !== '—'}<span class="field-value location-value">{formatValue(nat.note)}</span>{/if}
+                {#if formatValue(nat.acquired_at) !== '—'}<small class="field-helper">{formatDate(nat.acquired_at)}</small>{/if}
+              </div>
+              <button class="card-action icon-only" aria-label="Editar nacionalidad" onclick={() => editSection('nationality')}><Pencil size={16} /></button>
+            </div>
+          {/each}
+          {#if !c.nationalities?.length}<div class="empty-section">{t('nationalityEmpty')}</div>{/if}
+        </div>
+      </div>
+
       <!-- Agregar datos - botón único al final, desplegable mobile-friendly -->
       <div class="add-data-footer">
         <button class="{showAddMenu ? 'btn btn-secondary' : 'btn btn-primary'} add-main-btn" class:is-open={showAddMenu} onclick={() => showAddMenu = !showAddMenu} aria-expanded={showAddMenu} aria-haspopup="menu">
@@ -339,7 +360,7 @@
         </button>
         {#if showAddMenu}
           <div class="add-menu" role="menu">
-            {#each [['phone', 'Teléfono'], ['email', 'Correo'], ['card', 'Documento'], ['organization', 'Organización'], ['location', 'Ubicación'], ['url', 'Sitio web'], ['note', 'Nota'], ['keyword', 'Palabra clave'], ['bank', 'Cuenta bancaria'], ['relationship', 'Relación']] as item}
+            {#each [['phone', 'Teléfono'], ['email', 'Correo'], ['card', 'Documento'], ['organization', 'Organización'], ['location', 'Ubicación'], ['nationality', 'Nacionalidad'], ['url', 'Sitio web'], ['note', 'Nota'], ['keyword', 'Palabra clave'], ['bank', 'Cuenta bancaria'], ['relationship', 'Relación']] as item}
               <button class="add-menu-item" role="menuitem" onclick={() => { showAddMenu = false; editSection(item[0], true); }}>
                 <Plus size={14} /> {item[1]}
               </button>
