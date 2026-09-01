@@ -150,6 +150,49 @@ func parsePagination(r *http.Request) (limit, offset int) {
 	return
 }
 
+func nullString(s string) sql.NullString {
+	s = strings.TrimSpace(s)
+	return sql.NullString{String: s, Valid: s != ""}
+}
+
+func boolOrDefault(v *bool, def bool) bool {
+	if v != nil {
+		return *v
+	}
+	return def
+}
+
+type phoneRequest struct {
+	Phone     string `json:"phone"`
+	Label     string `json:"label"`
+	IsActive  *bool  `json:"is_active"`
+	CreatedAt *int64 `json:"created_at"`
+}
+
+type emailRequest struct {
+	Email string `json:"email"`
+	Label string `json:"label"`
+}
+
+type urlRequest struct {
+	URL   string `json:"url"`
+	Label string `json:"label"`
+}
+
+type bankRequest struct {
+	BankName      string `json:"bank_name"`
+	AccountNumber string `json:"account_number"`
+	AccountType   string `json:"account_type"`
+	Label         string `json:"label"`
+}
+
+type cardRequest struct {
+	DocType    string `json:"doc_type"`
+	CardNumber string `json:"card_number"`
+	IssueDate  string `json:"issue_date"`
+	ExpiryDate string `json:"expiry_date"`
+}
+
 // --- auth handlers ---
 
 func (a *App) register(w http.ResponseWriter, r *http.Request) {
@@ -296,12 +339,12 @@ func (a *App) createContact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c := model.Contact{
-		FirstName:  req.FirstName,
-		Surname:    req.Surname,
-		MiddleName: sql.NullString{String: req.MiddleName, Valid: req.MiddleName != ""},
-		Birthdate:  sql.NullString{String: req.Birthdate, Valid: req.Birthdate != ""},
-		Gender:     sql.NullString{String: req.Gender, Valid: req.Gender != ""},
-		StatusID:   sql.NullString{String: req.StatusID, Valid: req.StatusID != ""},
+		FirstName:  strings.TrimSpace(req.FirstName),
+		Surname:    strings.TrimSpace(req.Surname),
+		MiddleName: nullString(req.MiddleName),
+		Birthdate:  nullString(req.Birthdate),
+		Gender:     nullString(req.Gender),
+		StatusID:   nullString(req.StatusID),
 		Deceased:   req.Deceased,
 	}
 
@@ -344,11 +387,11 @@ func (a *App) updateContact(w http.ResponseWriter, r *http.Request) {
 	}
 	c := model.Contact{
 		UserID: claims.UserID, ContactID: contactID,
-		FirstName: req.FirstName, Surname: req.Surname,
-		MiddleName: sql.NullString{String: req.MiddleName, Valid: req.MiddleName != ""},
-		Birthdate:  sql.NullString{String: req.Birthdate, Valid: req.Birthdate != ""},
-		Gender:     sql.NullString{String: req.Gender, Valid: req.Gender != ""},
-		StatusID:   sql.NullString{String: req.StatusID, Valid: req.StatusID != ""},
+		FirstName: strings.TrimSpace(req.FirstName), Surname: strings.TrimSpace(req.Surname),
+		MiddleName: nullString(req.MiddleName),
+		Birthdate:  nullString(req.Birthdate),
+		Gender:     nullString(req.Gender),
+		StatusID:   nullString(req.StatusID),
 		Deceased:   req.Deceased,
 	}
 
@@ -445,10 +488,23 @@ func (a *App) createPhone(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
 
-	var p model.ContactPhone
-	if err := decodeJSON(r, &p); err != nil {
+	var req phoneRequest
+	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
+	}
+	if strings.TrimSpace(req.Phone) == "" {
+		errResp(w, http.StatusBadRequest, "phone is required")
+		return
+	}
+	p := model.ContactPhone{
+		Phone:     strings.TrimSpace(req.Phone),
+		Label:     nullString(req.Label),
+		IsActive:  boolOrDefault(req.IsActive, true),
+		CreatedAt: 0,
+	}
+	if req.CreatedAt != nil {
+		p.CreatedAt = *req.CreatedAt
 	}
 
 	created, err := a.store.CreatePhone(claims.UserID, contactID, p)
@@ -464,14 +520,19 @@ func (a *App) updatePhone(w http.ResponseWriter, r *http.Request) {
 	contactID := chi.URLParam(r, "id")
 	phoneID := chi.URLParam(r, "phoneId")
 
-	var p model.ContactPhone
-	if err := decodeJSON(r, &p); err != nil {
+	var req phoneRequest
+	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	p.UserID = claims.UserID
-	p.ContactID = contactID
-	p.PhoneID = phoneID
+	p := model.ContactPhone{
+		UserID:    claims.UserID,
+		ContactID: contactID,
+		PhoneID:   phoneID,
+		Phone:     strings.TrimSpace(req.Phone),
+		Label:     nullString(req.Label),
+		IsActive:  boolOrDefault(req.IsActive, false),
+	}
 
 	if err := a.store.UpdatePhone(claims.UserID, contactID, p); err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to update phone")
@@ -514,10 +575,18 @@ func (a *App) createEmail(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
 
-	var e model.ContactEmail
-	if err := decodeJSON(r, &e); err != nil {
+	var req emailRequest
+	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
+	}
+	if strings.TrimSpace(req.Email) == "" {
+		errResp(w, http.StatusBadRequest, "email is required")
+		return
+	}
+	e := model.ContactEmail{
+		Email: strings.TrimSpace(req.Email),
+		Label: nullString(req.Label),
 	}
 
 	created, err := a.store.CreateEmail(claims.UserID, contactID, e)
@@ -533,14 +602,18 @@ func (a *App) updateEmail(w http.ResponseWriter, r *http.Request) {
 	contactID := chi.URLParam(r, "id")
 	emailID := chi.URLParam(r, "emailId")
 
-	var e model.ContactEmail
-	if err := decodeJSON(r, &e); err != nil {
+	var req emailRequest
+	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	e.UserID = claims.UserID
-	e.ContactID = contactID
-	e.EmailID = emailID
+	e := model.ContactEmail{
+		UserID:    claims.UserID,
+		ContactID: contactID,
+		EmailID:   emailID,
+		Email:     strings.TrimSpace(req.Email),
+		Label:     nullString(req.Label),
+	}
 
 	if err := a.store.UpdateEmail(claims.UserID, contactID, e); err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to update email")
@@ -583,10 +656,18 @@ func (a *App) createURL(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
 
-	var u model.ContactUrl
-	if err := decodeJSON(r, &u); err != nil {
+	var req urlRequest
+	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
+	}
+	if strings.TrimSpace(req.URL) == "" {
+		errResp(w, http.StatusBadRequest, "url is required")
+		return
+	}
+	u := model.ContactUrl{
+		URL:   strings.TrimSpace(req.URL),
+		Label: nullString(req.Label),
 	}
 
 	created, err := a.store.CreateUrl(claims.UserID, contactID, u)
@@ -602,14 +683,18 @@ func (a *App) updateURL(w http.ResponseWriter, r *http.Request) {
 	contactID := chi.URLParam(r, "id")
 	urlID := chi.URLParam(r, "urlId")
 
-	var u model.ContactUrl
-	if err := decodeJSON(r, &u); err != nil {
+	var req urlRequest
+	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	u.UserID = claims.UserID
-	u.ContactID = contactID
-	u.URLID = urlID
+	u := model.ContactUrl{
+		UserID:    claims.UserID,
+		ContactID: contactID,
+		URLID:     urlID,
+		URL:       strings.TrimSpace(req.URL),
+		Label:     nullString(req.Label),
+	}
 
 	if err := a.store.UpdateUrl(claims.UserID, contactID, u); err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to update url")
@@ -778,21 +863,16 @@ func (a *App) createCard(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
 
-	var req struct {
-		DocType    string `json:"doc_type"`
-		CardNumber string `json:"card_number"`
-		IssueDate  string `json:"issue_date"`
-		ExpiryDate string `json:"expiry_date"`
-	}
+	var req cardRequest
 	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 	c := model.IdentityCard{
-		DocType:    req.DocType,
-		CardNumber: req.CardNumber,
-		IssueDate:  sql.NullString{String: req.IssueDate, Valid: req.IssueDate != ""},
-		ExpiryDate: sql.NullString{String: req.ExpiryDate, Valid: req.ExpiryDate != ""},
+		DocType:    strings.TrimSpace(req.DocType),
+		CardNumber: strings.TrimSpace(req.CardNumber),
+		IssueDate:  nullString(req.IssueDate),
+		ExpiryDate: nullString(req.ExpiryDate),
 	}
 
 	created, err := a.store.CreateCard(claims.UserID, contactID, c)
@@ -808,12 +888,7 @@ func (a *App) updateCard(w http.ResponseWriter, r *http.Request) {
 	contactID := chi.URLParam(r, "id")
 	cardID := chi.URLParam(r, "cardId")
 
-	var req struct {
-		DocType    string `json:"doc_type"`
-		CardNumber string `json:"card_number"`
-		IssueDate  string `json:"issue_date"`
-		ExpiryDate string `json:"expiry_date"`
-	}
+	var req cardRequest
 	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -822,10 +897,10 @@ func (a *App) updateCard(w http.ResponseWriter, r *http.Request) {
 		UserID:     claims.UserID,
 		ContactID:  contactID,
 		CardID:     cardID,
-		DocType:    req.DocType,
-		CardNumber: req.CardNumber,
-		IssueDate:  sql.NullString{String: req.IssueDate, Valid: req.IssueDate != ""},
-		ExpiryDate: sql.NullString{String: req.ExpiryDate, Valid: req.ExpiryDate != ""},
+		DocType:    strings.TrimSpace(req.DocType),
+		CardNumber: strings.TrimSpace(req.CardNumber),
+		IssueDate:  nullString(req.IssueDate),
+		ExpiryDate: nullString(req.ExpiryDate),
 	}
 
 	if err := a.store.UpdateCard(claims.UserID, contactID, c); err != nil {
@@ -869,10 +944,20 @@ func (a *App) createBankAccount(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
 
-	var b model.ContactBankAccount
-	if err := decodeJSON(r, &b); err != nil {
+	var req bankRequest
+	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
+	}
+	if strings.TrimSpace(req.AccountNumber) == "" {
+		errResp(w, http.StatusBadRequest, "account_number is required")
+		return
+	}
+	b := model.ContactBankAccount{
+		BankName:      nullString(req.BankName),
+		AccountNumber: strings.TrimSpace(req.AccountNumber),
+		AccountType:   nullString(req.AccountType),
+		Label:         nullString(req.Label),
 	}
 
 	created, err := a.store.CreateBankAccount(claims.UserID, contactID, b)
@@ -888,14 +973,20 @@ func (a *App) updateBankAccount(w http.ResponseWriter, r *http.Request) {
 	contactID := chi.URLParam(r, "id")
 	bankAccountID := chi.URLParam(r, "bankAccountId")
 
-	var b model.ContactBankAccount
-	if err := decodeJSON(r, &b); err != nil {
+	var req bankRequest
+	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	b.UserID = claims.UserID
-	b.ContactID = contactID
-	b.BankAccountID = bankAccountID
+	b := model.ContactBankAccount{
+		UserID:        claims.UserID,
+		ContactID:     contactID,
+		BankAccountID: bankAccountID,
+		BankName:      nullString(req.BankName),
+		AccountNumber: strings.TrimSpace(req.AccountNumber),
+		AccountType:   nullString(req.AccountType),
+		Label:         nullString(req.Label),
+	}
 
 	if err := a.store.UpdateBankAccount(claims.UserID, contactID, b); err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to update bank account")
@@ -1003,9 +1094,9 @@ func (a *App) createContactOrganization(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	co := model.ContactOrganization{
-		OrganizationID: req.OrganizationID,
-		Achievement:    sql.NullString{String: req.Achievement, Valid: req.Achievement != ""},
-		Date:           sql.NullString{String: req.Date, Valid: req.Date != ""},
+		OrganizationID: strings.TrimSpace(req.OrganizationID),
+		Achievement:    nullString(req.Achievement),
+		Date:           nullString(req.Date),
 	}
 
 	created, err := a.store.CreateOrganization(claims.UserID, contactID, co)
@@ -1033,8 +1124,8 @@ func (a *App) updateContactOrganization(w http.ResponseWriter, r *http.Request) 
 		UserID:         claims.UserID,
 		ContactID:      contactID,
 		OrganizationID: organizationID,
-		Achievement:    sql.NullString{String: req.Achievement, Valid: req.Achievement != ""},
-		Date:           sql.NullString{String: req.Date, Valid: req.Date != ""},
+		Achievement:    nullString(req.Achievement),
+		Date:           nullString(req.Date),
 	}
 
 	if err := a.store.UpdateOrganization(claims.UserID, contactID, co); err != nil {

@@ -7,6 +7,8 @@
   import { onMount } from 'svelte';
   import { ArrowLeft, Pencil, Plus, Trash2, RefreshCw, Skull, X } from '@lucide/svelte';
   import { formatAge, formatAgeAt, parseContactDate } from '$lib/date.js';
+  import { formatValue, formatPhone, formatEmail, formatUrl, formatDate, formatSavedDate } from '$lib/format.js';
+  import { resolveDocTypeLabel } from '$lib/docTypes.js';
 
   let showDeleteModal = $state(false);
   let showAddMenu = $state(false);
@@ -47,62 +49,6 @@
     }
   }
 
-  function formatValue(val) {
-    if (val === null || val === undefined || val === '') return '—';
-    if (typeof val === 'object') {
-      if (val.Valid !== undefined) return val.Valid && val.String ? val.String : '—';
-      if (val.time) return val.time;
-      return '—';
-    }
-    return String(val);
-  }
-
-  function formatPhone(p) {
-    if (typeof p === 'string') return p;
-    return p.phone || p.number || p.value || '—';
-  }
-
-  function formatEmail(e) {
-    if (typeof e === 'string') return e;
-    return e.email || e.address || e.value || '—';
-  }
-
-  function formatUrl(u) {
-    if (typeof u === 'string') return u;
-    return u.url || u.value || '—';
-  }
-
-  function formatDate(d) {
-    if (!d) return '—';
-    try {
-      let dateStr = d;
-      if (typeof d === 'object' && d !== null) {
-        if (d.Valid && d.String) {
-          dateStr = d.String;
-        } else if (d.time) {
-          dateStr = d.time;
-        } else {
-          return '—';
-        }
-      }
-      if (!dateStr || dateStr === 'null' || dateStr === 'undefined') return '—';
-      const date = parseContactDate(dateStr);
-      if (!date) return '—';
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch {
-      return '—';
-    }
-  }
-
-  function formatSavedDate(timestamp) {
-    const date = new Date(Number(timestamp));
-    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString();
-  }
-
   function editSection(section, add = false) {
     goto(`/contacts/${contactId}/edit?${add ? 'add' : 'section'}=${section}`);
   }
@@ -110,6 +56,10 @@
   function locationType(type) {
     const key = { birth: 'locationBirth', residence: 'locationResidence', work: 'locationWork', other: 'locationOther' }[type];
     return key ? t(key) : (type || t('locationTitle'));
+  }
+
+  function docTypeLabel(type) {
+    return resolveDocTypeLabel(type, t);
   }
 
   function sortedOrganizations(items) {
@@ -285,7 +235,7 @@
         <div class="section-card-body">
           {#each c.identity_cards as card}
             <div class="detail-item">
-              <span class="field-label">{card.doc_type || card.type || 'ID'}</span>
+              <span class="field-label">{docTypeLabel(card.doc_type || card.type)}</span>
               <span class="field-value">{card.card_number || card.number || card.value || '—'}</span>
               <button class="card-action icon-only" aria-label="Editar documento" onclick={() => editSection('card')}><Pencil size={16} /></button>
             </div>
@@ -303,7 +253,7 @@
         <div class="section-card-body">
           {#each c.bank_accounts as acc}
             <div class="detail-item">
-              <span class="field-label">{acc.bank_name || acc.bank || acc.name || 'Account'}</span>
+              <span class="field-label">{formatValue(acc.bank_name) !== '—' ? formatValue(acc.bank_name) : (acc.bank || acc.name || 'Account')}</span>
               <span class="field-value">{acc.account_number || acc.number || acc.iban || acc.value || '—'}</span>
               <button class="card-action icon-only" aria-label="Editar cuenta bancaria" onclick={() => editSection('bank')}><Pencil size={16} /></button>
             </div>

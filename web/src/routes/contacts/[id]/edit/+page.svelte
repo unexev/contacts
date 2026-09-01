@@ -7,6 +7,7 @@
   import { Trash2 } from '@lucide/svelte';
   import RelatedSection from '$lib/components/RelatedSection.svelte';
   import { parseContactDate } from '$lib/date.js';
+  import { DOCUMENT_TYPES, normalizeDocType } from '$lib/docTypes.js';
 
   let id = $derived($page.params.id);
   let selectedSection = $derived($page.url.searchParams.get('section') || $page.url.searchParams.get('add') || '');
@@ -35,44 +36,32 @@
   let original = $state({ phones: [], emails: [], urls: [], notes: [], cards: [], bankAccounts: [], organizations: [], locations: [], keywords: [], relationships: [] });
   let error = $state('');
   let saving = $state(false);
-  const documentTypes = [
-    { value: 'national_id', label: 'docTypeNationalId' },
-    { value: 'passport', label: 'docTypePassport' },
-    { value: 'drivers_license', label: 'docTypeDriversLicense' },
-    { value: 'residence_permit', label: 'docTypeResidencePermit' },
-    { value: 'other', label: 'docTypeOther' }
-  ];
+  const documentTypes = DOCUMENT_TYPES;
 
   function documentTypeValue(type) {
-    return ({
-      'Cédula': 'national_id',
-      'ID Card': 'national_id',
-      'Pasaporte': 'passport',
-      'Passport': 'passport',
-      'Licencia de conducir': 'drivers_license'
-    }[type] || type || '');
+    return normalizeDocType(type);
   }
 
-  const value = (item, key) => {
-    const value = item?.[key];
-    return value && typeof value === 'object' ? (value.Valid ? value.String : '') : (value || '');
-  };
+  function extractFieldValue(item, key) {
+    const raw = item?.[key];
+    if (raw && typeof raw === 'object') return raw.Valid ? raw.String : '';
+    return raw || '';
+  }
 
-  function dateInput(value) {
-    const date = parseContactDate(value);
+  function dateInput(rawValue) {
+    const date = parseContactDate(rawValue);
     return date ? [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-') : '';
   }
 
   function normalizeList(list, fields) {
     return (list || []).map(item => Object.fromEntries([
       ...Object.entries(item),
-      ...fields.map(field => [field, value(item, field)])
+      ...fields.map(field => [field, extractFieldValue(item, field)])
     ]));
   }
 
   function removeAt(list, index) {
     list.splice(index, 1);
-    list = [...list];
   }
 
   function addPhone() { phones = [...phones, { phone: '', label: '', is_active: true, created_at: 0 }]; }
@@ -154,68 +143,88 @@
   }
 
   async function saveRelationships() {
-    await Promise.all(original.relationships.filter(rel => rel.related_contact_id && rel.type_id).map(rel => api(`/api/contacts/${id}/relationships/${rel.related_contact_id}?typeId=${encodeURIComponent(rel.type_id)}`, { method: 'DELETE' })));
-    await Promise.all(relationships.filter(rel => rel.related_contact_id && rel.type_id).map(rel => api(`/api/contacts/${id}/relationships`, { method: 'POST', body: rel })));
+    const toDelete = original.relationships.filter(rel => rel.related_contact_id && rel.type_id);
+    const toCreate = relationships.filter(rel => rel.related_contact_id && rel.type_id);
+    await Promise.all(toDelete.map(rel => api(`/api/contacts/${id}/relationships/${rel.related_contact_id}?typeId=${encodeURIComponent(rel.type_id)}`, { method: 'DELETE' })));
+    await Promise.all(toCreate.map(rel => api(`/api/contacts/${id}/relationships`, { method: 'POST', body: rel })));
+  }
+
+  async function resolveOrganizations() {
+    for (const org of organizations) {
+      if (org.organization_id === '__new' && org.newName?.trim()) {
+        const created = await api('/api/organizations', { method: 'POST', body: { name: org.newName.trim() } });
+        const newId = created?.organization_id || created?.data?.organization_id || created?.id;
+        if (newId) {
+          org.organization_id = newId;
+          org.organization_name = org.newName.trim();
+          availableOrgs = [...availableOrgs, { organization_id: newId, name: org.newName.trim() }];
+        }
+        org.newName = '';
+      }
+    }
+    for (const org of organizations) {
+      if (!org.organization_id && org.organization_name?.trim()) {
+        const match = availableOrgs.find(o => o.name.toLowerCase() === org.organization_name.trim().toLowerCase());
+        if (match) org.organization_id = match.organization_id;
+        else {
+          const created = await api('/api/organizations', { method: 'POST', body: { name: org.organization_name.trim() } });
+          const newId = created?.organization_id || created?.data?.organization_id;
+          if (newId) org.organization_id = newId;
+        }
+      }
+    }
+  }
+
+  function collectSaveTasks() {
+    const tasks = [];
+    const shouldSave = (section) => !selectedSection || selectedSection === section;
+
+    if (shouldSave('personal')) {
+      tasks.push(api(`/api/contacts/${id}`, { method: 'PUT', body: { first_name, middle_name, surname, birthdate, gender, status_id: marital_status, deceased } }));
+    }
+    if (shouldSave('phone')) tasks.push(saveCollection(phones, original.phones, `/api/contacts/${id}/phones`, 'phone_id'));
+    if (shouldSave('email')) tasks.push(saveCollection(emails, original.emails, `/api/contacts/${id}/emails`, 'email_id'));
+    if (shouldSave('url')) tasks.push(saveCollection(urls, original.urls, `/api/contacts/${id}/urls`, 'url_id'));
+    if (shouldSave('note')) tasks.push(saveCollection(notes, original.notes, `/api/contacts/${id}/notes`, 'note_id'));
+    if (shouldSave('card')) tasks.push(saveCollection(cards, original.cards, `/api/contacts/${id}/cards`, 'card_id'));
+    if (shouldSave('bank')) tasks.push(saveCollection(bankAccounts, original.bankAccounts, `/api/contacts/${id}/bank-accounts`, 'bank_account_id'));
+    if (shouldSave('location')) tasks.push(saveCollection(locations, original.locations, `/api/contacts/${id}/locations`, 'location_id'));
+    if (shouldSave('keyword')) tasks.push(saveKeywords());
+    if (shouldSave('relationship')) tasks.push(saveRelationships());
+    if (shouldSave('organization')) tasks.push(saveOrganizations());
+    return tasks;
+  }
+
+  function saveOrganizations() {
+    const currentOrgIds = organizations.filter(o => o.organization_id && o.organization_id !== '__new').map(o => o.organization_id);
+    const toDelete = original.organizations.filter(oldId => !currentOrgIds.includes(oldId))
+      .map(oldId => api(`/api/contacts/${id}/organizations/${oldId}`, { method: 'DELETE' }));
+    const toUpsert = organizations.filter(o => o.organization_id && o.organization_id !== '__new')
+      .map(org => {
+        const isExisting = original.organizations.includes(org.organization_id);
+        const path = isExisting ? `/api/contacts/${id}/organizations/${org.organization_id}` : `/api/contacts/${id}/organizations`;
+        return api(path, { method: isExisting ? 'PUT' : 'POST', body: { organization_id: org.organization_id, achievement: org.achievement || '', date: org.date || '' } });
+      });
+    return Promise.all([...toDelete, ...toUpsert]);
   }
 
   async function save(e) {
-    e.preventDefault(); error = '';
-    if (!first_name.trim() || !surname.trim()) { error = 'Nombre y apellido son obligatorios'; return; }
+    e.preventDefault();
+    error = '';
+    if (!first_name.trim() || !surname.trim()) {
+      error = 'Nombre y apellido son obligatorios';
+      return;
+    }
     saving = true;
     try {
-      // Resolver organizaciones nuevas creadas desde el formulario
-      for (let org of organizations) {
-        if (org.organization_id === '__new' && org.newName?.trim()) {
-          const created = await api('/api/organizations', { method: 'POST', body: { name: org.newName.trim() } });
-          const newId = created?.organization_id || created?.data?.organization_id || created?.id;
-          if (newId) {
-            org.organization_id = newId;
-            org.organization_name = org.newName.trim();
-            availableOrgs = [...availableOrgs, { organization_id: newId, name: org.newName.trim() }];
-          }
-          org.newName = '';
-        }
-      }
-      // Si el usuario escribió directamente nombre sin seleccionar, intentar matchear
-      for (let org of organizations) {
-        if (!org.organization_id && org.organization_name?.trim()) {
-          const match = availableOrgs.find(o => o.name.toLowerCase() === org.organization_name.trim().toLowerCase());
-          if (match) org.organization_id = match.organization_id;
-          else {
-            const created = await api('/api/organizations', { method: 'POST', body: { name: org.organization_name.trim() } });
-            const newId = created?.organization_id || created?.data?.organization_id;
-            if (newId) org.organization_id = newId;
-          }
-        }
-      }
-      const saves = [];
-      if (!selectedSection || selectedSection === 'personal') {
-         saves.push(api(`/api/contacts/${id}`, { method: 'PUT', body: { first_name, middle_name, surname, birthdate, gender, status_id: marital_status, deceased } }));
-      }
-      if (!selectedSection || selectedSection === 'phone') saves.push(saveCollection(phones, original.phones, `/api/contacts/${id}/phones`, 'phone_id'));
-      if (!selectedSection || selectedSection === 'email') saves.push(saveCollection(emails, original.emails, `/api/contacts/${id}/emails`, 'email_id'));
-      if (!selectedSection || selectedSection === 'url') saves.push(saveCollection(urls, original.urls, `/api/contacts/${id}/urls`, 'url_id'));
-      if (!selectedSection || selectedSection === 'note') saves.push(saveCollection(notes, original.notes, `/api/contacts/${id}/notes`, 'note_id'));
-      if (!selectedSection || selectedSection === 'card') saves.push(saveCollection(cards, original.cards, `/api/contacts/${id}/cards`, 'card_id'));
-      if (!selectedSection || selectedSection === 'bank') saves.push(saveCollection(bankAccounts, original.bankAccounts, `/api/contacts/${id}/bank-accounts`, 'bank_account_id'));
-      if (!selectedSection || selectedSection === 'organization') {
-        const currentOrgIds = organizations.filter(o => o.organization_id && o.organization_id !== '__new').map(o => o.organization_id);
-        const orgDeletes = original.organizations.filter(oldId => !currentOrgIds.includes(oldId)).map(oldId => api(`/api/contacts/${id}/organizations/${oldId}`, { method: 'DELETE' }));
-        const orgUpserts = organizations.filter(o => o.organization_id && o.organization_id !== '__new').map(org => {
-          const isExisting = original.organizations.includes(org.organization_id);
-          const path = isExisting ? `/api/contacts/${id}/organizations/${org.organization_id}` : `/api/contacts/${id}/organizations`;
-          const method = isExisting ? 'PUT' : 'POST';
-          const body = { organization_id: org.organization_id, achievement: org.achievement || '', date: org.date || '' };
-          return api(path, { method, body });
-        });
-        saves.push(Promise.all([...orgDeletes, ...orgUpserts]));
-      }
-      if (!selectedSection || selectedSection === 'location') saves.push(saveCollection(locations, original.locations, `/api/contacts/${id}/locations`, 'location_id'));
-      if (!selectedSection || selectedSection === 'keyword') saves.push(saveKeywords());
-      if (!selectedSection || selectedSection === 'relationship') saves.push(saveRelationships());
-      await Promise.all(saves);
+      await resolveOrganizations();
+      await Promise.all(collectSaveTasks());
       goto(`/contacts/${id}`);
-    } catch (e) { error = e.message; } finally { saving = false; }
+    } catch (err) {
+      error = err.message;
+    } finally {
+      saving = false;
+    }
   }
 </script>
 
@@ -298,7 +307,7 @@
       <p class="form-hint" style="margin: -4px 0 8px; color: var(--text2); font-size: 13px;">Selecciona una organización existente o crea una nueva. «Logro» es el título/cargo obtenido y «Fecha» cuando lo obtuviste.</p>
       {#each organizations as organization, i}
         <div class="related-item">
-          <div class="related-grid">
+          <div class="org-grid">
             <select class="select" bind:value={organization.organization_id} aria-label="Organización">
               <option value="">-- Selecciona organización --</option>
               {#each availableOrgs as org}
@@ -315,14 +324,13 @@
             <button type="button" class="icon-button danger" aria-label="Eliminar organización" onclick={() => removeAt(organizations, i)}><Trash2 size={16} /></button>
           </div>
           {#if organization.organization_id === '__new'}
-            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-top: 8px;">
-              <span style="grid-column: 1; color: var(--text2); font-size: 12px; align-self: center;">{organization.organization_name ? `Actual: ${organization.organization_name}` : ''}</span>
+            <div class="org-extra">
+              <span class="org-extra-label">{organization.organization_name ? `Actual: ${organization.organization_name}` : ''}</span>
               <input class="input" placeholder="Título, cargo o logro" bind:value={organization.achievement} />
-              <span></span>
             </div>
-            <small style="color: var(--text2); font-size: 12px;">Se creará la organización al guardar.</small>
+            <small class="form-hint">Se creará la organización al guardar.</small>
           {:else if organization.organization_name}
-            <small style="color: var(--text2); font-size: 12px;">{organization.organization_name} {#if organization.organization_id}· {organization.organization_id.slice(0,12)}…{/if}</small>
+            <small class="form-hint">{organization.organization_name} {#if organization.organization_id}· {organization.organization_id.slice(0,12)}…{/if}</small>
           {/if}
         </div>
       {/each}
@@ -342,21 +350,39 @@
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: 10px;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .related-row, .related-grid { display: grid; grid-template-columns: 1fr 1fr auto; align-items: center; gap: 8px; }
   .related-grid { grid-template-columns: repeat(4, 1fr) auto; }
   .card-grid { grid-template-columns: 1fr 1fr 1fr 1fr auto; }
+  .org-grid { display: grid; grid-template-columns: 1.4fr 1fr 1.1fr auto; align-items: center; gap: 8px; }
+  .org-grid .select, .org-grid .input, .related-grid .select, .related-grid .input { min-width: 0; }
+  .org-extra { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; align-items: center; }
+  .org-extra-label { color: var(--text2); font-size: 12px; grid-column: 1; align-self: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .form-hint { color: var(--text2); font-size: 12px; }
   .date-field { display: flex; flex-direction: column; gap: 4px; }
   .date-label { font-size: 12px; color: var(--text2); line-height: 1; }
   .date-label .optional { font-weight: 400; opacity: 0.8; }
   textarea.input { resize: vertical; }
-  .icon-button { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--text2); cursor: pointer; }
+  .icon-button { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--text2); cursor: pointer; flex-shrink: 0; }
   .icon-button.danger:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
    .phone-status { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--text2); font-size: 14px; cursor: pointer; }
    .deceased-toggle { display: inline-flex; align-items: center; gap: 8px; color: var(--text2); font-size: 14px; cursor: pointer; }
   .phone-status input { width: 18px; height: 18px; accent-color: var(--accent); }
   .coordinates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-  @media (max-width: 900px) { .card-grid { grid-template-columns: 1fr 1fr auto; } .card-grid .date-field { grid-column: span 1; } }
-  @media (max-width: 600px) { .related-row, .related-grid { grid-template-columns: 1fr auto; } .related-row .input:first-child, .related-grid .input:first-child { grid-column: 1 / -1; } .card-grid { grid-template-columns: 1fr auto; gap: 10px; } .card-grid select, .card-grid > input { grid-column: 1 / -1; } .card-grid .date-field { grid-column: 1 / -1; } .coordinates { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) { .card-grid { grid-template-columns: 1fr 1fr auto; } .card-grid .date-field { grid-column: span 1; } .org-grid { grid-template-columns: 1fr 1fr auto; } }
+  @media (max-width: 600px) {
+    .related-row, .related-grid { grid-template-columns: 1fr auto; }
+    .related-row .input:first-child, .related-grid .input:first-child { grid-column: 1 / -1; }
+    .card-grid { grid-template-columns: 1fr auto; gap: 10px; }
+    .card-grid select, .card-grid > input { grid-column: 1 / -1; }
+    .card-grid .date-field { grid-column: 1 / -1; }
+    .coordinates { grid-template-columns: 1fr; }
+    .org-grid { grid-template-columns: 1fr auto; }
+    .org-grid > *:first-child { grid-column: 1 / -1; }
+    .org-extra { grid-template-columns: 1fr; }
+    .related-item { padding: 10px; }
+  }
 </style>
