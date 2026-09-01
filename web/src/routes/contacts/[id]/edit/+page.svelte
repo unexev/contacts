@@ -255,7 +255,7 @@
     {/if}
     {#if !selectedSection || selectedSection === 'card'}
     <RelatedSection title="Documentos de identidad" add={addCard}>
-      {#each cards as card, i}<div class="related-item"><div class="related-grid"><select class="select" aria-label={t('docTypeLabel')} bind:value={card.doc_type}><option value="">{t('docTypeSelect')}</option>{#if card.doc_type && !documentTypes.some(type => type.value === card.doc_type)}<option value={card.doc_type}>{card.doc_type}</option>{/if}{#each documentTypes as type}<option value={type.value}>{t(type.label)}</option>{/each}</select><input class="input" placeholder="Número" bind:value={card.card_number} /><input class="input" type="date" bind:value={card.issue_date} /><input class="input" type="date" bind:value={card.expiry_date} /><button type="button" class="icon-button danger" aria-label="Eliminar documento" onclick={() => removeAt(cards, i)}><Trash2 size={16} /></button></div></div>{/each}
+      {#each cards as card, i}<div class="related-item"><div class="related-grid card-grid"><select class="select" aria-label={t('docTypeLabel')} bind:value={card.doc_type}><option value="">{t('docTypeSelect')}</option>{#if card.doc_type && !documentTypes.some(type => type.value === card.doc_type)}<option value={card.doc_type}>{card.doc_type}</option>{/if}{#each documentTypes as type}<option value={type.value}>{t(type.label)}</option>{/each}</select><input class="input" placeholder="Número" bind:value={card.card_number} /><div class="date-field"><label class="date-label">Emisión <span class="optional">(opcional)</span></label><input class="input" type="date" bind:value={card.issue_date} aria-label="Fecha de emisión opcional" /></div><div class="date-field"><label class="date-label">Vencimiento <span class="optional">(opcional)</span></label><input class="input" type="date" bind:value={card.expiry_date} aria-label="Fecha de vencimiento opcional" /></div><button type="button" class="icon-button danger" aria-label="Eliminar documento" onclick={() => removeAt(cards, i)}><Trash2 size={16} /></button></div></div>{/each}
     </RelatedSection>
     {/if}
     {#if !selectedSection || selectedSection === 'bank'}
@@ -346,6 +346,10 @@
 
   .related-row, .related-grid { display: grid; grid-template-columns: 1fr 1fr auto; align-items: center; gap: 8px; }
   .related-grid { grid-template-columns: repeat(4, 1fr) auto; }
+  .card-grid { grid-template-columns: 1fr 1fr 1fr 1fr auto; }
+  .date-field { display: flex; flex-direction: column; gap: 4px; }
+  .date-label { font-size: 12px; color: var(--text2); line-height: 1; }
+  .date-label .optional { font-weight: 400; opacity: 0.8; }
   textarea.input { resize: vertical; }
   .icon-button { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--text2); cursor: pointer; }
   .icon-button.danger:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
@@ -353,5 +357,6 @@
    .deceased-toggle { display: inline-flex; align-items: center; gap: 8px; color: var(--text2); font-size: 14px; cursor: pointer; }
   .phone-status input { width: 18px; height: 18px; accent-color: var(--accent); }
   .coordinates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-  @media (max-width: 600px) { .related-row, .related-grid { grid-template-columns: 1fr auto; } .related-row .input:first-child, .related-grid .input:first-child { grid-column: 1 / -1; } .coordinates { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) { .card-grid { grid-template-columns: 1fr 1fr auto; } .card-grid .date-field { grid-column: span 1; } }
+  @media (max-width: 600px) { .related-row, .related-grid { grid-template-columns: 1fr auto; } .related-row .input:first-child, .related-grid .input:first-child { grid-column: 1 / -1; } .card-grid { grid-template-columns: 1fr auto; gap: 10px; } .card-grid select, .card-grid > input { grid-column: 1 / -1; } .card-grid .date-field { grid-column: 1 / -1; } .coordinates { grid-template-columns: 1fr; } }
 </style>

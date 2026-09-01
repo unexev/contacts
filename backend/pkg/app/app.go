@@ -778,10 +778,21 @@ func (a *App) createCard(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
 
-	var c model.IdentityCard
-	if err := decodeJSON(r, &c); err != nil {
+	var req struct {
+		DocType    string `json:"doc_type"`
+		CardNumber string `json:"card_number"`
+		IssueDate  string `json:"issue_date"`
+		ExpiryDate string `json:"expiry_date"`
+	}
+	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
+	}
+	c := model.IdentityCard{
+		DocType:    req.DocType,
+		CardNumber: req.CardNumber,
+		IssueDate:  sql.NullString{String: req.IssueDate, Valid: req.IssueDate != ""},
+		ExpiryDate: sql.NullString{String: req.ExpiryDate, Valid: req.ExpiryDate != ""},
 	}
 
 	created, err := a.store.CreateCard(claims.UserID, contactID, c)
@@ -797,14 +808,25 @@ func (a *App) updateCard(w http.ResponseWriter, r *http.Request) {
 	contactID := chi.URLParam(r, "id")
 	cardID := chi.URLParam(r, "cardId")
 
-	var c model.IdentityCard
-	if err := decodeJSON(r, &c); err != nil {
+	var req struct {
+		DocType    string `json:"doc_type"`
+		CardNumber string `json:"card_number"`
+		IssueDate  string `json:"issue_date"`
+		ExpiryDate string `json:"expiry_date"`
+	}
+	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	c.UserID = claims.UserID
-	c.ContactID = contactID
-	c.CardID = cardID
+	c := model.IdentityCard{
+		UserID:     claims.UserID,
+		ContactID:  contactID,
+		CardID:     cardID,
+		DocType:    req.DocType,
+		CardNumber: req.CardNumber,
+		IssueDate:  sql.NullString{String: req.IssueDate, Valid: req.IssueDate != ""},
+		ExpiryDate: sql.NullString{String: req.ExpiryDate, Valid: req.ExpiryDate != ""},
+	}
 
 	if err := a.store.UpdateCard(claims.UserID, contactID, c); err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to update card")
