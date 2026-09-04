@@ -3,7 +3,7 @@
   import { locale, t } from '$lib/i18n.svelte.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { Bell, RefreshCw, ChevronRight, Sun, Moon, Monitor } from '@lucide/svelte';
+  import { Sun, Moon, Monitor } from '@lucide/svelte';
   import { userPrefersMode, setMode, resetMode } from 'mode-watcher';
 
   onMount(() => {
@@ -25,18 +25,6 @@
   <h1 class="config-title">{t('configTitle')}</h1>
 
   <div class="config-section">
-    <a class="config-item" href="/notifications">
-      <span class="config-icon"><Bell size={18} /></span>
-      <span class="config-copy"><strong>{t('menuNotifications')}</strong><small>{t('menuNotificationsDesc')}</small></span>
-      <ChevronRight size={18} />
-    </a>
-
-    <a class="config-item" href="/sync">
-      <span class="config-icon sync"><RefreshCw size={18} /></span>
-      <span class="config-copy"><strong>{t('menuSync')}</strong><small>{t('menuSyncDesc')}</small></span>
-      <ChevronRight size={18} />
-    </a>
-
     <div class="section-card">
       <div class="section-card-header">
         <span class="section-card-title">{t('configLanguage')}</span>
@@ -121,25 +109,6 @@
     flex-direction: column;
     gap: 16px;
   }
-
-  .config-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 15px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    color: var(--text);
-    text-decoration: none;
-  }
-
-  .config-item:hover { background: var(--surface2); text-decoration: none; }
-  .config-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; color: var(--accent); background: rgba(10,132,255,.12); }
-  .config-icon.sync { color: #34c759; background: rgba(52,199,89,.12); }
-  .config-copy { display: flex; flex: 1; flex-direction: column; gap: 2px; }
-  .config-copy strong { font-size: 16px; }
-  .config-copy small { color: var(--text2); font-size: 12px; }
 
   .lang-options {
     display: flex;

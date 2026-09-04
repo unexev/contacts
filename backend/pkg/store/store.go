@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -102,9 +103,12 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 	argIdx := 2
 
 	if search != "" {
-		where = append(where, fmt.Sprintf("(c.first_name ILIKE $%d OR c.middle_name ILIKE $%d OR c.surname ILIKE $%d OR EXISTS (SELECT 1 FROM contact_keywords ck WHERE ck.user_id = c.user_id AND ck.contact_id = c.contact_id AND ck.keyword ILIKE $%d))", argIdx, argIdx, argIdx, argIdx))
-		args = append(args, "%"+search+"%")
-		argIdx++
+		terms := strings.Fields(search)
+		for _, term := range terms {
+			where = append(where, fmt.Sprintf("(c.first_name ILIKE $%d OR c.middle_name ILIKE $%d OR c.surname ILIKE $%d OR EXISTS (SELECT 1 FROM contact_keywords ck WHERE ck.user_id = c.user_id AND ck.contact_id = c.contact_id AND ck.keyword ILIKE $%d))", argIdx, argIdx, argIdx, argIdx))
+			args = append(args, "%"+term+"%")
+			argIdx++
+		}
 	}
 
 	if gender != "" {

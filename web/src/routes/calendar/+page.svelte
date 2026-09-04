@@ -89,10 +89,19 @@
     }
   }
 
-  function getAge(birthdate) {
+  function getAge(birthdate, day) {
     if (!birthdate) return '';
     const age = calculateAge(birthdate);
-    return age === null ? '' : `Turns ${age} years`;
+    if (age === null) return '';
+    const date = new Date(currentYear, currentMonth, day);
+    const birth = parseContactDate(birthdate);
+    if (!birth) return '';
+    let ageAtDate = date.getFullYear() - birth.getFullYear();
+    const m = date.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && date.getDate() < birth.getDate())) {
+      ageAtDate--;
+    }
+    return `Turns ${ageAtDate} years`;
   }
 
   function getInitials(c) {
@@ -188,7 +197,7 @@
               <div class="birthday-name">
                 {contact.first_name || ''} {contact.middle_name?.String || contact.middle_name || ''} {contact.surname || ''}
               </div>
-              <div class="birthday-age">{getAge(contact.birthdate)}</div>
+              <div class="birthday-age">{getAge(contact.birthdate, selectedDay)}</div>
             </div>
             <span class="birthday-arrow">></span>
           </button>

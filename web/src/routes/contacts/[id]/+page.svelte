@@ -7,7 +7,7 @@
   import { onMount } from 'svelte';
   import { ArrowLeft, Pencil, Plus, Trash2, RefreshCw, Skull, X } from '@lucide/svelte';
   import { formatAge, formatAgeAt, parseContactDate } from '$lib/date.js';
-  import { formatValue, formatPhone, formatEmail, formatUrl, formatDate, formatSavedDate } from '$lib/format.js';
+  import { formatValue, formatPhone as formatPhoneBase, formatEmail, formatUrl, formatDate, formatSavedDate } from '$lib/format.js';
   import { resolveDocTypeLabel } from '$lib/docTypes.js';
   import { resolveCountryLabel } from '$lib/countries.js';
 
@@ -57,6 +57,18 @@
   function locationType(type) {
     const key = { birth: 'locationBirth', residence: 'locationResidence', work: 'locationWork', other: 'locationOther' }[type];
     return key ? t(key) : (type || t('locationTitle'));
+  }
+
+  function formatPhone(p) {
+    if (typeof p === 'string') return p;
+    const number = p.phone || p.number || p.value || '—';
+    let label = '';
+    if (typeof p.label === 'object' && p.label !== null) {
+      label = p.label.Valid ? p.label.String : '';
+    } else if (typeof p.label === 'string') {
+      label = p.label;
+    }
+    return label ? `${number} (${label})` : number;
   }
 
   function docTypeLabel(type) {
@@ -236,8 +248,16 @@
         <div class="section-card-body">
           {#each c.identity_cards as card}
             <div class="detail-item">
-              <span class="field-label">{docTypeLabel(card.doc_type || card.type)}</span>
-              <span class="field-value">{card.card_number || card.number || card.value || '—'}</span>
+              <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                <span class="field-label">{docTypeLabel(card.doc_type || card.type)}</span>
+                <span class="field-value">{card.card_number || card.number || card.value || '—'}</span>
+                {#if (card.expiry_date && formatValue(card.expiry_date) !== '—') || (card.issue_date && formatValue(card.issue_date) !== '—')}
+                  <small class="field-helper">
+                    {#if card.issue_date && formatValue(card.issue_date) !== '—'}Emisión: {formatDate(card.issue_date)}{/if}
+                    {#if card.expiry_date && formatValue(card.expiry_date) !== '—'} · Vencimiento: {formatDate(card.expiry_date)}{/if}
+                  </small>
+                {/if}
+              </div>
               <button class="card-action icon-only" aria-label="Editar documento" onclick={() => editSection('card')}><Pencil size={16} /></button>
             </div>
           {/each}

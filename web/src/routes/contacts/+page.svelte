@@ -138,12 +138,30 @@
 
   function formatPhone(p) {
     if (!p) return '';
-    return typeof p === 'string' ? p : (p.number || p.value || '');
+    const number = typeof p === 'string' ? p : (p.number || p.value || '');
+    let label = '';
+    if (typeof p === 'object' && p !== null) {
+      if (typeof p.label === 'object' && p.label !== null) {
+        label = p.label.Valid ? p.label.String : '';
+      } else if (typeof p.label === 'string') {
+        label = p.label;
+      }
+    }
+    return label ? `${number} (${label})` : number;
   }
 
   function formatEmail(e) {
     if (!e) return '';
-    return typeof e === 'string' ? e : (e.address || e.email || e.value || '');
+    const address = typeof e === 'string' ? e : (e.address || e.email || e.value || '');
+    let label = '';
+    if (typeof e === 'object' && e !== null) {
+      if (typeof e.label === 'object' && e.label !== null) {
+        label = e.label.Valid ? e.label.String : '';
+      } else if (typeof e.label === 'string') {
+        label = e.label;
+      }
+    }
+    return label ? `${address} (${label})` : address;
   }
 
   let activeFilters = $derived(

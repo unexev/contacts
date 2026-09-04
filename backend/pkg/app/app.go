@@ -350,9 +350,9 @@ func (a *App) createContact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c := model.Contact{
-		FirstName:  strings.TrimSpace(req.FirstName),
-		Surname:    strings.TrimSpace(req.Surname),
-		MiddleName: nullString(req.MiddleName),
+		FirstName:  strings.ToUpper(strings.TrimSpace(req.FirstName)),
+		Surname:    strings.ToUpper(strings.TrimSpace(req.Surname)),
+		MiddleName: nullString(strings.ToUpper(req.MiddleName)),
 		Birthdate:  nullString(req.Birthdate),
 		Gender:     nullString(req.Gender),
 		StatusID:   nullString(req.StatusID),
@@ -398,8 +398,8 @@ func (a *App) updateContact(w http.ResponseWriter, r *http.Request) {
 	}
 	c := model.Contact{
 		UserID: claims.UserID, ContactID: contactID,
-		FirstName: strings.TrimSpace(req.FirstName), Surname: strings.TrimSpace(req.Surname),
-		MiddleName: nullString(req.MiddleName),
+		FirstName: strings.ToUpper(strings.TrimSpace(req.FirstName)), Surname: strings.ToUpper(strings.TrimSpace(req.Surname)),
+		MiddleName: nullString(strings.ToUpper(req.MiddleName)),
 		Birthdate:  nullString(req.Birthdate),
 		Gender:     nullString(req.Gender),
 		StatusID:   nullString(req.StatusID),
