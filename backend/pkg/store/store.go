@@ -174,7 +174,7 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 		FROM contacts c
 		LEFT JOIN marital_status ms ON c.status_id = ms.status_id
 		WHERE %s
-		ORDER BY c.first_name, c.surname
+		ORDER BY c.first_name, c.surname, c.contact_id
 		LIMIT $%d OFFSET $%d`, whereClause, limitIdx, offsetIdx)
 
 	queryArgs := append(args, limit, offset)
