@@ -27,7 +27,7 @@ Protect the 500 MB Postgres budget and data quality by limiting contact notes an
 - [x] T1 Backend: note limits (500 chars, 10 per contact) with tests (route: delegated writer; trigger: 2+ non-trivial files). Commit 6d5a02c.
 - [x] T2 Backend: migration 007 `identity_cards.country_code` + document validation registry + EC cédula rule, with tests (route: delegated writer). Commit bed78ff.
 - [x] T3 Web: note limits in form, document country selector, inline validation, i18n (route: delegated writer). Commit a409d15.
-- [ ] T4 Verification: `go test ./...`, `go vet ./...`, `npm run build`, Playwright check at 375px. Parent spot check done: go vet clean, 16 tests passed, build clean.
+- [x] T4 Verification: go vet clean, `go test ./...` 30 passed/17 packages, `npm run build` clean; API acceptance checks on a throwaway DB (note 501 chars -> 400, 500 multibyte -> 201, 11th note -> 400, bad EC cedula -> 400, valid formatted cedula -> 201, no-country card -> 201, duplicate org name returns existing, user B cannot list or link user A's org -> 400); Playwright at 375px: `/`, `/offline` (no horizontal overflow, 4 disabled downloads), org editor (accent-insensitive search, create new org, title suggestion via keyboard, save persisted).
 - [x] T5 Web: hide empty location/nationality sections on contact detail; they are reachable from the "Add" menu (route: inline, mechanical).
 - [x] T6 Backend: `GET /api/organizations/achievements` returning the user's distinct non-empty achievements, with tests (route: delegated writer). Commit 16ab4ef.
 - [x] T7 Web: organization editor uses `Combobox` for organization name (select existing or create) and for achievement/title (suggestions from T6), labeled date, no internal IDs shown (route: delegated writer). Commit b0d32d7.
