@@ -102,13 +102,14 @@ type ContactKeyword struct {
 }
 
 type IdentityCard struct {
-	UserID     string         `json:"user_id"`
-	ContactID  string         `json:"contact_id"`
-	CardID     string         `json:"card_id"`
-	DocType    string         `json:"doc_type"`
-	CardNumber string         `json:"card_number"`
-	IssueDate  sql.NullString `json:"issue_date"`
-	ExpiryDate sql.NullString `json:"expiry_date"`
+	UserID      string         `json:"user_id"`
+	ContactID   string         `json:"contact_id"`
+	CardID      string         `json:"card_id"`
+	DocType     string         `json:"doc_type"`
+	CardNumber  string         `json:"card_number"`
+	IssueDate   sql.NullString `json:"issue_date"`
+	ExpiryDate  sql.NullString `json:"expiry_date"`
+	CountryCode sql.NullString `json:"country_code"`
 }
 
 type ContactBankAccount struct {

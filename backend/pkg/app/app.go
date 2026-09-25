@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"contacts/pkg/auth"
+	"contacts/pkg/docvalidate"
 	"contacts/pkg/model"
 	"contacts/pkg/noteval"
 	"contacts/pkg/store"
@@ -193,10 +194,11 @@ type bankRequest struct {
 }
 
 type cardRequest struct {
-	DocType    string `json:"doc_type"`
-	CardNumber string `json:"card_number"`
-	IssueDate  string `json:"issue_date"`
-	ExpiryDate string `json:"expiry_date"`
+	DocType     string `json:"doc_type"`
+	CardNumber  string `json:"card_number"`
+	IssueDate   string `json:"issue_date"`
+	ExpiryDate  string `json:"expiry_date"`
+	CountryCode string `json:"country_code"`
 }
 
 type nationalityRequest struct {
@@ -976,11 +978,19 @@ func (a *App) createCard(w http.ResponseWriter, r *http.Request) {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	docType := strings.TrimSpace(req.DocType)
+	countryCode := strings.ToUpper(strings.TrimSpace(req.CountryCode))
+	normalizedNumber, err := docvalidate.Validate(countryCode, docType, req.CardNumber)
+	if err != nil {
+		errResp(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	c := model.IdentityCard{
-		DocType:    strings.TrimSpace(req.DocType),
-		CardNumber: strings.TrimSpace(req.CardNumber),
-		IssueDate:  nullString(req.IssueDate),
-		ExpiryDate: nullString(req.ExpiryDate),
+		DocType:     docType,
+		CardNumber:  normalizedNumber,
+		IssueDate:   nullString(req.IssueDate),
+		ExpiryDate:  nullString(req.ExpiryDate),
+		CountryCode: nullString(countryCode),
 	}
 
 	created, err := a.store.CreateCard(claims.UserID, contactID, c)
@@ -1001,14 +1011,22 @@ func (a *App) updateCard(w http.ResponseWriter, r *http.Request) {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	docType := strings.TrimSpace(req.DocType)
+	countryCode := strings.ToUpper(strings.TrimSpace(req.CountryCode))
+	normalizedNumber, err := docvalidate.Validate(countryCode, docType, req.CardNumber)
+	if err != nil {
+		errResp(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	c := model.IdentityCard{
-		UserID:     claims.UserID,
-		ContactID:  contactID,
-		CardID:     cardID,
-		DocType:    strings.TrimSpace(req.DocType),
-		CardNumber: strings.TrimSpace(req.CardNumber),
-		IssueDate:  nullString(req.IssueDate),
-		ExpiryDate: nullString(req.ExpiryDate),
+		UserID:      claims.UserID,
+		ContactID:   contactID,
+		CardID:      cardID,
+		DocType:     docType,
+		CardNumber:  normalizedNumber,
+		IssueDate:   nullString(req.IssueDate),
+		ExpiryDate:  nullString(req.ExpiryDate),
+		CountryCode: nullString(countryCode),
 	}
 
 	if err := a.store.UpdateCard(claims.UserID, contactID, c); err != nil {

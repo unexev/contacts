@@ -763,7 +763,7 @@ func (s *Store) ListCards(userID, contactID string, limit, offset int) ([]model.
 	).Scan(&total)
 
 	rows, err := s.pool.Query(ctx,
-		`SELECT user_id, contact_id, card_id, doc_type, card_number, issue_date, expiry_date
+		`SELECT user_id, contact_id, card_id, doc_type, card_number, issue_date, expiry_date, country_code
 		 FROM identity_cards WHERE user_id = $1 AND contact_id = $2
 		 ORDER BY card_id
 		 LIMIT $3 OFFSET $4`,
@@ -777,7 +777,7 @@ func (s *Store) ListCards(userID, contactID string, limit, offset int) ([]model.
 	for rows.Next() {
 		var c model.IdentityCard
 		if err := rows.Scan(&c.UserID, &c.ContactID, &c.CardID, &c.DocType,
-			&c.CardNumber, &c.IssueDate, &c.ExpiryDate); err != nil {
+			&c.CardNumber, &c.IssueDate, &c.ExpiryDate, &c.CountryCode); err != nil {
 			return nil, 0, err
 		}
 		items = append(items, c)
@@ -792,18 +792,18 @@ func (s *Store) CreateCard(userID, contactID string, c model.IdentityCard) (mode
 		c.CardID = genID("crd")
 	}
 	_, err := s.pool.Exec(context.Background(),
-		`INSERT INTO identity_cards (user_id, contact_id, card_id, doc_type, card_number, issue_date, expiry_date)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		c.UserID, c.ContactID, c.CardID, c.DocType, c.CardNumber, c.IssueDate, c.ExpiryDate,
+		`INSERT INTO identity_cards (user_id, contact_id, card_id, doc_type, card_number, issue_date, expiry_date, country_code)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		c.UserID, c.ContactID, c.CardID, c.DocType, c.CardNumber, c.IssueDate, c.ExpiryDate, c.CountryCode,
 	)
 	return c, err
 }
 
 func (s *Store) UpdateCard(userID, contactID string, c model.IdentityCard) error {
 	_, err := s.pool.Exec(context.Background(),
-		`UPDATE identity_cards SET doc_type = $4, card_number = $5, issue_date = $6, expiry_date = $7
+		`UPDATE identity_cards SET doc_type = $4, card_number = $5, issue_date = $6, expiry_date = $7, country_code = $8
 		 WHERE user_id = $1 AND contact_id = $2 AND card_id = $3`,
-		userID, contactID, c.CardID, c.DocType, c.CardNumber, c.IssueDate, c.ExpiryDate,
+		userID, contactID, c.CardID, c.DocType, c.CardNumber, c.IssueDate, c.ExpiryDate, c.CountryCode,
 	)
 	return err
 }
