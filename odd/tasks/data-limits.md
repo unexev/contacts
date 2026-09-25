@@ -30,7 +30,11 @@ Protect the 500 MB Postgres budget and data quality by limiting contact notes an
 - [ ] T4 Verification: `go test ./...`, `go vet ./...`, `npm run build`, Playwright check at 375px. Parent spot check done: go vet clean, 16 tests passed, build clean.
 - [x] T5 Web: hide empty location/nationality sections on contact detail; they are reachable from the "Add" menu (route: inline, mechanical).
 - [x] T6 Backend: `GET /api/organizations/achievements` returning the user's distinct non-empty achievements, with tests (route: delegated writer). Commit 16ab4ef.
-- [x] T7 Web: organization editor uses `Combobox` for organization name (select existing or create) and for achievement/title (suggestions from T6), labeled date, no internal IDs shown (route: delegated writer). Commit: see git log.
+- [x] T7 Web: organization editor uses `Combobox` for organization name (select existing or create) and for achievement/title (suggestions from T6), labeled date, no internal IDs shown (route: delegated writer). Commit b0d32d7.
+- [x] T8a Web: remove non-functional file import from `/sync` (route: inline). Commit 68cc272.
+- [ ] T8b Web copy: remove import/restore claims (landing sync feature, Free plan "VCF import", `syncDesc`, `menuSyncDesc`) and drop unused i18n keys (`syncImport*`, `locationEmpty`, `nationalityEmpty`) (route: delegated writer, with T10).
+- [ ] T9 Backend: organizations scoped per user (migration 008: `organizations.user_id`, UNIQUE(user_id, name), copy shared orgs per using user and remap `contact_organizations`, delete unused), all org queries filtered by session user, with tests (route: delegated writer, after T10).
+- [ ] T10 Web: `/offline` landing for the separate offline app ("Contacts Offline": Android + Windows/macOS/Linux, local SQLite, optional Google Drive backup), download buttons as "Coming soon", explicit notice that apps are independent (separate accounts/data, no sync); short teaser block on the main landing linking to `/offline` (route: delegated writer; trigger: 2+ non-trivial files).
 
 ## Acceptance criteria
 - API rejects a note > 500 chars and an 11th note on a contact with a clear 400 error.
