@@ -19,6 +19,7 @@ func main() {
 	pool.Exec(ctx, "DELETE FROM contact_bank_accounts")
 	pool.Exec(ctx, "DELETE FROM contact_relationships")
 	pool.Exec(ctx, "DELETE FROM contact_organizations")
+	pool.Exec(ctx, "DELETE FROM organizations")
 	pool.Exec(ctx, "DELETE FROM identity_cards")
 	pool.Exec(ctx, "DELETE FROM contact_urls")
 	pool.Exec(ctx, "DELETE FROM contact_notes")

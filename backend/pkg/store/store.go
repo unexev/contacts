@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 
 	"contacts/pkg/achievements"
 	"contacts/pkg/model"
+	"contacts/pkg/orgscope"
 )
 
 type Store struct {
@@ -987,13 +989,26 @@ func (s *Store) ListOrganizations(userID, contactID string, limit, offset int) (
 	return items, total, rows.Err()
 }
 
+// ErrOrganizationNotOwned is returned when the requested organization_id
+// does not exist or does not belong to the given user. Organizations are
+// single-tenant: linking a contact to one owned by another user (or to a
+// nonexistent one) is rejected rather than silently allowed.
+var ErrOrganizationNotOwned = errors.New("organization not owned by user")
+
 func (s *Store) CreateOrganization(userID, contactID string, o model.ContactOrganization) (model.ContactOrganization, error) {
 	o.UserID = userID
 	o.ContactID = contactID
-	if o.OrganizationID == "" {
-		o.OrganizationID = genID("org")
+
+	var ownerID string
+	err := s.pool.QueryRow(context.Background(),
+		`SELECT user_id FROM organizations WHERE organization_id = $1`,
+		o.OrganizationID,
+	).Scan(&ownerID)
+	if err != nil || !orgscope.Owns(ownerID, userID) {
+		return o, ErrOrganizationNotOwned
 	}
-	_, err := s.pool.Exec(context.Background(),
+
+	_, err = s.pool.Exec(context.Background(),
 		`INSERT INTO contact_organizations (user_id, contact_id, organization_id, achievement, date)
 		 VALUES ($1, $2, $3, $4, $5)`,
 		o.UserID, o.ContactID, o.OrganizationID, o.Achievement, o.Date,
@@ -1061,11 +1076,7 @@ func (s *Store) ListRelationshipTypes() ([]model.RelationshipType, error) {
 
 func (s *Store) ListOrganizationsByUser(userID string) ([]model.Organization, error) {
 	rows, err := s.pool.Query(context.Background(),
-		`SELECT DISTINCT o.organization_id, o.name
-		 FROM contact_organizations co
-		 JOIN organizations o ON o.organization_id = co.organization_id
-		 WHERE co.user_id = $1
-		 ORDER BY o.name`,
+		`SELECT organization_id, name FROM organizations WHERE user_id = $1 ORDER BY name`,
 		userID,
 	)
 	if err != nil {
@@ -1083,15 +1094,24 @@ func (s *Store) ListOrganizationsByUser(userID string) ([]model.Organization, er
 	return items, rows.Err()
 }
 
+// CreateOrganizationForUser creates a new organization owned by userID. If
+// the user already has an organization with that exact name, the existing
+// organization is returned unchanged instead of erroring on the
+// UNIQUE(user_id, name) constraint — creating "the same" organization twice
+// (e.g. a race between two tabs) is idempotent from the caller's point of
+// view.
 func (s *Store) CreateOrganizationForUser(userID, name string) (model.Organization, error) {
 	o := model.Organization{
 		OrganizationID: genID("org"),
 		Name:           name,
+		UserID:         userID,
 	}
-	_, err := s.pool.Exec(context.Background(),
-		`INSERT INTO organizations (organization_id, name) VALUES ($1, $2)`,
-		o.OrganizationID, o.Name,
-	)
+	err := s.pool.QueryRow(context.Background(),
+		`INSERT INTO organizations (organization_id, user_id, name) VALUES ($1, $2, $3)
+		 ON CONFLICT (user_id, name) DO UPDATE SET name = EXCLUDED.name
+		 RETURNING organization_id, name`,
+		o.OrganizationID, o.UserID, o.Name,
+	).Scan(&o.OrganizationID, &o.Name)
 	return o, err
 }
 

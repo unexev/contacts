@@ -93,7 +93,7 @@ func main() {
 	for orgRows.Next() {
 		var oid, name string
 		orgRows.Scan(&oid, &name)
-		_, _ = pool.Exec(ctx, `INSERT INTO organizations (organization_id, name) VALUES ($1, $2) ON CONFLICT (organization_id) DO NOTHING`, oid, name)
+		_, _ = pool.Exec(ctx, `INSERT INTO organizations (organization_id, user_id, name) VALUES ($1, $2, $3) ON CONFLICT (organization_id) DO NOTHING`, oid, userID, name)
 		orgCount++
 	}
 	orgRows.Close()

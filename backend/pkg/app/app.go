@@ -3,6 +3,7 @@ package app
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -1228,6 +1229,10 @@ func (a *App) createContactOrganization(w http.ResponseWriter, r *http.Request) 
 
 	created, err := a.store.CreateOrganization(claims.UserID, contactID, co)
 	if err != nil {
+		if errors.Is(err, store.ErrOrganizationNotOwned) {
+			errResp(w, http.StatusBadRequest, "organization not found")
+			return
+		}
 		errResp(w, http.StatusInternalServerError, "failed to create contact organization")
 		return
 	}

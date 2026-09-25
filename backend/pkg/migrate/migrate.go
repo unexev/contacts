@@ -7,11 +7,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-//go:embed migrations/001_init.sql migrations/002_locations.sql migrations/003_phone_metadata.sql migrations/004_location_coordinates.sql migrations/005_contact_deceased.sql migrations/006_nationalities.sql migrations/007_identity_card_country.sql
+//go:embed migrations/001_init.sql migrations/002_locations.sql migrations/003_phone_metadata.sql migrations/004_location_coordinates.sql migrations/005_contact_deceased.sql migrations/006_nationalities.sql migrations/007_identity_card_country.sql migrations/008_organizations_per_user.sql
 var migrations embed.FS
 
 func Apply(ctx context.Context, pool *pgxpool.Pool) error {
-	for _, name := range []string{"migrations/001_init.sql", "migrations/002_locations.sql", "migrations/003_phone_metadata.sql", "migrations/004_location_coordinates.sql", "migrations/005_contact_deceased.sql", "migrations/006_nationalities.sql", "migrations/007_identity_card_country.sql"} {
+	for _, name := range []string{"migrations/001_init.sql", "migrations/002_locations.sql", "migrations/003_phone_metadata.sql", "migrations/004_location_coordinates.sql", "migrations/005_contact_deceased.sql", "migrations/006_nationalities.sql", "migrations/007_identity_card_country.sql", "migrations/008_organizations_per_user.sql"} {
 		sql, err := migrations.ReadFile(name)
 		if err != nil {
 			return err

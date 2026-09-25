@@ -176,4 +176,5 @@ type RelationshipType struct {
 type Organization struct {
 	OrganizationID string `json:"organization_id"`
 	Name           string `json:"name"`
+	UserID         string `json:"-"`
 }
