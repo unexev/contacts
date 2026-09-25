@@ -46,6 +46,7 @@
       <div class="nav-actions">
         <a href="#features" class="nav-link">{t('landingNavFeatures')}</a>
         <a href="#pricing" class="nav-link">{t('landingNavPricing')}</a>
+        <a href="/offline" class="nav-link">{t('offlineNavLinkLabel')}</a>
         <button class="nav-lang" onclick={toggleLang}>{locale.value.toUpperCase()}</button>
         <a href="/login" class="btn btn-primary nav-login">{t('loginTitle')}</a>
       </div>
@@ -100,6 +101,12 @@
           </article>
         {/each}
       </div>
+    </section>
+
+    <section class="offline-teaser">
+      <h2 class="section-title">{t('offlineTeaserTitle')}</h2>
+      <p class="section-subtitle">{t('offlineTeaserText')}</p>
+      <a href="/offline" class="btn btn-outline cta">{t('offlineTeaserCta')}</a>
     </section>
 
     <section class="final">
@@ -373,6 +380,18 @@
   .plan-features :global(.plan-check) {
     color: var(--accent);
     flex-shrink: 0;
+  }
+
+  .offline-teaser {
+    padding: 40px 16px;
+    max-width: 640px;
+    margin: 0 auto;
+    width: 100%;
+    text-align: center;
+  }
+
+  .offline-teaser .cta {
+    display: inline-flex;
   }
 
   .final {

@@ -18,8 +18,9 @@
     { href: '/config', label: t('navConfig') }
   ]);
 
+  const bareRoutes = ['/', '/login', '/register', '/offline'];
   let currentPath = $derived($page.url.pathname);
-  let showNav = $derived(A.token && !['/', '/login', '/register'].includes(currentPath));
+  let showNav = $derived(A.token && !bareRoutes.includes(currentPath));
   let contactCount = $derived(contacts.value.length);
 
   function handleLogout() {
@@ -59,7 +60,7 @@
   </nav>
 {/if}
 
-<main class:has-nav={showNav} class:full={currentPath === '/'}>
+<main class:has-nav={showNav} class:full={currentPath === '/' || currentPath === '/offline'}>
   {@render children()}
 </main>
 
