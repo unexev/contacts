@@ -1174,7 +1174,7 @@ func (s *Store) GetBirthdaysThisMonth(userID string, month, year, limit, offset 
 		 LEFT JOIN marital_status ms ON c.status_id = ms.status_id
 		 WHERE c.user_id = $1 AND c.deleted = 0
 		   AND EXTRACT(MONTH FROM (CASE WHEN c.birthdate IS NULL OR c.birthdate = '' THEN NULL::date WHEN c.birthdate ~ '^\d{2}/\d{2}/\d{4}$' THEN to_date(c.birthdate, 'DD/MM/YYYY') ELSE c.birthdate::date END)) = $2
-		 ORDER BY EXTRACT(DAY FROM (CASE WHEN c.birthdate IS NULL OR c.birthdate = '' THEN NULL::date WHEN c.birthdate ~ '^\d{2}/\d{2}/\d{4}$' THEN to_date(c.birthdate, 'DD/MM/YYYY') ELSE c.birthdate::date END))
+		 ORDER BY EXTRACT(DAY FROM (CASE WHEN c.birthdate IS NULL OR c.birthdate = '' THEN NULL::date WHEN c.birthdate ~ '^\d{2}/\d{2}/\d{4}$' THEN to_date(c.birthdate, 'DD/MM/YYYY') ELSE c.birthdate::date END)), c.contact_id
 		 LIMIT $3 OFFSET $4`,
 		userID, month, limit, offset,
 	)
