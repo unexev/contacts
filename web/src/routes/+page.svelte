@@ -3,7 +3,7 @@
   import { locale, t } from '$lib/i18n.svelte.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { Contact, IdCard, CalendarDays, Users, RefreshCw, Globe, Check } from '@lucide/svelte';
+  import { Contact, IdCard, CalendarDays, Users, Download, Globe, Check } from '@lucide/svelte';
 
   let ready = $state(false);
 
@@ -17,7 +17,7 @@
     { icon: IdCard, title: 'landingFeatDocsTitle', desc: 'landingFeatDocsDesc' },
     { icon: CalendarDays, title: 'landingFeatCalendarTitle', desc: 'landingFeatCalendarDesc' },
     { icon: Users, title: 'landingFeatRelatedTitle', desc: 'landingFeatRelatedDesc' },
-    { icon: RefreshCw, title: 'landingFeatSyncTitle', desc: 'landingFeatSyncDesc' },
+    { icon: Download, title: 'landingFeatSyncTitle', desc: 'landingFeatSyncDesc' },
     { icon: Globe, title: 'landingFeatNationalitiesTitle', desc: 'landingFeatNationalitiesDesc' }
   ];
 
