@@ -10,6 +10,7 @@ import (
 
 	"contacts/pkg/auth"
 	"contacts/pkg/model"
+	"contacts/pkg/noteval"
 	"contacts/pkg/store"
 
 	"github.com/go-chi/chi/v5"
@@ -830,6 +831,20 @@ func (a *App) createNote(w http.ResponseWriter, r *http.Request) {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	n.Note = noteval.NormalizeNote(n.Note)
+	if err := noteval.ValidateNoteLength(n.Note); err != nil {
+		errResp(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	count, err := a.store.CountNotes(claims.UserID, contactID)
+	if err != nil {
+		errResp(w, http.StatusInternalServerError, "failed to create note")
+		return
+	}
+	if err := noteval.ValidateNoteCount(count); err != nil {
+		errResp(w, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	created, err := a.store.CreateNote(claims.UserID, contactID, n)
 	if err != nil {
@@ -847,6 +862,11 @@ func (a *App) updateNote(w http.ResponseWriter, r *http.Request) {
 	var n model.ContactNote
 	if err := decodeJSON(r, &n); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	n.Note = noteval.NormalizeNote(n.Note)
+	if err := noteval.ValidateNoteLength(n.Note); err != nil {
+		errResp(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	n.UserID = claims.UserID

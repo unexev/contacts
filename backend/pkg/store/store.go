@@ -653,6 +653,15 @@ func (s *Store) ListNotes(userID, contactID string, limit, offset int) ([]model.
 	return items, total, rows.Err()
 }
 
+func (s *Store) CountNotes(userID, contactID string) (int, error) {
+	var total int
+	err := s.pool.QueryRow(context.Background(),
+		`SELECT COUNT(*) FROM contact_notes WHERE user_id = $1 AND contact_id = $2 AND (deleted = 0 OR deleted IS NULL)`,
+		userID, contactID,
+	).Scan(&total)
+	return total, err
+}
+
 func (s *Store) CreateNote(userID, contactID string, n model.ContactNote) (model.ContactNote, error) {
 	n.UserID = userID
 	n.ContactID = contactID
