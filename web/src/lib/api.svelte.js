@@ -29,7 +29,7 @@ export async function api(path, { method = 'GET', body, signal } = {}) {
   if (!res.ok) {
     const safeMsg = res.status === 401 ? 'Invalid credentials' :
                     res.status === 409 ? 'Invalid request' :
-                    res.status === 400 ? 'Invalid input' :
+                    res.status === 400 ? (raw?.error || 'Invalid input') :
                     'Something went wrong';
     throw new Error(safeMsg);
   }

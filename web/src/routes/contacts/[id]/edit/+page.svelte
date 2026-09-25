@@ -9,6 +9,10 @@
   import { parseContactDate } from '$lib/date.js';
   import { DOCUMENT_TYPES, normalizeDocType } from '$lib/docTypes.js';
   import { COUNTRIES } from '$lib/countries.js';
+  import { validateDocument, MAX_CARD_NUMBER_LENGTH } from '$lib/docValidation.js';
+
+  const NOTE_MAX_LENGTH = 500;
+  const NOTE_MAX_COUNT = 10;
 
   let id = $derived($page.params.id);
   let selectedSection = $derived($page.url.searchParams.get('section') || $page.url.searchParams.get('add') || '');
@@ -69,9 +73,9 @@
   function addPhone() { phones = [...phones, { phone: '', label: '', is_active: true, created_at: 0 }]; }
   function addEmail() { emails = [...emails, { email: '', label: '' }]; }
   function addUrl() { urls = [...urls, { url: '', label: '' }]; }
-  function addNote() { notes = [...notes, { note: '' }]; }
+  function addNote() { if (notes.length >= NOTE_MAX_COUNT) return; notes = [...notes, { note: '' }]; }
   function addKeyword() { keywords = [...keywords, '']; }
-  function addCard() { cards = [...cards, { doc_type: '', card_number: '', issue_date: '', expiry_date: '' }]; }
+  function addCard() { cards = [...cards, { doc_type: '', card_number: '', issue_date: '', expiry_date: '', country_code: '' }]; }
   function addBank() { bankAccounts = [...bankAccounts, { bank_name: '', account_number: '', account_type: '', label: '' }]; }
   function addRelationship() { relationships = [...relationships, { related_contact_id: '', type_id: '' }]; }
   function addOrganization() { organizations = [...organizations, { organization_id: '', organization_name: '', newName: '', achievement: '', date: '' }]; }
@@ -106,7 +110,7 @@
       urls = normalizeList(c.urls, ['url', 'label']);
       notes = normalizeList(c.notes, ['note']);
       keywords = (c.keywords || []).map(k => typeof k === 'string' ? k : k.keyword || '');
-      cards = normalizeList(c.identity_cards, ['doc_type', 'card_number', 'issue_date', 'expiry_date']).map(card => ({ ...card, doc_type: documentTypeValue(card.doc_type), issue_date: dateInput(card.issue_date), expiry_date: dateInput(card.expiry_date) }));
+      cards = normalizeList(c.identity_cards, ['doc_type', 'card_number', 'issue_date', 'expiry_date', 'country_code']).map(card => ({ ...card, doc_type: documentTypeValue(card.doc_type), issue_date: dateInput(card.issue_date), expiry_date: dateInput(card.expiry_date) }));
       bankAccounts = normalizeList(c.bank_accounts, ['bank_name', 'account_number', 'account_type', 'label']);
       relationships = normalizeList(c.relationships, ['related_contact_id', 'type_id']);
       organizations = normalizeList(c.organizations, ['organization_id', 'organization_name', 'achievement', 'date']).map(org => ({ ...org, date: dateInput(org.date), newName: '' }));
@@ -259,8 +263,16 @@
     </RelatedSection>
     {/if}
     {#if !selectedSection || selectedSection === 'note'}
-    <RelatedSection title="Notas" add={addNote}>
-      {#each notes as note, i}<div class="related-item"><div class="related-row"><textarea class="input" rows="2" placeholder="Nota" bind:value={note.note}></textarea><button type="button" class="icon-button danger" aria-label="Eliminar nota" onclick={() => removeAt(notes, i)}><Trash2 size={16} /></button></div></div>{/each}
+    <RelatedSection title="Notas" add={addNote} disabled={notes.length >= NOTE_MAX_COUNT} disabledHint={t('noteLimitReached')}>
+      {#each notes as note, i}
+        <div class="related-item">
+          <div class="related-row">
+            <textarea class="input" rows="2" placeholder="Nota" maxlength={NOTE_MAX_LENGTH} bind:value={note.note}></textarea>
+            <button type="button" class="icon-button danger" aria-label="Eliminar nota" onclick={() => removeAt(notes, i)}><Trash2 size={16} /></button>
+          </div>
+          <div class="note-counter">{(note.note || '').length}/{NOTE_MAX_LENGTH} {t('noteCharCount')}</div>
+        </div>
+      {/each}
     </RelatedSection>
     {/if}
     {#if !selectedSection || selectedSection === 'keyword'}
@@ -270,7 +282,43 @@
     {/if}
     {#if !selectedSection || selectedSection === 'card'}
     <RelatedSection title="Documentos de identidad" add={addCard}>
-      {#each cards as card, i}<div class="related-item"><div class="related-grid card-grid"><select class="select" aria-label={t('docTypeLabel')} bind:value={card.doc_type}><option value="">{t('docTypeSelect')}</option>{#if card.doc_type && !documentTypes.some(type => type.value === card.doc_type)}<option value={card.doc_type}>{card.doc_type}</option>{/if}{#each documentTypes as type}<option value={type.value}>{t(type.label)}</option>{/each}</select><input class="input" placeholder="Número" bind:value={card.card_number} /><div class="date-field"><label class="date-label">Emisión <span class="optional">(opcional)</span></label><input class="input" type="date" bind:value={card.issue_date} aria-label="Fecha de emisión opcional" /></div><div class="date-field"><label class="date-label">Vencimiento <span class="optional">(opcional)</span></label><input class="input" type="date" bind:value={card.expiry_date} aria-label="Fecha de vencimiento opcional" /></div><button type="button" class="icon-button danger" aria-label="Eliminar documento" onclick={() => removeAt(cards, i)}><Trash2 size={16} /></button></div></div>{/each}
+      {#each cards as card, i}
+        {@const isEcNationalId = card.country_code === 'EC' && card.doc_type === 'national_id'}
+        {@const validation = validateDocument(card.country_code, card.doc_type, card.card_number)}
+        <div class="related-item">
+          <div class="related-grid card-grid">
+            <select class="select" aria-label={t('docTypeLabel')} bind:value={card.doc_type}>
+              <option value="">{t('docTypeSelect')}</option>
+              {#if card.doc_type && !documentTypes.some(type => type.value === card.doc_type)}<option value={card.doc_type}>{card.doc_type}</option>{/if}
+              {#each documentTypes as type}<option value={type.value}>{t(type.label)}</option>{/each}
+            </select>
+            <select class="select" aria-label={t('docCountryLabel')} bind:value={card.country_code}>
+              <option value="">{t('docCountrySelect')}</option>
+              {#each COUNTRIES as c}<option value={c.value}>{t(c.label)}</option>{/each}
+            </select>
+            <input
+              class="input"
+              placeholder="Número"
+              inputmode={isEcNationalId ? 'numeric' : 'text'}
+              maxlength={isEcNationalId ? 10 : MAX_CARD_NUMBER_LENGTH}
+              aria-invalid={card.card_number && !validation.valid ? 'true' : undefined}
+              bind:value={card.card_number}
+            />
+            <div class="date-field">
+              <label class="date-label">Emisión <span class="optional">(opcional)</span></label>
+              <input class="input" type="date" bind:value={card.issue_date} aria-label="Fecha de emisión opcional" />
+            </div>
+            <div class="date-field">
+              <label class="date-label">Vencimiento <span class="optional">(opcional)</span></label>
+              <input class="input" type="date" bind:value={card.expiry_date} aria-label="Fecha de vencimiento opcional" />
+            </div>
+            <button type="button" class="icon-button danger" aria-label="Eliminar documento" onclick={() => removeAt(cards, i)}><Trash2 size={16} /></button>
+          </div>
+          {#if card.card_number && !validation.valid}
+            <p class="doc-error">{t(validation.error)}</p>
+          {/if}
+        </div>
+      {/each}
     </RelatedSection>
     {/if}
     {#if !selectedSection || selectedSection === 'bank'}
@@ -380,7 +428,10 @@
 
   .related-row, .related-grid { display: grid; grid-template-columns: 1fr 1fr auto; align-items: center; gap: 8px; }
   .related-grid { grid-template-columns: repeat(4, 1fr) auto; }
-  .card-grid { grid-template-columns: 1fr 1fr 1fr 1fr auto; }
+  /* Mobile-first: cards stack in a single column until there's room for all 5 fields. */
+  .card-grid { grid-template-columns: 1fr auto; gap: 10px; }
+  .card-grid select, .card-grid > input { grid-column: 1 / -1; }
+  .card-grid .date-field { grid-column: 1 / -1; }
   .org-grid, .nationality-grid { display: grid; gap: 8px; align-items: center; }
   .org-grid { grid-template-columns: 1.4fr 1fr 1.1fr auto; }
   .nationality-grid { grid-template-columns: 1.2fr 1fr 1fr auto; }
@@ -398,13 +449,16 @@
    .deceased-toggle { display: inline-flex; align-items: center; gap: 8px; color: var(--text2); font-size: 14px; cursor: pointer; }
   .phone-status input { width: 18px; height: 18px; accent-color: var(--accent); }
   .coordinates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-  @media (max-width: 900px) { .card-grid { grid-template-columns: 1fr 1fr auto; } .card-grid .date-field { grid-column: span 1; } .org-grid { grid-template-columns: 1fr 1fr auto; } .nationality-grid { grid-template-columns: 1fr 1fr auto; } }
+  .note-counter { font-size: 12px; color: var(--text2); text-align: right; margin-top: 4px; }
+  .doc-error { color: var(--danger); font-size: 12px; margin: 6px 0 0; }
+  @media (min-width: 900px) {
+    .card-grid { grid-template-columns: repeat(5, 1fr) auto; }
+    .card-grid select, .card-grid > input, .card-grid .date-field { grid-column: auto; }
+  }
+  @media (max-width: 900px) { .org-grid { grid-template-columns: 1fr 1fr auto; } .nationality-grid { grid-template-columns: 1fr 1fr auto; } }
   @media (max-width: 600px) {
     .related-row, .related-grid { grid-template-columns: 1fr auto; }
     .related-row .input:first-child, .related-grid .input:first-child { grid-column: 1 / -1; }
-    .card-grid { grid-template-columns: 1fr auto; gap: 10px; }
-    .card-grid select, .card-grid > input { grid-column: 1 / -1; }
-    .card-grid .date-field { grid-column: 1 / -1; }
     .coordinates { grid-template-columns: 1fr; }
     .org-grid, .nationality-grid { grid-template-columns: 1fr auto; }
     .org-grid > *:first-child, .nationality-grid > *:first-child { grid-column: 1 / -1; }
