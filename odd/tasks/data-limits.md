@@ -32,9 +32,9 @@ Protect the 500 MB Postgres budget and data quality by limiting contact notes an
 - [x] T6 Backend: `GET /api/organizations/achievements` returning the user's distinct non-empty achievements, with tests (route: delegated writer). Commit 16ab4ef.
 - [x] T7 Web: organization editor uses `Combobox` for organization name (select existing or create) and for achievement/title (suggestions from T6), labeled date, no internal IDs shown (route: delegated writer). Commit b0d32d7.
 - [x] T8a Web: remove non-functional file import from `/sync` (route: inline). Commit 68cc272.
-- [ ] T8b Web copy: remove import/restore claims (landing sync feature, Free plan "VCF import", `syncDesc`, `menuSyncDesc`) and drop unused i18n keys (`syncImport*`, `locationEmpty`, `nationalityEmpty`) (route: delegated writer, with T10).
+- [x] T8b Web copy: remove import/restore claims (landing sync feature, Free plan "VCF import", `syncDesc`, `menuSyncDesc`) and drop unused i18n keys (`syncImport*`, `locationEmpty`, `nationalityEmpty`) (route: delegated writer, with T10). Commit 6bff20b.
 - [ ] T9 Backend: organizations scoped per user (migration 008: `organizations.user_id`, UNIQUE(user_id, name), copy shared orgs per using user and remap `contact_organizations`, delete unused), all org queries filtered by session user, with tests (route: delegated writer, after T10).
-- [ ] T10 Web: `/offline` landing for the separate offline app ("Contacts Offline": Android + Windows/macOS/Linux, local SQLite, optional Google Drive backup), download buttons as "Coming soon", explicit notice that apps are independent (separate accounts/data, no sync); short teaser block on the main landing linking to `/offline` (route: delegated writer; trigger: 2+ non-trivial files).
+- [x] T10 Web: `/offline` landing for the separate offline app ("Contacts Offline": Android + Windows/macOS/Linux, local SQLite, optional Google Drive backup), download buttons as "Coming soon", explicit notice that apps are independent (separate accounts/data, no sync); short teaser block on the main landing linking to `/offline` (route: delegated writer; trigger: 2+ non-trivial files). Commit 395ed11.
 
 ## Acceptance criteria
 - API rejects a note > 500 chars and an 11th note on a contact with a clear 400 error.
@@ -99,5 +99,36 @@ Protect the 500 MB Postgres budget and data quality by limiting contact notes an
 - `go vet ./...`, `go test ./...` (21 passed, 16 packages), `go build ./...`, and `npm run build`
   all pass as of T7.
 
+- T8b committed: 6bff20b — landing `landingFeatSyncTitle/Desc` now describe export only ("Exportar"/"Export",
+  "Descarga una copia de tus contactos cuando quieras."/"Download a copy of your contacts anytime.");
+  icon changed `RefreshCw` -> `Download` in `+page.svelte`. Free plan feature "Importar contactos
+  VCF"/"VCF contact import" -> "Exportar tus contactos"/"Export your contacts". `syncDesc` ->
+  "Exporta una copia de tus contactos en cualquier momento."/"Export a copy of your contacts
+  anytime." `menuSyncDesc` (used to say "restore") -> "Exporta y gestiona tus contactos"/"Export
+  and manage your contacts". Removed unused keys `syncImport`, `syncImportVcf`, `syncImported`,
+  `locationEmpty`, `nationalityEmpty` from both `es`/`en` after confirming with `rg` that none are
+  referenced anywhere in `web/src`. `npm run build` clean, no new warnings.
+- T10 committed: 395ed11 — new route `web/src/routes/offline/+page.svelte`: nav (brand "Contacts
+  Offline" + link back to `/` labeled "Contacts (web)"/"Contacts (web)" + language toggle), hero,
+  an independence notice (lucide `Info` icon, not a glyph) stating the two apps have separate
+  accounts/data and do not sync, a 6-card feature grid (local SQLite storage, Google Drive backup
+  limited to 2 copies, birthday notifications, advanced search filters, VCF import, documents &
+  bank accounts), a downloads section with 4 platform cards (Android/Windows/macOS/Linux) built
+  from a `platforms` array with `url: null`; each renders as a non-link `<span>` with
+  `aria-disabled="true"` and a "Coming soon" badge — flip `url` to a real link later and the
+  `{#if p.url}` branch renders an `<a>` instead. Icons: `HardDrive`, `Cloud`, `Bell`, `Search`,
+  `FileUp`, `IdCard` for features; `Smartphone`, `Monitor`, `Laptop`, `Terminal` for platforms
+  (no brand logos, per lucide availability). `web/src/routes/+layout.svelte`: `/offline` added to
+  the bare-route list so it gets no app nav and full-width `<main>`, same as `/`; it does not
+  redirect logged-in users (no `onMount` auth check, unlike `/`). Main landing
+  (`web/src/routes/+page.svelte`): added a "Offline app" nav link (hidden on phones, same as the
+  other nav links) and a short teaser section after pricing, before the final CTA, linking to
+  `/offline`; no offline-app content mixed into the pricing plans. All new strings added to both
+  `es` and `en` in `i18n.svelte.js`. No price is shown or implied for Contacts Offline. `npm run
+  build` clean, no new warnings (pre-existing unused-CSS-selector and a11y warnings in
+  `contacts/[id]/+page.svelte` are unrelated to this task and were not introduced by it).
+- `rg -n "syncImport|locationEmpty|nationalityEmpty" web/src` returns no results.
+
 ## Next step
-T4 Playwright verification at 375px (not run by this writer — out of scope for T6/T7).
+T4 Playwright verification at 375px (not run by this writer — out of scope for T8b/T10).
+T9 backend per-user organizations (after T10, now unblocked).
