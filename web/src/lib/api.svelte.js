@@ -36,6 +36,20 @@ export async function api(path, { method = 'GET', body, signal } = {}) {
   return raw?.data !== undefined ? raw.data : raw;
 }
 
+// Paginated endpoints cap each page (backend max 100), so callers that need the
+// complete list must walk every page using the response `total`.
+export async function apiAll(path, { pageSize = 100 } = {}) {
+  const separator = path.includes('?') ? '&' : '?';
+  const all = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const res = await apiRaw(`${path}${separator}limit=${pageSize}&offset=${offset}`);
+    const page = Array.isArray(res?.data) ? res.data : [];
+    all.push(...page);
+    const total = Number(res?.total ?? all.length);
+    if (page.length < pageSize || all.length >= total) return all;
+  }
+}
+
 export async function apiRaw(path, { method = 'GET', body, signal } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (A.token) headers.Authorization = 'Bearer ' + A.token;

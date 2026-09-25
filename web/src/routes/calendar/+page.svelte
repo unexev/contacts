@@ -1,5 +1,5 @@
 <script>
-  import { A, apiRaw } from '$lib/api.svelte.js';
+  import { A, apiAll } from '$lib/api.svelte.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { ChevronLeft, ChevronRight, Cake } from '@lucide/svelte';
@@ -23,23 +23,10 @@
     fetchBirthdays();
   });
 
-  // The endpoint is paginated (max 100 per page); months with many birthdays need every page.
-  async function fetchAllBirthdays(month, year) {
-    const pageSize = 100;
-    const all = [];
-    for (let offset = 0; ; offset += pageSize) {
-      const res = await apiRaw(`/api/birthdays?month=${month}&year=${year}&limit=${pageSize}&offset=${offset}`);
-      const page = Array.isArray(res?.data) ? res.data : [];
-      all.push(...page);
-      const total = Number(res?.total ?? all.length);
-      if (page.length < pageSize || all.length >= total) return all;
-    }
-  }
-
   async function fetchBirthdays() {
     loading = true;
     try {
-      const list = await fetchAllBirthdays(currentMonth + 1, currentYear);
+      const list = await apiAll(`/api/birthdays?month=${currentMonth + 1}&year=${currentYear}`);
       const map = {};
       list.forEach(c => {
         if (!c.birthdate) return;

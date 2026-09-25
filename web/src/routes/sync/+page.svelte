@@ -1,5 +1,5 @@
 <script>
-  import { A, apiRaw } from '$lib/api.svelte.js';
+  import { A, apiAll } from '$lib/api.svelte.js';
   import { t } from '$lib/i18n.svelte.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
@@ -10,8 +10,7 @@
 
   async function exportContacts() {
     try {
-      const response = await apiRaw('/api/contacts?limit=500');
-      const data = response?.data ?? response;
+      const data = await apiAll('/api/contacts');
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a'); link.href = url; link.download = `contacts_backup_${Date.now()}.json`; link.click(); URL.revokeObjectURL(url);
