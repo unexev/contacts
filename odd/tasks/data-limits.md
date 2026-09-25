@@ -33,7 +33,7 @@ Protect the 500 MB Postgres budget and data quality by limiting contact notes an
 - [x] T7 Web: organization editor uses `Combobox` for organization name (select existing or create) and for achievement/title (suggestions from T6), labeled date, no internal IDs shown (route: delegated writer). Commit b0d32d7.
 - [x] T8a Web: remove non-functional file import from `/sync` (route: inline). Commit 68cc272.
 - [x] T8b Web copy: remove import/restore claims (landing sync feature, Free plan "VCF import", `syncDesc`, `menuSyncDesc`) and drop unused i18n keys (`syncImport*`, `locationEmpty`, `nationalityEmpty`) (route: delegated writer, with T10). Commit 6bff20b.
-- [ ] T9 Backend: organizations scoped per user (migration 008: `organizations.user_id`, UNIQUE(user_id, name), copy shared orgs per using user and remap `contact_organizations`, delete unused), all org queries filtered by session user, with tests (route: delegated writer, after T10).
+- [x] T9 Backend: organizations scoped per user (migration 008: `organizations.user_id`, UNIQUE(user_id, name), copy shared orgs per using user and remap `contact_organizations`, delete unused), all org queries filtered by session user, with tests (route: delegated writer, after T10). Commit fdd1b6b.
 - [x] T10 Web: `/offline` landing for the separate offline app ("Contacts Offline": Android + Windows/macOS/Linux, local SQLite, optional Google Drive backup), download buttons as "Coming soon", explicit notice that apps are independent (separate accounts/data, no sync); short teaser block on the main landing linking to `/offline` (route: delegated writer; trigger: 2+ non-trivial files). Commit 395ed11.
 
 ## Acceptance criteria
@@ -129,6 +129,64 @@ Protect the 500 MB Postgres budget and data quality by limiting contact notes an
   `contacts/[id]/+page.svelte` are unrelated to this task and were not introduced by it).
 - `rg -n "syncImport|locationEmpty|nationalityEmpty" web/src` returns no results.
 
+- T9 committed: fdd1b6b — migration `008_organizations_per_user.sql`: adds
+  `organizations.user_id`, drops the old global `UNIQUE(name)` constraint
+  *before* backfilling (dropping it after caused a duplicate-name violation
+  when creating copies — found and fixed via the real-DB run below), backfills
+  the keeper (MIN user_id per organization_id from `contact_organizations`),
+  creates a same-name copy for every other referencing user via a
+  `ON COMMIT DROP` temp table and remaps their `contact_organizations` rows to
+  it, deletes organizations left with no `user_id` (never referenced by
+  anyone), sets `user_id NOT NULL`, and adds `UNIQUE(user_id, name)` +
+  `idx_organizations_user`. Guarded with `IF NOT EXISTS`/`WHERE user_id IS
+  NULL`/`WHERE co.user_id <> o.user_id` so a second run is a no-op (verified).
+  `pkg/orgscope` extracts the pure, unit-tested logic: `Owns(orgUserID,
+  requestingUserID)` (ownership check) and `Plan([]UserOrg) []Assignment`
+  (keeper/copy planning mirroring the SQL rule) — RED (undefined `Owns`/
+  `Plan`/`UserOrg`/`Assignment`) then GREEN (9 passed: single-user, two-user,
+  three-user, duplicate-pair-dedup, multi-org, empty-input cases).
+  Store: `ListOrganizationsByUser` now queries `organizations WHERE user_id =
+  $1` directly instead of joining through `contact_organizations` (so a
+  created-but-not-yet-linked org shows up too). `CreateOrganizationForUser`
+  upserts on `(user_id, name)` (`ON CONFLICT ... DO UPDATE ... RETURNING`),
+  returning the existing organization instead of erroring on a duplicate name
+  for the same user (previously this had no duplicate handling at all — a
+  second insert with the same name would have hit the then-global
+  `UNIQUE(name)` and failed with a 500). `CreateOrganization` (linking a
+  contact to an org) now looks up the org's owner and rejects with the new
+  `store.ErrOrganizationNotOwned` (mapped to HTTP 400 "organization not
+  found" in `app.go`) unless it belongs to the requesting user; this also
+  closes the previous dead/risky fallback that generated a brand-new
+  `organization_id` when the request omitted one (which would have hit an FK
+  violation) — an empty/unowned id is now rejected cleanly instead.
+  `cmd/migrate-sqlite` now sets `user_id` when importing organizations (it
+  would otherwise violate the new `NOT NULL`). `cmd/cleanup` now also clears
+  the `organizations` table (it's per-user data now, not a shared catalog).
+  `cmd/fix-schema` only introspects a hardcoded table list for printing and
+  doesn't touch organizations' structure — left unchanged.
+  API contract for `GET`/`POST /api/organizations` unchanged
+  (`{organization_id, name}`).
+  Real-DB verification: `docker compose up -d` (Postgres on 5433), throwaway
+  `contacts_t9`/`contacts_t9b` databases (both dropped after, `docker compose
+  down` without `-v` so the real `pgdata` volume/data was untouched). Fresh-DB
+  run via `cmd/migrate`: clean, and re-running it again was a no-op. Seeded
+  run: applied migrations 001-007 by hand, seeded two users (`usr_alice`,
+  `usr_bob`) sharing one organization (`org_shared01`/"Acme Corp") plus one
+  unused organization (`org_unused1`/"Ghost Inc"), then ran `cmd/migrate`
+  (which applies 001-008; 001-007 no-op). First attempt failed with
+  `duplicate key value violates unique constraint "organizations_name_key"`
+  — the bug described above — fixed by moving the constraint drop earlier;
+  re-seeded and reran clean. `psql` verification: `usr_alice` (alphabetically
+  smaller) kept `org_shared01` unchanged; `usr_bob` got a new copy
+  (`org_a0f086467f2847c7`, same name) and his `contact_organizations` row was
+  remapped to it; `org_unused1` was gone; `organizations` had exactly
+  `PRIMARY KEY(organization_id)`, `UNIQUE(user_id, name)`, and
+  `idx_organizations_user`, `user_id NOT NULL`, and the FK from
+  `contact_organizations` was intact. Re-ran `cmd/migrate` again on this
+  now-migrated DB: still exactly 2 organization rows (idempotent, confirmed).
+- `go vet ./...`, `go test ./...` (30 passed, 17 packages), `go build ./...`
+  all pass as of T9.
+
 ## Next step
-T4 Playwright verification at 375px (not run by this writer — out of scope for T8b/T10).
-T9 backend per-user organizations (after T10, now unblocked).
+T4 Playwright verification at 375px (not run by this writer — out of scope for T8b/T10/T9).
+All other tasks done.
