@@ -6,6 +6,7 @@
   import { onMount } from 'svelte';
   import { Trash2 } from '@lucide/svelte';
   import RelatedSection from '$lib/components/RelatedSection.svelte';
+  import Combobox from '$lib/components/Combobox.svelte';
   import { parseContactDate } from '$lib/date.js';
   import { DOCUMENT_TYPES, normalizeDocType } from '$lib/docTypes.js';
   import { COUNTRIES } from '$lib/countries.js';
@@ -26,6 +27,7 @@
    let deceased = $state(false);
   let maritalStatuses = $state([]);
   let availableOrgs = $state([]);
+  let availableAchievements = $state([]);
   let availableContacts = $state([]);
   let relationshipTypes = $state([]);
   let phones = $state([]);
@@ -70,6 +72,10 @@
     list.splice(index, 1);
   }
 
+  function normalizeText(text) {
+    return String(text || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+  }
+
   function addPhone() { phones = [...phones, { phone: '', label: '', is_active: true, created_at: 0 }]; }
   function addEmail() { emails = [...emails, { email: '', label: '' }]; }
   function addUrl() { urls = [...urls, { url: '', label: '' }]; }
@@ -78,22 +84,29 @@
   function addCard() { cards = [...cards, { doc_type: '', card_number: '', issue_date: '', expiry_date: '', country_code: '' }]; }
   function addBank() { bankAccounts = [...bankAccounts, { bank_name: '', account_number: '', account_type: '', label: '' }]; }
   function addRelationship() { relationships = [...relationships, { related_contact_id: '', type_id: '' }]; }
-  function addOrganization() { organizations = [...organizations, { organization_id: '', organization_name: '', newName: '', achievement: '', date: '' }]; }
+  function addOrganization() { organizations = [...organizations, { organization_id: '', organization_name: '', achievement: '', date: '' }]; }
+
+  function onOrganizationNameChange(org, text) {
+    const match = availableOrgs.find(o => normalizeText(o.name) === normalizeText(text));
+    org.organization_id = match ? match.organization_id : '';
+  }
   function addLocation() { locations = [...locations, { location_type: 'residence', address: '', city: '', region: '', country: '', postal_code: '', latitude: null, longitude: null }]; }
   function addNationality() { nationalities = [...nationalities, { country_code: '', acquired_at: '', note: '' }]; }
 
   onMount(async () => {
     if (!A.token) return goto('/login');
     try {
-      const [c, statuses, orgs, relTypes, contactsData] = await Promise.all([
+      const [c, statuses, orgs, achievements, relTypes, contactsData] = await Promise.all([
         api(`/api/contacts/${id}`),
         api('/api/marital-statuses'),
         api('/api/organizations').catch(() => []),
+        api('/api/organizations/achievements').catch(() => []),
         api('/api/relationship-types').catch(() => []),
         api('/api/contacts?limit=100').catch(() => ({ data: [] }))
       ]);
       maritalStatuses = Array.isArray(statuses) ? statuses : (statuses?.statuses || []);
       availableOrgs = Array.isArray(orgs) ? orgs : (orgs?.data || orgs?.organizations || []);
+      availableAchievements = Array.isArray(achievements) ? achievements : (achievements?.data || []);
       relationshipTypes = Array.isArray(relTypes) ? relTypes : (relTypes?.data || relTypes?.types || []);
       const contactsList = contactsData?.data || contactsData?.contacts || (Array.isArray(contactsData) ? contactsData : []);
       availableContacts = contactsList.filter(contact => contact.contact_id !== id).map(contact => ({
@@ -113,7 +126,7 @@
       cards = normalizeList(c.identity_cards, ['doc_type', 'card_number', 'issue_date', 'expiry_date', 'country_code']).map(card => ({ ...card, doc_type: documentTypeValue(card.doc_type), issue_date: dateInput(card.issue_date), expiry_date: dateInput(card.expiry_date) }));
       bankAccounts = normalizeList(c.bank_accounts, ['bank_name', 'account_number', 'account_type', 'label']);
       relationships = normalizeList(c.relationships, ['related_contact_id', 'type_id']);
-      organizations = normalizeList(c.organizations, ['organization_id', 'organization_name', 'achievement', 'date']).map(org => ({ ...org, date: dateInput(org.date), newName: '' }));
+      organizations = normalizeList(c.organizations, ['organization_id', 'organization_name', 'achievement', 'date']).map(org => ({ ...org, date: dateInput(org.date) }));
       locations = normalizeList(c.locations, ['location_type', 'address', 'city', 'region', 'country', 'postal_code', 'latitude', 'longitude']);
       nationalities = normalizeList(c.nationalities, ['country_code', 'acquired_at', 'note']).map(n => ({ ...n, acquired_at: dateInput(n.acquired_at) }));
       original = {
@@ -160,25 +173,17 @@
 
   async function resolveOrganizations() {
     for (const org of organizations) {
-      if (org.organization_id === '__new' && org.newName?.trim()) {
-        const created = await api('/api/organizations', { method: 'POST', body: { name: org.newName.trim() } });
-        const newId = created?.organization_id || created?.data?.organization_id || created?.id;
-        if (newId) {
-          org.organization_id = newId;
-          org.organization_name = org.newName.trim();
-          availableOrgs = [...availableOrgs, { organization_id: newId, name: org.newName.trim() }];
-        }
-        org.newName = '';
-      }
-    }
-    for (const org of organizations) {
       if (!org.organization_id && org.organization_name?.trim()) {
-        const match = availableOrgs.find(o => o.name.toLowerCase() === org.organization_name.trim().toLowerCase());
-        if (match) org.organization_id = match.organization_id;
-        else {
+        const match = availableOrgs.find(o => normalizeText(o.name) === normalizeText(org.organization_name));
+        if (match) {
+          org.organization_id = match.organization_id;
+        } else {
           const created = await api('/api/organizations', { method: 'POST', body: { name: org.organization_name.trim() } });
           const newId = created?.organization_id || created?.data?.organization_id;
-          if (newId) org.organization_id = newId;
+          if (newId) {
+            org.organization_id = newId;
+            availableOrgs = [...availableOrgs, { organization_id: newId, name: org.organization_name.trim() }];
+          }
         }
       }
     }
@@ -206,10 +211,10 @@
   }
 
   function saveOrganizations() {
-    const currentOrgIds = organizations.filter(o => o.organization_id && o.organization_id !== '__new').map(o => o.organization_id);
+    const currentOrgIds = organizations.filter(o => o.organization_id).map(o => o.organization_id);
     const toDelete = original.organizations.filter(oldId => !currentOrgIds.includes(oldId))
       .map(oldId => api(`/api/contacts/${id}/organizations/${oldId}`, { method: 'DELETE' }));
-    const toUpsert = organizations.filter(o => o.organization_id && o.organization_id !== '__new')
+    const toUpsert = organizations.filter(o => o.organization_id)
       .map(org => {
         const isExisting = original.organizations.includes(org.organization_id);
         const path = isExisting ? `/api/contacts/${id}/organizations/${org.organization_id}` : `/api/contacts/${id}/organizations`;
@@ -357,35 +362,36 @@
     </RelatedSection>
     {/if}
     {#if !selectedSection || selectedSection === 'organization'}
-    <RelatedSection title="Organizaciones" add={addOrganization}>
-      <p class="form-hint" style="margin: -4px 0 8px; color: var(--text2); font-size: 13px;">Selecciona una organización existente o crea una nueva. «Logro» es el título/cargo obtenido y «Fecha» cuando lo obtuviste.</p>
+    <RelatedSection title={t('contactOrganizations')} add={addOrganization}>
+      <p class="form-hint" style="margin: -4px 0 8px; color: var(--text2); font-size: 13px;">{t('organizationHint')}</p>
       {#each organizations as organization, i}
-        <div class="related-item">
+        <div class="related-item org-item">
           <div class="org-grid">
-            <select class="select" bind:value={organization.organization_id} aria-label="Organización">
-              <option value="">-- Selecciona organización --</option>
-              {#each availableOrgs as org}
-                <option value={org.organization_id}>{org.name}</option>
-              {/each}
-              <option value="__new">+ Crear nueva organización...</option>
-            </select>
-            {#if organization.organization_id === '__new'}
-              <input class="input" placeholder="Nombre nueva organización (ej: Universidad Católica)" bind:value={organization.newName} />
-            {:else}
-              <input class="input" placeholder="Título, cargo o logro (ej: Bachiller, Ingeniero)" bind:value={organization.achievement} />
-            {/if}
-            <input class="input" type="date" bind:value={organization.date} title="Fecha del logro" />
+            <Combobox
+              id={`org-name-${i}`}
+              label={t('organizationNameLabel')}
+              placeholder={t('organizationNamePlaceholder')}
+              options={availableOrgs.map(org => org.name)}
+              bind:value={organization.organization_name}
+              createLabel={(text) => `${t('comboboxCreate')} "${text}"`}
+              maxlength={120}
+              onchange={(text) => onOrganizationNameChange(organization, text)}
+            />
+            <Combobox
+              id={`org-achievement-${i}`}
+              label={t('organizationAchievementLabel')}
+              placeholder={t('organizationAchievementPlaceholder')}
+              options={availableAchievements}
+              bind:value={organization.achievement}
+              createLabel={(text) => `${t('comboboxCreate')} "${text}"`}
+              maxlength={120}
+            />
+            <div class="date-field">
+              <label class="date-label" for={`org-date-${i}`}>{t('organizationDateLabel')}</label>
+              <input id={`org-date-${i}`} class="input" type="date" bind:value={organization.date} />
+            </div>
             <button type="button" class="icon-button danger" aria-label="Eliminar organización" onclick={() => removeAt(organizations, i)}><Trash2 size={16} /></button>
           </div>
-          {#if organization.organization_id === '__new'}
-            <div class="org-extra">
-              <span class="org-extra-label">{organization.organization_name ? `Actual: ${organization.organization_name}` : ''}</span>
-              <input class="input" placeholder="Título, cargo o logro" bind:value={organization.achievement} />
-            </div>
-            <small class="form-hint">Se creará la organización al guardar.</small>
-          {:else if organization.organization_name}
-            <small class="form-hint">{organization.organization_name} {#if organization.organization_id}· {organization.organization_id.slice(0,12)}…{/if}</small>
-          {/if}
         </div>
       {/each}
     </RelatedSection>
@@ -426,18 +432,22 @@
     overflow: hidden;
   }
 
+  /* The organization item hosts Combobox dropdowns, which are absolutely
+     positioned and must not be clipped by the item's own overflow:hidden. */
+  .related-item.org-item { overflow: visible; }
+
   .related-row, .related-grid { display: grid; grid-template-columns: 1fr 1fr auto; align-items: center; gap: 8px; }
   .related-grid { grid-template-columns: repeat(4, 1fr) auto; }
   /* Mobile-first: cards stack in a single column until there's room for all 5 fields. */
   .card-grid { grid-template-columns: 1fr auto; gap: 10px; }
   .card-grid select, .card-grid > input { grid-column: 1 / -1; }
   .card-grid .date-field { grid-column: 1 / -1; }
-  .org-grid, .nationality-grid { display: grid; gap: 8px; align-items: center; }
-  .org-grid { grid-template-columns: 1.4fr 1fr 1.1fr auto; }
-  .nationality-grid { grid-template-columns: 1.2fr 1fr 1fr auto; }
-  .org-grid .select, .org-grid .input, .nationality-grid .select, .nationality-grid .input, .related-grid .select, .related-grid .input { min-width: 0; }
-  .org-extra { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; align-items: center; }
-  .org-extra-label { color: var(--text2); font-size: 12px; grid-column: 1; align-self: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .nationality-grid { display: grid; gap: 8px; align-items: center; grid-template-columns: 1.2fr 1fr 1fr auto; }
+  .nationality-grid .select, .nationality-grid .input, .related-grid .select, .related-grid .input { min-width: 0; }
+  /* Mobile-first: organization fields stack in a single column, then move
+     onto one row once there's room. */
+  .org-grid { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
+  .org-grid :global(.combobox), .org-grid .date-field { grid-column: 1 / -1; }
   .form-hint { color: var(--text2); font-size: 12px; }
   .date-field { display: flex; flex-direction: column; gap: 4px; }
   .date-label { font-size: 12px; color: var(--text2); line-height: 1; }
@@ -451,19 +461,22 @@
   .coordinates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
   .note-counter { font-size: 12px; color: var(--text2); text-align: right; margin-top: 4px; }
   .doc-error { color: var(--danger); font-size: 12px; margin: 6px 0 0; }
+  @media (min-width: 640px) {
+    .org-grid { grid-template-columns: 1.3fr 1.2fr 1fr auto; }
+    .org-grid :global(.combobox), .org-grid .date-field { grid-column: auto; }
+  }
   @media (min-width: 900px) {
     .card-grid { grid-template-columns: repeat(5, 1fr) auto; }
     .card-grid select, .card-grid > input, .card-grid .date-field { grid-column: auto; }
   }
-  @media (max-width: 900px) { .org-grid { grid-template-columns: 1fr 1fr auto; } .nationality-grid { grid-template-columns: 1fr 1fr auto; } }
+  @media (max-width: 900px) { .nationality-grid { grid-template-columns: 1fr 1fr auto; } }
   @media (max-width: 600px) {
     .related-row, .related-grid { grid-template-columns: 1fr auto; }
     .related-row .input:first-child, .related-grid .input:first-child { grid-column: 1 / -1; }
     .coordinates { grid-template-columns: 1fr; }
-    .org-grid, .nationality-grid { grid-template-columns: 1fr auto; }
-    .org-grid > *:first-child, .nationality-grid > *:first-child { grid-column: 1 / -1; }
+    .nationality-grid { grid-template-columns: 1fr auto; }
+    .nationality-grid > *:first-child { grid-column: 1 / -1; }
     .nationality-grid > input[type="date"] { grid-column: 1 / -1; }
-    .org-extra { grid-template-columns: 1fr; }
     .related-item { padding: 10px; }
   }
 </style>

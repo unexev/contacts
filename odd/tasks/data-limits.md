@@ -29,8 +29,8 @@ Protect the 500 MB Postgres budget and data quality by limiting contact notes an
 - [x] T3 Web: note limits in form, document country selector, inline validation, i18n (route: delegated writer). Commit a409d15.
 - [ ] T4 Verification: `go test ./...`, `go vet ./...`, `npm run build`, Playwright check at 375px. Parent spot check done: go vet clean, 16 tests passed, build clean.
 - [x] T5 Web: hide empty location/nationality sections on contact detail; they are reachable from the "Add" menu (route: inline, mechanical).
-- [ ] T6 Backend: `GET /api/organizations/achievements` returning the user's distinct non-empty achievements, with tests (route: delegated writer).
-- [ ] T7 Web: organization editor uses `Combobox` for organization name (select existing or create) and for achievement/title (suggestions from T6), labeled date, no internal IDs shown (route: delegated writer).
+- [x] T6 Backend: `GET /api/organizations/achievements` returning the user's distinct non-empty achievements, with tests (route: delegated writer). Commit 16ab4ef.
+- [x] T7 Web: organization editor uses `Combobox` for organization name (select existing or create) and for achievement/title (suggestions from T6), labeled date, no internal IDs shown (route: delegated writer). Commit: see git log.
 
 ## Acceptance criteria
 - API rejects a note > 500 chars and an 11th note on a contact with a clear 400 error.
@@ -64,5 +64,36 @@ Protect the 500 MB Postgres budget and data quality by limiting contact notes an
   and an untracked `web/src/lib/components/Combobox.svelte`, both present in the working tree
   before this writer started and not authored by this task.
 
+- T6 committed: 16ab4ef — `GET /api/organizations/achievements` (optional `organizationId` query
+  param scopes to one organization); pure ranking (trim, drop empty, dedupe exact match, order by
+  frequency desc then alphabetical, cap 200) extracted into `backend/pkg/achievements` and unit
+  tested (RED: undefined `Rank`/`MaxResults`; GREEN: 5 passed). Store's `ListAchievementsByUser`
+  reads raw achievements from non-deleted `contact_organizations` for the user (optionally filtered
+  by organization) and calls `achievements.Rank`. Route registered before the existing `/organizations`
+  GET/POST; no `/organizations/{id}` route exists so there is no collision either way.
+- T7 committed: see hash below — edit form's organization section now uses two `Combobox` instances
+  (existing untracked `web/src/lib/components/Combobox.svelte`, reviewed and used as-is: no bugs
+  found) bound to `organization_name` and `achievement`, plus a labeled (visible label, not just
+  `title`) date input. Achievements are loaded once on mount via
+  `api('/api/organizations/achievements').catch(() => [])` alongside the other lookups. On
+  organization-name change, `organization_id` is set to the matching org (accent/case-insensitive,
+  matching Combobox's own NFD-based normalization) or cleared to `''`; `resolveOrganizations()` at
+  save time does the same match-or-create and now also appends newly created organizations to
+  `availableOrgs`. Removed the old `__new`/`newName` select-based path entirely (dead code in
+  `addOrganization`, `resolveOrganizations`, `saveOrganizations`, markup) and the internal
+  `organization_id.slice(0,12)` fragment shown to the user. `contacts/new/+page.svelte` has no
+  organization UI, so nothing to change there. CSS: added `.related-item.org-item { overflow:
+  visible; }` so the item container no longer clips the Combobox's absolutely-positioned dropdown;
+  reworked `.org-grid` mobile-first (base: stacked single column, `@media (min-width: 640px)`
+  widens to a 4-column row) instead of the file's pre-existing `max-width` pattern, and removed the
+  now-dead `.org-extra`/`.org-extra-label` rules and the org-specific bits of the two pre-existing
+  `max-width` blocks (left untouched for `nationality-grid`, which this task did not touch). All new
+  strings (`organizationHint`, `organizationNameLabel`, `organizationNamePlaceholder`,
+  `organizationAchievementLabel`, `organizationAchievementPlaceholder`, `organizationDateLabel`,
+  `comboboxCreate`) added to both `es` and `en` in `i18n.svelte.js`. `npm run build` clean, no
+  warnings.
+- `go vet ./...`, `go test ./...` (21 passed, 16 packages), `go build ./...`, and `npm run build`
+  all pass as of T7.
+
 ## Next step
-T6-T7 organization combobox (delegated writer), then T4 Playwright verification.
+T4 Playwright verification at 375px (not run by this writer — out of scope for T6/T7).
