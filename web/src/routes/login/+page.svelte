@@ -13,14 +13,14 @@
     if (A.token) goto('/contacts');
   });
 
-  async function handleRegister(e) {
+  async function handleLogin(e) {
     e.preventDefault();
     error = '';
-    if (!email || !password) { error = 'All fields are required'; return; }
+    if (!email || !password) { error = 'Email and password are required'; return; }
     if (password.length < 8) { error = 'Password must be at least 8 characters'; return; }
     loading = true;
     try {
-      const data = await api('/api/auth/register', {
+      const data = await api('/api/auth/login', {
         method: 'POST',
         body: { email, password }
       });
@@ -35,17 +35,17 @@
   }
 </script>
 
-<div class="register-page">
-  <div class="register-card animate-in">
-    <h1 class="register-title">{t('registerTitle')}</h1>
+<div class="login-page">
+  <div class="login-card animate-in">
+    <h1 class="login-title">{t('loginTitle')}</h1>
 
     {#if error}
-      <div class="register-error">{error}</div>
+      <div class="login-error">{error}</div>
     {/if}
 
-    <form onsubmit={handleRegister}>
+    <form onsubmit={handleLogin}>
       <div class="form-group">
-        <label class="form-label" for="email">{t('registerEmail')}</label>
+        <label class="form-label" for="email">{t('loginEmail')}</label>
         <input
           id="email"
           class="input"
@@ -53,38 +53,37 @@
           bind:value={email}
           required
           autocomplete="email"
-          placeholder={t('registerEmail')}
+          placeholder={t('loginEmail')}
         />
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="password">{t('registerPassword')}</label>
+        <label class="form-label" for="password">{t('loginPassword')}</label>
         <input
           id="password"
           class="input"
           type="password"
           bind:value={password}
           required
-          minlength="6"
-          autocomplete="new-password"
-          placeholder={t('registerPassword')}
+          autocomplete="current-password"
+          placeholder={t('loginPassword')}
         />
       </div>
 
       <button class="btn btn-primary btn-full" type="submit" disabled={loading}>
-        {loading ? '...' : t('registerButton')}
+        {loading ? '...' : t('loginButton')}
       </button>
     </form>
 
-    <p class="register-footer">
-      {t('registerHasAccount')}
-      <a href="/login">{t('registerLogin')}</a>
+    <p class="login-footer">
+      {t('loginNoAccount')}
+      <a href="/register">{t('loginRegister')}</a>
     </p>
   </div>
 </div>
 
 <style>
-  .register-page {
+  .login-page {
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -92,7 +91,7 @@
     padding: 20px;
   }
 
-  .register-card {
+  .login-card {
     width: 100%;
     max-width: 380px;
     padding: 36px 28px;
@@ -101,7 +100,7 @@
     border: 1px solid var(--border);
   }
 
-  .register-title {
+  .login-title {
     font-size: 28px;
     font-weight: 700;
     text-align: center;
@@ -109,7 +108,7 @@
     letter-spacing: -0.5px;
   }
 
-  .register-error {
+  .login-error {
     background: rgba(255, 69, 58, 0.12);
     color: var(--danger);
     padding: 10px 14px;
@@ -119,12 +118,12 @@
     text-align: center;
   }
 
-  .register-footer {
+  .login-footer {
     text-align: center;
     margin-top: 20px;
     font-size: 14px;
     color: var(--text2);
   }
 
-  .register-footer a { margin-left: 4px; }
+  .login-footer a { margin-left: 4px; }
 </style>

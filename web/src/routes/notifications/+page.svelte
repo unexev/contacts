@@ -12,7 +12,7 @@
   let message = $state('');
   let status = $state('');
   onMount(() => {
-    if (!A.token) goto('/');
+    if (!A.token) goto('/login');
     try {
       const saved = JSON.parse(localStorage.getItem('notification_settings') || '{}');
       enabled = saved.enabled ?? false; days = String(saved.days ?? 0); hour = saved.hour ?? '09'; minute = saved.minute ?? '00'; message = saved.message ?? '';

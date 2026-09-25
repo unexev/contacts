@@ -19,7 +19,7 @@
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   onMount(() => {
-    if (!A.token) { goto('/'); return; }
+    if (!A.token) { goto('/login'); return; }
     fetchBirthdays();
   });
 
@@ -40,7 +40,7 @@
       });
       birthdays = map;
     } catch (err) {
-      if (err.message === 'unauthorized' || err.message === 'Invalid credentials') goto('/');
+      if (err.message === 'unauthorized' || err.message === 'Invalid credentials') goto('/login');
       birthdays = {};
     } finally {
       loading = false;

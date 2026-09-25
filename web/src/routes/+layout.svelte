@@ -19,7 +19,7 @@
   ]);
 
   let currentPath = $derived($page.url.pathname);
-  let showNav = $derived(A.token && currentPath !== '/' && currentPath !== '/register');
+  let showNav = $derived(A.token && !['/', '/login', '/register'].includes(currentPath));
   let contactCount = $derived(contacts.value.length);
 
   function handleLogout() {
@@ -59,7 +59,7 @@
   </nav>
 {/if}
 
-<main class:has-nav={showNav}>
+<main class:has-nav={showNav} class:full={currentPath === '/'}>
   {@render children()}
 </main>
 
@@ -201,5 +201,10 @@
 
   main.has-nav {
     padding-top: 76px;
+  }
+
+  main.full {
+    max-width: none;
+    padding: 0;
   }
 </style>

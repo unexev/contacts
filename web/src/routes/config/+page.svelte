@@ -7,7 +7,7 @@
   import { userPrefersMode, setMode, resetMode } from 'mode-watcher';
 
   onMount(() => {
-    if (!A.token) goto('/');
+    if (!A.token) goto('/login');
   });
 
   function handleLogout() {

@@ -19,7 +19,7 @@
   let contactId = $derived($page.params.id);
 
   onMount(() => {
-    if (!A.token) { goto('/'); return; }
+    if (!A.token) { goto('/login'); return; }
     fetchContact();
   });
 
@@ -30,7 +30,7 @@
       const data = await api(`/api/contacts/${contactId}`);
       currentContact.value = data;
     } catch (err) {
-      if (err.message === 'unauthorized') goto('/');
+      if (err.message === 'unauthorized') goto('/login');
       error = err.message;
     } finally {
       loading.value = false;

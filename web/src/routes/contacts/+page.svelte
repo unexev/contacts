@@ -29,7 +29,7 @@
   ];
 
   onMount(() => {
-    if (!A.token) { goto('/'); return; }
+    if (!A.token) { goto('/login'); return; }
     fetchContacts();
   });
 
@@ -61,7 +61,7 @@
        }
        contacts.value = sortContacts(list);
     } catch (err) {
-      if (err.message === 'unauthorized') goto('/');
+      if (err.message === 'unauthorized') goto('/login');
       contacts.value = [];
     } finally {
       loading.value = false;

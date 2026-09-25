@@ -16,7 +16,7 @@
   let saving = $state(false);
 
   onMount(async () => {
-    if (!A.token) { goto('/'); return; }
+    if (!A.token) { goto('/login'); return; }
     try {
       const data = await api('/api/marital-statuses');
       maritalStatuses = Array.isArray(data) ? data : (data?.statuses || []);

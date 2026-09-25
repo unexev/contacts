@@ -7,7 +7,7 @@
 
   let status = $state('');
   let fileInput;
-  onMount(() => { if (!A.token) goto('/'); });
+  onMount(() => { if (!A.token) goto('/login'); });
 
   async function exportContacts() {
     try {

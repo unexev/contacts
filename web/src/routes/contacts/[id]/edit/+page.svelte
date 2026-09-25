@@ -79,7 +79,7 @@
   function addNationality() { nationalities = [...nationalities, { country_code: '', acquired_at: '', note: '' }]; }
 
   onMount(async () => {
-    if (!A.token) return goto('/');
+    if (!A.token) return goto('/login');
     try {
       const [c, statuses, orgs, relTypes, contactsData] = await Promise.all([
         api(`/api/contacts/${id}`),
