@@ -26,8 +26,11 @@ Protect the 500 MB Postgres budget and data quality by limiting contact notes an
 - [x] T0 Landing page + pricing, login moved to `/login` (route: inline). Commit 6c8d1e0.
 - [x] T1 Backend: note limits (500 chars, 10 per contact) with tests (route: delegated writer; trigger: 2+ non-trivial files). Commit 6d5a02c.
 - [x] T2 Backend: migration 007 `identity_cards.country_code` + document validation registry + EC cédula rule, with tests (route: delegated writer). Commit bed78ff.
-- [x] T3 Web: note limits in form, document country selector, inline validation, i18n (route: delegated writer). Commit pending (this commit).
-- [ ] T4 Verification: `go test ./...`, `go vet ./...`, `npm run build`, Playwright check at 375px.
+- [x] T3 Web: note limits in form, document country selector, inline validation, i18n (route: delegated writer). Commit a409d15.
+- [ ] T4 Verification: `go test ./...`, `go vet ./...`, `npm run build`, Playwright check at 375px. Parent spot check done: go vet clean, 16 tests passed, build clean.
+- [x] T5 Web: hide empty location/nationality sections on contact detail; they are reachable from the "Add" menu (route: inline, mechanical).
+- [ ] T6 Backend: `GET /api/organizations/achievements` returning the user's distinct non-empty achievements, with tests (route: delegated writer).
+- [ ] T7 Web: organization editor uses `Combobox` for organization name (select existing or create) and for achievement/title (suggestions from T6), labeled date, no internal IDs shown (route: delegated writer).
 
 ## Acceptance criteria
 - API rejects a note > 500 chars and an 11th note on a contact with a clear 400 error.
@@ -62,4 +65,4 @@ Protect the 500 MB Postgres budget and data quality by limiting contact notes an
   before this writer started and not authored by this task.
 
 ## Next step
-T4 verification (Playwright at 375px) still pending; otherwise feature complete.
+T6-T7 organization combobox (delegated writer), then T4 Playwright verification.

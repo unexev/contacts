@@ -337,6 +337,7 @@
       </div>
     {/if}
 
+    {#if c.locations?.length}
       <div class="section-card">
         <div class="section-card-header">
           <span class="section-card-title">{t('locationTitle')}</span>
@@ -349,17 +350,18 @@
               <button class="card-action icon-only" aria-label="Editar ubicación" onclick={() => editSection('location')}><Pencil size={16} /></button>
             </div>
           {/each}
-          {#if !c.locations?.length}<div class="empty-section">{t('locationEmpty')}</div>{/if}
         </div>
       </div>
+    {/if}
 
+    {#if c.nationalities?.length}
       <div class="section-card">
         <div class="section-card-header">
           <span class="section-card-title">{t('nationalityTitle')}</span>
           <button class="card-action" onclick={() => editSection('nationality', true)}><Plus size={16} /> Agregar</button>
         </div>
         <div class="section-card-body">
-          {#each c.nationalities || [] as nat}
+          {#each c.nationalities as nat}
             <div class="detail-item">
               <div>
                 <span class="field-label">{resolveCountryLabel(nat.country_code, t)}</span>
@@ -369,9 +371,9 @@
               <button class="card-action icon-only" aria-label="Editar nacionalidad" onclick={() => editSection('nationality')}><Pencil size={16} /></button>
             </div>
           {/each}
-          {#if !c.nationalities?.length}<div class="empty-section">{t('nationalityEmpty')}</div>{/if}
         </div>
       </div>
+    {/if}
 
       <!-- Agregar datos - botón único al final, desplegable mobile-friendly -->
       <div class="add-data-footer">
@@ -460,7 +462,6 @@
   .detail-item + .detail-item { border-top: 1px solid var(--border); }
 
   .location-value { display: block; text-align: left; margin-top: 3px; }
-  .empty-section { padding: 8px 0; color: var(--text2); font-size: 14px; }
   .inactive-phone { color: var(--text2); text-decoration: line-through; }
 
   .keyword-item {
