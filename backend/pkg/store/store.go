@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"contacts/pkg/achievements"
 	"contacts/pkg/model"
 )
 
@@ -1092,6 +1093,42 @@ func (s *Store) CreateOrganizationForUser(userID, name string) (model.Organizati
 		o.OrganizationID, o.Name,
 	)
 	return o, err
+}
+
+// ListAchievementsByUser returns the user's distinct, trimmed, non-empty
+// achievement values across their non-deleted contact organizations,
+// ordered by frequency desc then alphabetically, capped at
+// achievements.MaxResults. When organizationID is non-empty, results are
+// scoped to that organization.
+func (s *Store) ListAchievementsByUser(userID, organizationID string) ([]string, error) {
+	ctx := context.Background()
+	query := `SELECT achievement FROM contact_organizations
+	          WHERE user_id = $1 AND deleted = 0
+	            AND achievement IS NOT NULL AND achievement <> ''`
+	args := []any{userID}
+	if organizationID != "" {
+		query += ` AND organization_id = $2`
+		args = append(args, organizationID)
+	}
+
+	rows, err := s.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var raw []string
+	for rows.Next() {
+		var a string
+		if err := rows.Scan(&a); err != nil {
+			return nil, err
+		}
+		raw = append(raw, a)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return achievements.Rank(raw), nil
 }
 
 // ──────────────────────────── Birthdays ───────────────────────

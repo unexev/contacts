@@ -102,6 +102,7 @@ func (a *App) Handler() http.Handler {
 
 			r.Get("/marital-statuses", a.listMaritalStatuses)
 			r.Get("/relationship-types", a.listRelationshipTypes)
+			r.Get("/organizations/achievements", a.listOrganizationAchievements)
 			r.Get("/organizations", a.listOrganizations)
 			r.Post("/organizations", a.createOrganization)
 
@@ -1334,6 +1335,21 @@ func (a *App) createOrganization(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	dataResp(w, http.StatusCreated, o)
+}
+
+func (a *App) listOrganizationAchievements(w http.ResponseWriter, r *http.Request) {
+	claims := auth.GetUser(r)
+	organizationID := strings.TrimSpace(r.URL.Query().Get("organizationId"))
+
+	items, err := a.store.ListAchievementsByUser(claims.UserID, organizationID)
+	if err != nil {
+		errResp(w, http.StatusInternalServerError, "failed to list achievements")
+		return
+	}
+	if items == nil {
+		items = []string{}
+	}
+	dataResp(w, http.StatusOK, items)
 }
 
 // --- birthdays ---
