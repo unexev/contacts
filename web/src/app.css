@@ -238,8 +238,8 @@ textarea:focus-visible {
 
 .fab {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: calc(56px + 16px + env(safe-area-inset-bottom));
+  right: 16px;
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -257,6 +257,13 @@ textarea:focus-visible {
 }
 
 .fab:active { transform: scale(0.9); }
+
+@media (min-width: 601px) {
+  .fab {
+    bottom: 24px;
+    right: 24px;
+  }
+}
 
 .section-card {
   background: var(--surface);
