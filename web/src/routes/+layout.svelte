@@ -78,7 +78,7 @@
 
 <style>
   .topnav {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     right: 0;
@@ -209,6 +209,8 @@
   }
 
   @media (min-width: 601px) {
+    .topnav { position: fixed; }
+
     .tabbar { display: none; }
 
     .topnav-inner { padding: 0 20px; }
