@@ -222,8 +222,16 @@ textarea:focus-visible {
 .empty-state-text { font-size: 16px; margin-bottom: 20px; }
 
 .search-bar {
-  position: relative;
-  margin-bottom: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 8px 0;
+  margin-bottom: 8px;
+  background: var(--bg);
+}
+
+@media (min-width: 601px) {
+  .search-bar { top: 56px; }
 }
 
 .search-bar .input { padding-left: 40px; }
