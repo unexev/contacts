@@ -6,6 +6,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { ModeWatcher } from 'mode-watcher';
+  import { Users, CalendarDays, Settings } from '@lucide/svelte';
 
   let { children } = $props();
 
@@ -13,9 +14,9 @@
   loadToken();
 
   let navItems = $derived([
-    { href: '/contacts', label: t('navContacts') },
-    { href: '/calendar', label: t('navCalendar') },
-    { href: '/config', label: t('navConfig') }
+    { href: '/contacts', label: t('navContacts'), icon: Users },
+    { href: '/calendar', label: t('navCalendar'), icon: CalendarDays },
+    { href: '/config', label: t('navConfig'), icon: Settings }
   ]);
 
   const bareRoutes = ['/', '/login', '/register', '/offline'];
@@ -58,6 +59,24 @@
       </div>
     </div>
   </nav>
+
+  <nav class="tabbar" aria-label="Main">
+    {#each navItems as item}
+      {@const Icon = item.icon}
+      <a
+        href={item.href}
+        class="tab"
+        class:active={currentPath.startsWith(item.href)}
+        aria-current={currentPath.startsWith(item.href) ? 'page' : undefined}
+      >
+        <Icon size={22} aria-hidden="true" />
+        <span>{item.label}</span>
+        {#if item.href === '/contacts' && contactCount > 0}
+          <span class="tab-badge">{contactCount}</span>
+        {/if}
+      </a>
+    {/each}
+  </nav>
 {/if}
 
 <main class:has-nav={showNav} class:full={currentPath === '/' || currentPath === '/offline'}>
@@ -84,7 +103,7 @@
     width: 100%;
     max-width: 720px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -159,38 +178,72 @@
     border-color: var(--text2);
   }
 
-  @media (max-width: 600px) {
-    .topnav-inner {
-      min-width: 0;
-      padding: 0 12px;
-    }
+  .topnav-link {
+    display: none;
+  }
 
-    .topnav-logo {
-      flex: 0 0 auto;
-      font-size: 18px;
-    }
+  .topnav-lang {
+    min-width: 44px;
+    min-height: 44px;
+  }
 
-    .topnav-links {
-      flex: 1 1 auto;
-      min-width: 0;
-      justify-content: flex-start;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
+  .tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    display: flex;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+  }
 
-    .topnav-links::-webkit-scrollbar {
-      display: none;
-    }
+  .tab {
+    position: relative;
+    flex: 1;
+    min-height: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text2);
+    text-decoration: none;
+  }
 
-    .topnav-link,
-    .topnav-lang {
-      flex: 0 0 auto;
-      white-space: nowrap;
-    }
+  .tab:hover { text-decoration: none; }
+
+  .tab.active { color: var(--accent); }
+
+  .tab-badge {
+    position: absolute;
+    top: 6px;
+    left: calc(50% + 6px);
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent);
+    color: white;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  @media (min-width: 601px) {
+    .tabbar { display: none; }
+
+    .topnav-inner { padding: 0 20px; }
 
     .topnav-link {
-      padding-left: 10px;
-      padding-right: 10px;
+      display: inline-block;
     }
   }
 
@@ -202,6 +255,11 @@
 
   main.has-nav {
     padding-top: 76px;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+
+  @media (min-width: 601px) {
+    main.has-nav { padding-bottom: 20px; }
   }
 
   main.full {
