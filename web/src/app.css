@@ -147,6 +147,26 @@ textarea:focus-visible {
 }
 
 .input:focus { border-color: var(--accent); }
+
+/* Native date pickers ignore sizing on mobile browsers (notably iOS Safari);
+   reset them so they match the other inputs. */
+input[type="date"].input {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 50px;
+  min-height: 50px;
+  line-height: 24px;
+  text-align: left;
+}
+
+input[type="date"].input::-webkit-date-and-time-value {
+  min-height: 24px;
+  text-align: left;
+}
 .input::placeholder { color: var(--text2); }
 
 .select {
