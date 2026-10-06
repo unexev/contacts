@@ -465,9 +465,13 @@
     .org-grid { grid-template-columns: 1.3fr 1.2fr 1fr auto; }
     .org-grid :global(.combobox), .org-grid .date-field { grid-column: auto; }
   }
-  @media (min-width: 900px) {
-    .card-grid { grid-template-columns: repeat(5, 1fr) auto; }
-    .card-grid select, .card-grid > input, .card-grid .date-field { grid-column: auto; }
+  /* Wide screens: type/country/number on the first row, dates on the second,
+     so no field gets squeezed into a 5-column strip. */
+  @media (min-width: 640px) {
+    .card-grid { grid-template-columns: repeat(6, minmax(0, 1fr)) auto; align-items: end; }
+    .card-grid select { grid-column: span 3; }
+    .card-grid > input, .card-grid .date-field { grid-column: span 2; }
+    .card-grid > .icon-button { grid-column: 7; grid-row: 1; }
   }
   @media (max-width: 900px) { .nationality-grid { grid-template-columns: 1fr 1fr auto; } }
   @media (max-width: 600px) {
