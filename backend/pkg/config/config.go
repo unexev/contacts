@@ -22,7 +22,7 @@ func Load(required bool) (Config, error) {
 	cfg := Config{
 		DatabaseURL:  os.Getenv("DATABASE_URL"),
 		JWTSecret:    os.Getenv("JWT_SECRET"),
-		JWT_TTL_Hours: 72,
+		JWT_TTL_Hours: 168,
 		DBMaxConns:   10,
 		DBMinConns:   2,
 	}
