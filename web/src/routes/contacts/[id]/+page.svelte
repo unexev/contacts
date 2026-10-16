@@ -18,6 +18,35 @@
   let error = $state('');
   let phoneMenu = $state(null); // { number, trigger }
 
+  // Delete confirmation dialog: focus moves in, stays trapped, and returns on close.
+  let deleteTrigger = null;
+  let dialogEl = $state(null);
+
+  function openDelete(event) {
+    deleteTrigger = event.currentTarget;
+    showDeleteModal = true;
+  }
+
+  function closeDelete() {
+    showDeleteModal = false;
+    deleteTrigger?.focus();
+  }
+
+  $effect(() => {
+    // Start on the safe choice (Cancel) so Enter never deletes by accident.
+    if (showDeleteModal && dialogEl) dialogEl.querySelector('[data-autofocus]')?.focus();
+  });
+
+  function onDialogKeydown(event) {
+    if (event.key === 'Escape') { event.stopPropagation(); closeDelete(); return; }
+    if (event.key !== 'Tab') return;
+    const focusable = [...dialogEl.querySelectorAll('button:not([disabled])')];
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  }
+
   function togglePhoneMenu(event, number) {
     phoneMenu = phoneMenu?.trigger === event.currentTarget ? null : { number, trigger: event.currentTarget };
   }
@@ -102,7 +131,7 @@
       <ArrowLeft size={18} /> {t('contactBack')}
     </button>
     <div class="detail-header-actions">
-      <button class="btn-ghost danger" onclick={() => showDeleteModal = true}>
+      <button class="btn-ghost danger" onclick={openDelete}>
         <Trash2 size={18} /> {t('contactDelete')}
       </button>
     </div>
@@ -330,22 +359,20 @@
         </div>
         <div class="section-card-body">
           {#each c.relationships as rel}
-            <div class="detail-item relation-item" role="button" tabindex="0"
-                 onclick={() => rel.related_contact_id && goto(`/contacts/${rel.related_contact_id}`)}
-                 onkeydown={(e) => e.key === 'Enter' && rel.related_contact_id && goto(`/contacts/${rel.related_contact_id}`)}>
+            <div class="detail-item relation-item">
               <div>
                 <span class="field-label">{rel.type_label || rel.type_id || 'Contact'}</span>
                 {#if rel.related_contact_id}
-                  <a class="field-value related-contact" href={`/contacts/${rel.related_contact_id}`} onclick={(e) => e.stopPropagation()}>
+                  <a class="field-value related-contact" href={`/contacts/${rel.related_contact_id}`}>
                     {rel.related_contact_name || rel.contact_name || rel.name || rel.related_contact_id}
                   </a>
                 {:else}
                   <span class="field-value">{rel.related_contact_name || rel.contact_name || rel.name || '—'}</span>
                 {/if}
               </div>
-              <div style="display:flex; gap:8px; align-items:center;">
+              <div class="item-actions">
                 <span class="related-arrow" aria-hidden="true">›</span>
-                <button class="card-action icon-only" aria-label="Editar relación" onclick={(e) => { e.stopPropagation(); editSection('relationship'); }}><Pencil size={16} /></button>
+                <button class="card-action icon-only" aria-label="Editar relación" onclick={() => editSection('relationship')}><Pencil size={16} /></button>
               </div>
             </div>
           {/each}
@@ -433,18 +460,22 @@
 </div>
 
 {#if showDeleteModal}
-  <div
-    class="modal-overlay"
-    role="button"
-    tabindex="-1"
-    onclick={() => showDeleteModal = false}
-    onkeydown={(e) => e.key === 'Escape' && (showDeleteModal = false)}
-  >
-    <div class="modal" role="dialog" aria-modal="true" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-title">{t('contactDelete')}</div>
-      <div class="modal-text">{t('contactDeleteHint')}</div>
+  <div class="modal-overlay" role="presentation" onclick={closeDelete}>
+    <div
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-title"
+      aria-describedby="delete-text"
+      tabindex="-1"
+      bind:this={dialogEl}
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={onDialogKeydown}
+    >
+      <div class="modal-title" id="delete-title">{t('contactDelete')}</div>
+      <div class="modal-text" id="delete-text">{t('contactDeleteHint')}</div>
       <div class="modal-actions">
-        <button class="btn btn-secondary" onclick={() => showDeleteModal = false}>
+        <button class="btn btn-secondary" data-autofocus onclick={closeDelete}>
           {t('contactCancel')}
         </button>
         <button class="btn btn-danger" onclick={deleteContact} disabled={deleting}>
@@ -487,7 +518,7 @@
     border-radius: 9px;
     background: var(--surface2);
     color: var(--accent-text);
-    font-size: 13px;
+    font-size: 0.8125rem;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
@@ -542,14 +573,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 28px;
+    font-size: 1.75rem;
     font-weight: 700;
     color: var(--accent-text);
     margin-bottom: 12px;
   }
 
   .detail-name {
-    font-size: 24px;
+    font-size: 1.5rem;
     font-weight: 700;
     text-align: center;
     letter-spacing: -0.3px;
@@ -557,31 +588,33 @@
 
   .deceased-status { color: var(--danger); }
   .add-data-footer { margin-top: 24px; display: flex; flex-direction: column; gap: 12px; }
-  .add-main-btn { width: 100%; justify-content: center; min-height: 48px; font-size: 15px; gap: 8px; transition: all 0.2s ease; }
+  .add-main-btn { width: 100%; justify-content: center; min-height: 48px; font-size: 0.9375rem; gap: 8px; transition: all 0.2s ease; }
   .add-main-btn.is-open { background: var(--surface2) !important; border-color: var(--border) !important; color: var(--text2) !important; }
   .add-main-btn.is-open:hover { background: var(--surface) !important; color: var(--text) !important; border-color: var(--text2) !important; }
   .add-menu { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; animation: fadeIn 0.15s ease; }
-  .add-menu-item { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer; justify-content: flex-start; }
+  .add-menu-item { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); color: var(--text); font-size: 0.875rem; font-weight: 500; cursor: pointer; justify-content: flex-start; }
   .add-menu-item:hover { background: var(--surface); border-color: var(--accent); color: var(--accent-text); }
   .organization-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
-  .organization-copy strong { font-size: 15px; color: var(--text); }
-  .relation-item { cursor: pointer; border-radius: 10px; transition: background 0.15s ease; }
+  .organization-copy strong { font-size: 0.9375rem; color: var(--text); }
+  .relation-item { position: relative; cursor: pointer; border-radius: 10px; transition: background 0.15s ease; }
   .relation-item:hover { background: var(--surface2); }
-  .relation-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .related-arrow { color: var(--text2); font-size: 20px; line-height: 1; padding: 0 4px; }
+  /* Stretched link: the whole row opens the related contact without nesting controls. */
+  .related-contact::after { content: ''; position: absolute; inset: 0; border-radius: 10px; }
+  .relation-item .item-actions { position: relative; z-index: 1; }
+  .related-arrow { color: var(--text2); font-size: 1.25rem; line-height: 1; padding: 0 4px; }
 
   .detail-error {
     background: rgba(255, 69, 58, 0.12);
     color: var(--danger);
     padding: 10px 14px;
     border-radius: var(--radius);
-    font-size: 14px;
+    font-size: 0.875rem;
     margin-bottom: 16px;
     text-align: center;
   }
 
   .notes-text {
-    font-size: 15px;
+    font-size: 0.9375rem;
     color: var(--text);
     white-space: pre-wrap;
     line-height: 1.6;
@@ -597,12 +630,12 @@
     padding: 4px 12px;
     background: var(--surface2);
     border-radius: 20px;
-    font-size: 13px;
+    font-size: 0.8125rem;
     color: var(--accent-text);
     border: 1px solid var(--border);
   }
 
-  .field-helper { display: block; color: var(--text2); font-size: 12px; margin-top: 2px; }
+  .field-helper { display: block; color: var(--text2); font-size: 0.75rem; margin-top: 2px; }
   .related-contact { color: var(--accent-text); text-decoration: none; }
   .related-contact:hover { text-decoration: underline; }
 
