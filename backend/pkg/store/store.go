@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,10 +19,19 @@ import (
 
 type Store struct {
 	pool *pgxpool.Pool
+	// skipCount makes the List* methods skip their COUNT(*) query and
+	// return total = 0. Only set on the copy returned by withoutCount.
+	skipCount bool
 }
 
 func New(pool *pgxpool.Pool) *Store {
 	return &Store{pool: pool}
+}
+
+// withoutCount returns a view of the store whose List* methods skip the
+// COUNT(*) round-trip, for callers that discard the total.
+func (s *Store) withoutCount() *Store {
+	return &Store{pool: s.pool, skipCount: true}
 }
 
 func genID(prefix string) string {
@@ -281,43 +291,55 @@ func (s *Store) GetContactFull(userID, contactID string) (map[string]interface{}
 		"updated_at":     c.UpdatedAt,
 	}
 
-	if phones, _, err := s.ListPhones(userID, contactID, 10000, 0); err == nil {
-		result["phones"] = phones
+	// The sections are independent, so fetch them concurrently and skip the
+	// COUNT(*) round-trips: over a remote DB the latency is the round-trips,
+	// not the queries. A failed section is left out, as before.
+	ns := s.withoutCount()
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	section := func(key string, load func() (interface{}, error)) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if v, err := load(); err == nil {
+				mu.Lock()
+				result[key] = v
+				mu.Unlock()
+			}
+		}()
 	}
-	if emails, _, err := s.ListEmails(userID, contactID, 10000, 0); err == nil {
-		result["emails"] = emails
-	}
-	if urls, _, err := s.ListUrls(userID, contactID, 10000, 0); err == nil {
-		result["urls"] = urls
-	}
-	if notes, _, err := s.ListNotes(userID, contactID, 10000, 0); err == nil {
-		result["notes"] = notes
-	}
-	if keywords, _, err := s.ListKeywords(userID, contactID, 10000, 0); err == nil {
+
+	section("phones", func() (interface{}, error) { v, _, err := ns.ListPhones(userID, contactID, 10000, 0); return v, err })
+	section("emails", func() (interface{}, error) { v, _, err := ns.ListEmails(userID, contactID, 10000, 0); return v, err })
+	section("urls", func() (interface{}, error) { v, _, err := ns.ListUrls(userID, contactID, 10000, 0); return v, err })
+	section("notes", func() (interface{}, error) { v, _, err := ns.ListNotes(userID, contactID, 10000, 0); return v, err })
+	section("keywords", func() (interface{}, error) {
+		keywords, _, err := ns.ListKeywords(userID, contactID, 10000, 0)
 		kws := make([]string, len(keywords))
 		for i, k := range keywords {
 			kws[i] = k.Keyword
 		}
-		result["keywords"] = kws
-	}
-	if cards, _, err := s.ListCards(userID, contactID, 10000, 0); err == nil {
-		result["identity_cards"] = cards
-	}
-	if banks, _, err := s.ListBankAccounts(userID, contactID, 10000, 0); err == nil {
-		result["bank_accounts"] = banks
-	}
-	if rels, _, err := s.ListRelationships(userID, contactID, 10000, 0); err == nil {
-		result["relationships"] = rels
-	}
-	if orgs, _, err := s.ListOrganizations(userID, contactID, 10000, 0); err == nil {
-		result["organizations"] = orgs
-	}
-	if locations, _, err := s.ListLocations(userID, contactID, 10000, 0); err == nil {
-		result["locations"] = locations
-	}
-	if nationalities, _, err := s.ListNationalities(userID, contactID, 10000, 0); err == nil {
-		result["nationalities"] = nationalities
-	}
+		return kws, err
+	})
+	section("identity_cards", func() (interface{}, error) { v, _, err := ns.ListCards(userID, contactID, 10000, 0); return v, err })
+	section("bank_accounts", func() (interface{}, error) {
+		v, _, err := ns.ListBankAccounts(userID, contactID, 10000, 0)
+		return v, err
+	})
+	section("relationships", func() (interface{}, error) {
+		v, _, err := ns.ListRelationships(userID, contactID, 10000, 0)
+		return v, err
+	})
+	section("organizations", func() (interface{}, error) {
+		v, _, err := ns.ListOrganizations(userID, contactID, 10000, 0)
+		return v, err
+	})
+	section("locations", func() (interface{}, error) { v, _, err := ns.ListLocations(userID, contactID, 10000, 0); return v, err })
+	section("nationalities", func() (interface{}, error) {
+		v, _, err := ns.ListNationalities(userID, contactID, 10000, 0)
+		return v, err
+	})
+	wg.Wait()
 
 	return result, nil
 }
@@ -331,8 +353,10 @@ func (s *Store) ListLocations(userID, contactID string, limit, offset int) ([]mo
 		offset = 0
 	}
 	var total int
-	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM contact_locations WHERE user_id = $1 AND contact_id = $2`, userID, contactID).Scan(&total); err != nil {
-		return nil, 0, err
+	if !s.skipCount {
+		if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM contact_locations WHERE user_id = $1 AND contact_id = $2`, userID, contactID).Scan(&total); err != nil {
+			return nil, 0, err
+		}
 	}
 	rows, err := s.pool.Query(ctx, `SELECT user_id, contact_id, location_id, location_type, address, city, region, country, postal_code, latitude, longitude FROM contact_locations WHERE user_id = $1 AND contact_id = $2 ORDER BY location_id LIMIT $3 OFFSET $4`, userID, contactID, limit, offset)
 	if err != nil {
@@ -378,8 +402,10 @@ func (s *Store) ListNationalities(userID, contactID string, limit, offset int) (
 		offset = 0
 	}
 	var total int
-	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM contact_nationalities WHERE user_id = $1 AND contact_id = $2`, userID, contactID).Scan(&total); err != nil {
-		return nil, 0, err
+	if !s.skipCount {
+		if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM contact_nationalities WHERE user_id = $1 AND contact_id = $2`, userID, contactID).Scan(&total); err != nil {
+			return nil, 0, err
+		}
 	}
 	rows, err := s.pool.Query(ctx, `SELECT user_id, contact_id, nationality_id, country_code, acquired_at, note FROM contact_nationalities WHERE user_id = $1 AND contact_id = $2 ORDER BY country_code LIMIT $3 OFFSET $4`, userID, contactID, limit, offset)
 	if err != nil {
@@ -425,10 +451,12 @@ func (s *Store) ListPhones(userID, contactID string, limit, offset int) ([]model
 		offset = 0
 	}
 	var total int
-	s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM contact_phones WHERE user_id = $1 AND contact_id = $2`,
-		userID, contactID,
-	).Scan(&total)
+	if !s.skipCount {
+		s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM contact_phones WHERE user_id = $1 AND contact_id = $2`,
+			userID, contactID,
+		).Scan(&total)
+	}
 
 	rows, err := s.pool.Query(ctx,
 		`SELECT user_id, contact_id, phone_id, phone, label, created_at, is_active
@@ -495,10 +523,12 @@ func (s *Store) ListEmails(userID, contactID string, limit, offset int) ([]model
 		offset = 0
 	}
 	var total int
-	s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM contact_emails WHERE user_id = $1 AND contact_id = $2`,
-		userID, contactID,
-	).Scan(&total)
+	if !s.skipCount {
+		s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM contact_emails WHERE user_id = $1 AND contact_id = $2`,
+			userID, contactID,
+		).Scan(&total)
+	}
 
 	rows, err := s.pool.Query(ctx,
 		`SELECT user_id, contact_id, email_id, email, label
@@ -562,10 +592,12 @@ func (s *Store) ListUrls(userID, contactID string, limit, offset int) ([]model.C
 		offset = 0
 	}
 	var total int
-	s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM contact_urls WHERE user_id = $1 AND contact_id = $2`,
-		userID, contactID,
-	).Scan(&total)
+	if !s.skipCount {
+		s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM contact_urls WHERE user_id = $1 AND contact_id = $2`,
+			userID, contactID,
+		).Scan(&total)
+	}
 
 	rows, err := s.pool.Query(ctx,
 		`SELECT user_id, contact_id, url_id, url, label
@@ -629,10 +661,12 @@ func (s *Store) ListNotes(userID, contactID string, limit, offset int) ([]model.
 		offset = 0
 	}
 	var total int
-	s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM contact_notes WHERE user_id = $1 AND contact_id = $2`,
-		userID, contactID,
-	).Scan(&total)
+	if !s.skipCount {
+		s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM contact_notes WHERE user_id = $1 AND contact_id = $2`,
+			userID, contactID,
+		).Scan(&total)
+	}
 
 	rows, err := s.pool.Query(ctx,
 		`SELECT user_id, contact_id, note_id, note, updated_at
@@ -707,10 +741,12 @@ func (s *Store) ListKeywords(userID, contactID string, limit, offset int) ([]mod
 		offset = 0
 	}
 	var total int
-	s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM contact_keywords WHERE user_id = $1 AND contact_id = $2`,
-		userID, contactID,
-	).Scan(&total)
+	if !s.skipCount {
+		s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM contact_keywords WHERE user_id = $1 AND contact_id = $2`,
+			userID, contactID,
+		).Scan(&total)
+	}
 
 	rows, err := s.pool.Query(ctx,
 		`SELECT user_id, contact_id, keyword
@@ -760,10 +796,12 @@ func (s *Store) ListCards(userID, contactID string, limit, offset int) ([]model.
 		offset = 0
 	}
 	var total int
-	s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM identity_cards WHERE user_id = $1 AND contact_id = $2`,
-		userID, contactID,
-	).Scan(&total)
+	if !s.skipCount {
+		s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM identity_cards WHERE user_id = $1 AND contact_id = $2`,
+			userID, contactID,
+		).Scan(&total)
+	}
 
 	rows, err := s.pool.Query(ctx,
 		`SELECT user_id, contact_id, card_id, doc_type, card_number, issue_date, expiry_date, country_code
@@ -828,10 +866,12 @@ func (s *Store) ListBankAccounts(userID, contactID string, limit, offset int) ([
 		offset = 0
 	}
 	var total int
-	s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM contact_bank_accounts WHERE user_id = $1 AND contact_id = $2`,
-		userID, contactID,
-	).Scan(&total)
+	if !s.skipCount {
+		s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM contact_bank_accounts WHERE user_id = $1 AND contact_id = $2`,
+			userID, contactID,
+		).Scan(&total)
+	}
 
 	rows, err := s.pool.Query(ctx,
 		`SELECT user_id, contact_id, bank_account_id, bank_name, account_number, account_type, label
@@ -896,10 +936,12 @@ func (s *Store) ListRelationships(userID, contactID string, limit, offset int) (
 		offset = 0
 	}
 	var total int
-	s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM contact_relationships r WHERE r.user_id = $1 AND r.contact_id = $2`,
-		userID, contactID,
-	).Scan(&total)
+	if !s.skipCount {
+		s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM contact_relationships r WHERE r.user_id = $1 AND r.contact_id = $2`,
+			userID, contactID,
+		).Scan(&total)
+	}
 
 	rows, err := s.pool.Query(ctx,
 		`SELECT r.user_id, r.contact_id, r.related_contact_id,
@@ -958,10 +1000,12 @@ func (s *Store) ListOrganizations(userID, contactID string, limit, offset int) (
 		offset = 0
 	}
 	var total int
-	s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM contact_organizations co WHERE co.user_id = $1 AND co.contact_id = $2`,
-		userID, contactID,
-	).Scan(&total)
+	if !s.skipCount {
+		s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM contact_organizations co WHERE co.user_id = $1 AND co.contact_id = $2`,
+			userID, contactID,
+		).Scan(&total)
+	}
 
 	rows, err := s.pool.Query(ctx,
 		`SELECT co.user_id, co.contact_id, co.organization_id, o.name AS organization_name,
