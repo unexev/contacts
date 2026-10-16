@@ -242,6 +242,8 @@
 </script>
 
 <div class="contacts-page animate-in" style="--search-h: {searchHeight}px">
+  <h1 class="sr-only">{t('contactsTitle')}</h1>
+
   <div class="search-bar" bind:clientHeight={searchHeight}>
     <Search class="search-icon" size={18} />
     <input
