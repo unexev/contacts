@@ -665,6 +665,10 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .add-menu { animation: none; }
+  }
+
   @media (max-width: 600px) {
     .detail-header { align-items: flex-start; }
     .detail-header-actions { flex-direction: column; }

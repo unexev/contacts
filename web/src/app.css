@@ -449,6 +449,8 @@ input[type="date"].input::-webkit-date-and-time-value {
 
 @media (prefers-reduced-motion: reduce) {
   .skeleton { animation: none; }
+  .animate-in { animation: none; }
+  .btn:active { transform: none; }
 }
 
 .load-error {
