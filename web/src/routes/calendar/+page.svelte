@@ -2,6 +2,7 @@
   import { A, apiAll } from '$lib/api.svelte.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import { t, locale } from '$lib/i18n.svelte.js';
   import { ChevronLeft, ChevronRight, Cake } from '@lucide/svelte';
   import { calculateAge, parseContactDate } from '$lib/date.js';
 
@@ -9,14 +10,10 @@
   let currentYear = $state(new Date().getFullYear());
   let birthdays = $state({});
   let loading = $state(false);
+  let loadError = $state(false);
+  let fetchId = 0;
   let selectedDay = $state(null);
   let showModal = $state(false);
-
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   onMount(() => {
     if (!A.token) { goto('/login'); return; }
@@ -24,9 +21,12 @@
   });
 
   async function fetchBirthdays() {
+    const myId = ++fetchId;
     loading = true;
+    loadError = false;
     try {
       const list = await apiAll(`/api/birthdays?month=${currentMonth + 1}&year=${currentYear}`);
+      if (myId !== fetchId) return;
       const map = {};
       list.forEach(c => {
         if (!c.birthdate) return;
@@ -39,10 +39,12 @@
       });
       birthdays = map;
     } catch (err) {
-      if (err.message === 'unauthorized' || err.message === 'Invalid credentials') goto('/login');
+      if (myId !== fetchId) return;
+      if (err.message === 'unauthorized' || err.message === 'Invalid credentials') { goto('/login'); return; }
       birthdays = {};
+      loadError = true;
     } finally {
-      loading = false;
+      if (myId === fetchId) loading = false;
     }
   }
 
@@ -100,7 +102,7 @@
     if (m < 0 || (m === 0 && date.getDate() < birth.getDate())) {
       ageAtDate--;
     }
-    return `Turns ${ageAtDate} years`;
+    return t('calendarTurns').replace('{age}', ageAtDate);
   }
 
   function getInitials(c) {
@@ -122,22 +124,43 @@
     return days;
   });
 
+  function dayLabel(day) {
+    const count = birthdays[day]?.length || 0;
+    const name = t('monthsLong')[currentMonth];
+    // Spanish writes months in lowercase inside a sentence.
+    const month = locale.value === 'es' ? name.toLowerCase() : name;
+    return count ? t('calendarDayBirthdays').replace('{day}', day).replace('{month}', month).replace('{count}', count) : `${day} ${month}`;
+  }
+
+  function onWindowKeydown(event) {
+    if (showModal && event.key === 'Escape') showModal = false;
+  }
+
   let totalBirthdays = $derived(Object.values(birthdays).reduce((sum, arr) => sum + arr.length, 0));
 </script>
 
+<svelte:window onkeydown={onWindowKeydown} />
+
 <div class="calendar-page animate-in">
   <div class="calendar-header">
-    <button class="btn-ghost" onclick={prevMonth}>
+    <button class="btn-ghost" onclick={prevMonth} aria-label={t('calendarPrev')}>
       <ChevronLeft size={20} />
     </button>
-    <h1 class="calendar-title">{monthNames[currentMonth]} {currentYear}</h1>
-    <button class="btn-ghost" onclick={nextMonth}>
+    <h1 class="calendar-title">{t('monthsLong')[currentMonth]} {currentYear}</h1>
+    <button class="btn-ghost" onclick={nextMonth} aria-label={t('calendarNext')}>
       <ChevronRight size={20} />
     </button>
   </div>
 
-  <div class="calendar-grid">
-    {#each dayNames as dayName}
+  {#if loadError}
+    <div class="load-error" role="alert">
+      <span>{t('calendarLoadError')}</span>
+      <button class="btn btn-secondary" onclick={fetchBirthdays}>{t('contactsRetry')}</button>
+    </div>
+  {/if}
+
+  <div class="calendar-grid" class:loading aria-busy={loading}>
+    {#each t('days') as dayName}
       <div class="day-header">{dayName}</div>
     {/each}
 
@@ -149,6 +172,7 @@
           class="day-cell"
           class:today={isToday(cell.day)}
           class:has-birthday={birthdays[cell.day]?.length}
+          aria-label={dayLabel(cell.day)}
           onclick={() => selectDay(cell.day)}
         >
           <span class="day-number">{cell.day}</span>
@@ -167,7 +191,7 @@
   {#if totalBirthdays > 0}
     <div class="birthday-count">
       <Cake size={16} />
-      <span>Has birthdays ({totalBirthdays})</span>
+      <span>{t('calendarHasBirthdays').replace('{count}', totalBirthdays)}</span>
     </div>
   {/if}
 </div>
@@ -182,8 +206,8 @@
   >
     <div class="modal" role="dialog" aria-modal="true" onclick={(e) => e.stopPropagation()}>
       <div class="modal-header">
-        <h2 class="modal-title">{selectedDay} {monthNames[currentMonth]}</h2>
-        <button class="modal-close" onclick={() => showModal = false}>X</button>
+        <h2 class="modal-title">{selectedDay} {t('monthsLong')[currentMonth]}</h2>
+        <button class="modal-close" onclick={() => showModal = false} aria-label={t('calendarClose')}>X</button>
       </div>
       <div class="birthday-list">
         {#each birthdays[selectedDay] as contact}
@@ -226,6 +250,12 @@
     grid-template-columns: repeat(7, 1fr);
     gap: 4px;
     margin-bottom: 16px;
+  }
+
+  .calendar-grid.loading {
+    opacity: 0.5;
+    pointer-events: none;
+    transition: opacity 0.15s;
   }
 
   .day-header {
@@ -346,8 +376,8 @@
   }
 
   .modal-close {
-    width: 28px;
-    height: 28px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: var(--surface2);
     border: none;

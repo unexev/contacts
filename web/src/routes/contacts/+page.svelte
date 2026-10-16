@@ -876,20 +876,6 @@
    .deceased-status { color: var(--danger); }
 
 
-  .load-error {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px 16px;
-    margin-bottom: 12px;
-    background: var(--surface);
-    border: 1px solid var(--danger);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-size: 15px;
-  }
-
   .empty-state-hint {
     font-size: 14px;
     color: var(--text2);
