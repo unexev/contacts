@@ -461,3 +461,21 @@ input[type="date"].input::-webkit-date-and-time-value {
   color: var(--text);
   font-size: 15px;
 }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 150;
+  padding: 10px 16px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+
+@media (min-width: 601px) {
+  .toast { bottom: 24px; }
+}

@@ -3,9 +3,10 @@
   import { contacts, loading, search } from '$lib/stores.svelte.js';
   import { t } from '$lib/i18n.svelte.js';
   import { goto } from '$app/navigation';
-  import { onMount, tick } from 'svelte';
-  import { Search, RefreshCw, ArrowUpDown, Filter, X, Check, Ellipsis, Phone, MessageCircle, Mail, Copy } from '@lucide/svelte';
-  import { primaryPhone, primaryEmail, telHref, whatsappHref, mailHref } from '$lib/contactActions.js';
+  import { onMount } from 'svelte';
+  import { Search, RefreshCw, ArrowUpDown, Filter, X, Check, Ellipsis } from '@lucide/svelte';
+  import { hasActions, primaryPhone, primaryEmail } from '$lib/contactActions.js';
+  import ContactActionsMenu from '$lib/components/ContactActionsMenu.svelte';
   import { loadView, saveView } from '$lib/viewState.js';
   import { calculateAge, formatAge, parseContactDate } from '$lib/date.js';
 
@@ -182,99 +183,22 @@
   }
 
 
-  // ── Quick actions menu ──
-  const MENU_WIDTH = 220;
-  let menu = $state(null); // { contact, top, left }
-  let menuEl = $state(null);
-  let menuTrigger = null;
-  let menuOrigin = { scrollY: 0, width: 0 };
-  let toast = $state('');
-  let toastTimer;
+  // ── Quick actions menu (see ContactActionsMenu) ──
+  let menu = $state(null); // { contact, trigger }
 
   function contactName(c) {
     return [c.first_name, c.middle_name, c.surname].filter(Boolean).join(' ');
   }
 
-  function hasActions(c) {
-    return Boolean(primaryPhone(c) || primaryEmail(c));
-  }
-
-  function menuItemCount(c) {
-    const phone = primaryPhone(c);
-    return (phone ? 2 : 0) + (whatsappHref(phone) ? 1 : 0) + (primaryEmail(c) ? 1 : 0);
-  }
-
-  async function openMenu(event, contact) {
-    if (menu?.contact.contact_id === contact.contact_id) { closeMenu(); return; }
-    menuTrigger = event.currentTarget;
-    const rect = menuTrigger.getBoundingClientRect();
-    const height = menuItemCount(contact) * 44 + 10;
-    const below = rect.bottom + 4;
-    // Flip above the button when there is no room before the bottom tab bar.
-    const top = below + height > window.innerHeight - 72 ? Math.max(8, rect.top - height - 4) : below;
-    const left = Math.max(8, Math.min(rect.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8));
-    menuOrigin = { scrollY: window.scrollY, width: window.innerWidth };
-    menu = { contact, top, left };
-    await tick();
-    menuEl?.querySelector('[role="menuitem"]')?.focus();
+  function openMenu(event, contact) {
+    if (menu?.contact.contact_id === contact.contact_id) { closeMenu(true); return; }
+    menu = { contact, trigger: event.currentTarget };
   }
 
   function closeMenu(restoreFocus = true) {
+    const trigger = menu?.trigger;
     menu = null;
-    if (restoreFocus) menuTrigger?.focus();
-  }
-
-  function onMenuKeydown(event) {
-    const items = [...menuEl.querySelectorAll('[role="menuitem"]')];
-    const index = items.indexOf(document.activeElement);
-    if (event.key === 'ArrowDown') { event.preventDefault(); items[(index + 1) % items.length].focus(); }
-    else if (event.key === 'ArrowUp') { event.preventDefault(); items[(index - 1 + items.length) % items.length].focus(); }
-    else if (event.key === 'Home') { event.preventDefault(); items[0].focus(); }
-    else if (event.key === 'End') { event.preventDefault(); items[items.length - 1].focus(); }
-    else if (event.key === 'Tab') { closeMenu(false); }
-  }
-
-  // Scroll and resize events can arrive just after opening (scroll-into-view, mobile
-  // address bar), so only close when the page really moved or changed width.
-  function onViewportChange() {
-    if (!menu) return;
-    if (Math.abs(window.scrollY - menuOrigin.scrollY) > 4 || window.innerWidth !== menuOrigin.width) closeMenu(false);
-  }
-
-  function onWindowKeydown(event) {
-    if (menu && event.key === 'Escape') closeMenu();
-  }
-
-  function onWindowClick(event) {
-    if (!menu) return;
-    if (menuEl?.contains(event.target) || event.target.closest?.('.more-btn')) return;
-    closeMenu(false);
-  }
-
-  function showToast(message) {
-    toast = message;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { toast = ''; }, 2000);
-  }
-
-  async function copyNumber(number) {
-    let ok = false;
-    try {
-      await navigator.clipboard.writeText(number);
-      ok = true;
-    } catch {
-      const area = document.createElement('textarea');
-      area.value = number;
-      area.setAttribute('readonly', '');
-      area.style.position = 'fixed';
-      area.style.opacity = '0';
-      document.body.appendChild(area);
-      area.select();
-      try { ok = document.execCommand('copy'); } catch { ok = false; }
-      area.remove();
-    }
-    closeMenu();
-    showToast(ok ? t('actionCopied') : t('actionCopyFailed'));
+    if (restoreFocus) trigger?.focus();
   }
 
   function getInitials(c) {
@@ -319,8 +243,6 @@
     (filterMaritalStatus ? 1 : 0)
   );
 </script>
-
-<svelte:window onkeydown={onWindowKeydown} onclick={onWindowClick} onresize={onViewportChange} onscroll={onViewportChange} />
 
 <div class="contacts-page animate-in" style="--search-h: {searchHeight}px">
   <div class="search-bar" bind:clientHeight={searchHeight}>
@@ -506,34 +428,7 @@
   {/if}
 
   {#if menu}
-    {@const phone = primaryPhone(menu.contact)}
-    {@const wa = whatsappHref(phone)}
-    {@const email = primaryEmail(menu.contact)}
-    <div
-      class="action-menu"
-      role="menu"
-      tabindex="-1"
-      style="top: {menu.top}px; left: {menu.left}px"
-      bind:this={menuEl}
-      onkeydown={onMenuKeydown}
-    >
-      {#if phone}
-        <a class="menu-item" role="menuitem" href={telHref(phone)} onclick={() => closeMenu(false)}><Phone size={18} />{t('actionCall')}</a>
-      {/if}
-      {#if wa}
-        <a class="menu-item" role="menuitem" href={wa} target="_blank" rel="noopener noreferrer" onclick={() => closeMenu(false)}><MessageCircle size={18} />{t('actionWhatsApp')}</a>
-      {/if}
-      {#if email}
-        <a class="menu-item" role="menuitem" href={mailHref(email)} onclick={() => closeMenu(false)}><Mail size={18} />{t('actionEmail')}</a>
-      {/if}
-      {#if phone}
-        <button class="menu-item" role="menuitem" onclick={() => copyNumber(phone)}><Copy size={18} />{t('actionCopyNumber')}</button>
-      {/if}
-    </div>
-  {/if}
-
-  {#if toast}
-    <div class="toast" role="status">{toast}</div>
+    <ContactActionsMenu phone={primaryPhone(menu.contact)} email={primaryEmail(menu.contact)} anchor={menu.trigger} onclose={closeMenu} />
   {/if}
 
   <button class="fab" aria-label={t('contactNew')} onclick={() => goto('/contacts/new')}>+</button>
@@ -791,62 +686,6 @@
   .more-btn[aria-expanded='true'] {
     color: var(--accent-text);
     background: color-mix(in srgb, var(--accent) 14%, transparent);
-  }
-
-  .action-menu {
-    position: fixed;
-    z-index: 150;
-    width: 220px;
-    padding: 4px;
-    display: flex;
-    flex-direction: column;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-  }
-
-  .menu-item {
-    width: 100%;
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 0 12px;
-    background: transparent;
-    border: none;
-    border-radius: 8px;
-    color: var(--text);
-    font: inherit;
-    font-size: 15px;
-    text-align: left;
-    text-decoration: none;
-    cursor: pointer;
-  }
-
-  .menu-item:hover,
-  .menu-item:focus-visible {
-    background: var(--surface2);
-    text-decoration: none;
-  }
-
-  .menu-item :global(svg) { color: var(--text2); flex-shrink: 0; }
-
-  .toast {
-    position: fixed;
-    left: 50%;
-    bottom: calc(140px + env(safe-area-inset-bottom));
-    transform: translateX(-50%);
-    z-index: 150;
-    padding: 10px 16px;
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-size: 14px;
-  }
-
-  @media (min-width: 601px) {
-    .toast { bottom: 24px; }
   }
 
 

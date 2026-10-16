@@ -3,6 +3,7 @@
   import { A, loadToken, setToken } from '$lib/api.svelte.js';
   import { contacts } from '$lib/stores.svelte.js';
   import { t } from '$lib/i18n.svelte.js';
+  import { toast } from '$lib/toast.svelte.js';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { ModeWatcher } from 'mode-watcher';
@@ -70,6 +71,10 @@
       </a>
     {/each}
   </nav>
+{/if}
+
+{#if toast.message}
+  <div class="toast" role="status">{toast.message}</div>
 {/if}
 
 <main class:has-nav={showNav} class:full={currentPath === '/' || currentPath === '/offline'}>

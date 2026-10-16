@@ -5,16 +5,28 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
-  import { ArrowLeft, Pencil, Plus, Trash2, Skull, X } from '@lucide/svelte';
+  import { ArrowLeft, Pencil, Plus, Trash2, Skull, X, Ellipsis } from '@lucide/svelte';
   import { formatAge, formatAgeAt, parseContactDate } from '$lib/date.js';
   import { formatValue, formatPhone as formatPhoneBase, formatEmail, formatUrl, formatDate, formatSavedDate } from '$lib/format.js';
   import { resolveDocTypeLabel } from '$lib/docTypes.js';
   import { resolveCountryLabel } from '$lib/countries.js';
+  import ContactActionsMenu from '$lib/components/ContactActionsMenu.svelte';
 
   let showDeleteModal = $state(false);
   let showAddMenu = $state(false);
   let deleting = $state(false);
   let error = $state('');
+  let phoneMenu = $state(null); // { number, trigger }
+
+  function togglePhoneMenu(event, number) {
+    phoneMenu = phoneMenu?.trigger === event.currentTarget ? null : { number, trigger: event.currentTarget };
+  }
+
+  function closePhoneMenu(restoreFocus = true) {
+    const trigger = phoneMenu?.trigger;
+    phoneMenu = null;
+    if (restoreFocus) trigger?.focus();
+  }
 
   let contactId = $derived($page.params.id);
 
@@ -95,6 +107,10 @@
       </button>
     </div>
   </div>
+
+  {#if phoneMenu}
+    <ContactActionsMenu phone={phoneMenu.number} anchor={phoneMenu.trigger} onclose={closePhoneMenu} />
+  {/if}
 
   {#if error}
     <div class="detail-error">{error}</div>
@@ -180,7 +196,18 @@
           {#each c.phones as phone}
             <div class="detail-item">
               <div><span class:inactive-phone={!phone.is_active} class="field-value">{formatPhone(phone)}</span><small class="field-helper">{phone.is_active ? t('phoneInUse') : t('phoneNotInUse')}{#if phone.created_at} · {t('phoneSavedOn')} {formatSavedDate(phone.created_at)}{/if}</small></div>
-              <button class="card-action icon-only" aria-label="Editar teléfono" onclick={() => editSection('phone')}><Pencil size={16} /></button>
+              <div class="item-actions">
+                {#if phone.phone}
+                  <button
+                    class="card-action icon-only"
+                    aria-haspopup="menu"
+                    aria-expanded={phoneMenu?.number === phone.phone}
+                    aria-label={`${t('contactMore')}: ${phone.phone}`}
+                    onclick={(e) => togglePhoneMenu(e, phone.phone)}
+                  ><Ellipsis size={16} /></button>
+                {/if}
+                <button class="card-action icon-only" aria-label="Editar teléfono" onclick={() => editSection('phone')}><Pencil size={16} /></button>
+              </div>
             </div>
           {/each}
         </div>
@@ -440,6 +467,12 @@
 
   .detail-header-actions {
     display: flex;
+    gap: 4px;
+  }
+
+  .item-actions {
+    display: flex;
+    flex-shrink: 0;
     gap: 4px;
   }
 
