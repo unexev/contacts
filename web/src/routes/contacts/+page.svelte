@@ -3,21 +3,30 @@
   import { contacts, loading, search } from '$lib/stores.svelte.js';
   import { t } from '$lib/i18n.svelte.js';
   import { goto } from '$app/navigation';
-  import { onMount } from 'svelte';
-  import { Search, RefreshCw, ArrowUpDown, Filter, ChevronRight, X, Check } from '@lucide/svelte';
+  import { onMount, tick } from 'svelte';
+  import { Search, RefreshCw, ArrowUpDown, Filter, X, Check, Ellipsis, Phone, MessageCircle, Mail, Copy } from '@lucide/svelte';
+  import { primaryPhone, primaryEmail, telHref, whatsappHref, mailHref } from '$lib/contactActions.js';
+  import { loadView, saveView } from '$lib/viewState.js';
   import { calculateAge, formatAge, parseContactDate } from '$lib/date.js';
 
   let debounceTimer = $state(null);
   let showFilters = $state(false);
   let showSort = $state(false);
 
-  let filterGender = $state('');
-  let filterBirthday = $state('');
-  let filterIDCard = $state('');
-  let filterOrganization = $state('');
-  let filterMaritalStatus = $state('');
+  // Restore the last applied sort and filters (search is intentionally not saved).
+  const saved = loadView();
 
-  let sortBy = $state('firstname_az');
+  let filterGender = $state(saved.filterGender);
+  let filterBirthday = $state(saved.filterBirthday);
+  let filterIDCard = $state(saved.filterIDCard);
+  let filterOrganization = $state(saved.filterOrganization);
+  let filterMaritalStatus = $state(saved.filterMaritalStatus);
+
+  let sortBy = $state(saved.sortBy);
+
+  function persistView() {
+    saveView({ sortBy, filterGender, filterBirthday, filterIDCard, filterOrganization, filterMaritalStatus });
+  }
   let loadError = $state(false);
   let syncing = $state(false);
 
@@ -150,6 +159,7 @@
 
   function applyFilters() {
     showFilters = false;
+    persistView();
     fetchContacts();
   }
 
@@ -159,13 +169,111 @@
     filterIDCard = '';
     filterOrganization = '';
     filterMaritalStatus = '';
+    persistView();
     fetchContacts();
   }
 
   function selectSort(val) {
     sortBy = val;
     showSort = false;
+    persistView();
     contacts.value = sortContacts(contacts.value);
+  }
+
+
+  // ── Quick actions menu ──
+  const MENU_WIDTH = 220;
+  let menu = $state(null); // { contact, top, left }
+  let menuEl = $state(null);
+  let menuTrigger = null;
+  let menuOrigin = { scrollY: 0, width: 0 };
+  let toast = $state('');
+  let toastTimer;
+
+  function contactName(c) {
+    return [c.first_name, c.middle_name, c.surname].filter(Boolean).join(' ');
+  }
+
+  function hasActions(c) {
+    return Boolean(primaryPhone(c) || primaryEmail(c));
+  }
+
+  function menuItemCount(c) {
+    const phone = primaryPhone(c);
+    return (phone ? 2 : 0) + (whatsappHref(phone) ? 1 : 0) + (primaryEmail(c) ? 1 : 0);
+  }
+
+  async function openMenu(event, contact) {
+    if (menu?.contact.contact_id === contact.contact_id) { closeMenu(); return; }
+    menuTrigger = event.currentTarget;
+    const rect = menuTrigger.getBoundingClientRect();
+    const height = menuItemCount(contact) * 44 + 10;
+    const below = rect.bottom + 4;
+    // Flip above the button when there is no room before the bottom tab bar.
+    const top = below + height > window.innerHeight - 72 ? Math.max(8, rect.top - height - 4) : below;
+    const left = Math.max(8, Math.min(rect.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8));
+    menuOrigin = { scrollY: window.scrollY, width: window.innerWidth };
+    menu = { contact, top, left };
+    await tick();
+    menuEl?.querySelector('[role="menuitem"]')?.focus();
+  }
+
+  function closeMenu(restoreFocus = true) {
+    menu = null;
+    if (restoreFocus) menuTrigger?.focus();
+  }
+
+  function onMenuKeydown(event) {
+    const items = [...menuEl.querySelectorAll('[role="menuitem"]')];
+    const index = items.indexOf(document.activeElement);
+    if (event.key === 'ArrowDown') { event.preventDefault(); items[(index + 1) % items.length].focus(); }
+    else if (event.key === 'ArrowUp') { event.preventDefault(); items[(index - 1 + items.length) % items.length].focus(); }
+    else if (event.key === 'Home') { event.preventDefault(); items[0].focus(); }
+    else if (event.key === 'End') { event.preventDefault(); items[items.length - 1].focus(); }
+    else if (event.key === 'Tab') { closeMenu(false); }
+  }
+
+  // Scroll and resize events can arrive just after opening (scroll-into-view, mobile
+  // address bar), so only close when the page really moved or changed width.
+  function onViewportChange() {
+    if (!menu) return;
+    if (Math.abs(window.scrollY - menuOrigin.scrollY) > 4 || window.innerWidth !== menuOrigin.width) closeMenu(false);
+  }
+
+  function onWindowKeydown(event) {
+    if (menu && event.key === 'Escape') closeMenu();
+  }
+
+  function onWindowClick(event) {
+    if (!menu) return;
+    if (menuEl?.contains(event.target) || event.target.closest?.('.more-btn')) return;
+    closeMenu(false);
+  }
+
+  function showToast(message) {
+    toast = message;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast = ''; }, 2000);
+  }
+
+  async function copyNumber(number) {
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(number);
+      ok = true;
+    } catch {
+      const area = document.createElement('textarea');
+      area.value = number;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      try { ok = document.execCommand('copy'); } catch { ok = false; }
+      area.remove();
+    }
+    closeMenu();
+    showToast(ok ? t('actionCopied') : t('actionCopyFailed'));
   }
 
   function getInitials(c) {
@@ -210,6 +318,8 @@
     (filterMaritalStatus ? 1 : 0)
   );
 </script>
+
+<svelte:window onkeydown={onWindowKeydown} onclick={onWindowClick} onresize={onViewportChange} onscroll={onViewportChange} />
 
 <div class="contacts-page animate-in">
   <div class="search-bar">
@@ -345,10 +455,8 @@
           <h2 class="letter-head">{row.letter}</h2>
         {:else}
         {@const contact = row.contact}
-        <button
-          class="list-item"
-          onclick={() => goto(`/contacts/${contact.contact_id}`)}
-        >
+        <div class="list-item">
+        <button class="row-main" onclick={() => goto(`/contacts/${contact.contact_id}`)}>
           <div class="avatar">{getInitials(contact)}</div>
             <div class="list-item-content">
               <div class="list-item-name">
@@ -369,11 +477,53 @@
               <div class="list-item-detail">{formatEmail(contact.emails[0])}</div>
             {/if}
           </div>
-          <ChevronRight class="list-item-arrow" size={20} />
         </button>
+        {#if hasActions(contact)}
+          <button
+            class="more-btn"
+            aria-haspopup="menu"
+            aria-expanded={menu?.contact.contact_id === contact.contact_id}
+            aria-label={`${t('contactMore')}: ${contactName(contact)}`}
+            onclick={(e) => openMenu(e, contact)}
+          >
+            <Ellipsis size={20} />
+          </button>
+        {/if}
+        </div>
         {/if}
       {/each}
     </div>
+  {/if}
+
+  {#if menu}
+    {@const phone = primaryPhone(menu.contact)}
+    {@const wa = whatsappHref(phone)}
+    {@const email = primaryEmail(menu.contact)}
+    <div
+      class="action-menu"
+      role="menu"
+      tabindex="-1"
+      style="top: {menu.top}px; left: {menu.left}px"
+      bind:this={menuEl}
+      onkeydown={onMenuKeydown}
+    >
+      {#if phone}
+        <a class="menu-item" role="menuitem" href={telHref(phone)} onclick={() => closeMenu(false)}><Phone size={18} />{t('actionCall')}</a>
+      {/if}
+      {#if wa}
+        <a class="menu-item" role="menuitem" href={wa} target="_blank" rel="noopener noreferrer" onclick={() => closeMenu(false)}><MessageCircle size={18} />{t('actionWhatsApp')}</a>
+      {/if}
+      {#if email}
+        <a class="menu-item" role="menuitem" href={mailHref(email)} onclick={() => closeMenu(false)}><Mail size={18} />{t('actionEmail')}</a>
+      {/if}
+      {#if phone}
+        <button class="menu-item" role="menuitem" onclick={() => copyNumber(phone)}><Copy size={18} />{t('actionCopyNumber')}</button>
+      {/if}
+    </div>
+  {/if}
+
+  {#if toast}
+    <div class="toast" role="status">{toast}</div>
   {/if}
 
   <button class="fab" aria-label={t('contactNew')} onclick={() => goto('/contacts/new')}>+</button>
@@ -585,6 +735,101 @@
     font-family: inherit;
   }
 
+  .row-main {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .more-btn {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    margin: -8px -8px -8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    color: var(--text2);
+    cursor: pointer;
+  }
+
+  .more-btn:hover { background: var(--border); }
+
+  .more-btn[aria-expanded='true'] {
+    color: var(--accent-text);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+
+  .action-menu {
+    position: fixed;
+    z-index: 150;
+    width: 220px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .menu-item {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 12px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text);
+    font: inherit;
+    font-size: 15px;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .menu-item:hover,
+  .menu-item:focus-visible {
+    background: var(--surface2);
+    text-decoration: none;
+  }
+
+  .menu-item :global(svg) { color: var(--text2); flex-shrink: 0; }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(140px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 150;
+    padding: 10px 16px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+  }
+
+  @media (min-width: 601px) {
+    .toast { bottom: 24px; }
+  }
+
+
   .list-item-content {
     flex: 1;
     min-width: 0;
@@ -610,10 +855,6 @@
    .list-item-status { font-size: 12px; color: var(--text2); }
    .deceased-status { color: var(--danger); }
 
-  :global(.list-item-arrow) {
-    color: var(--text2);
-    flex-shrink: 0;
-  }
 
   .load-error {
     display: flex;
