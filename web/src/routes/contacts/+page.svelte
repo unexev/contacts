@@ -118,6 +118,10 @@
     return out;
   });
 
+  // The first letter shares a line with the action buttons instead of owning a header row.
+  let firstLetter = $derived(rows[0]?.letter ?? '');
+  let listRows = $derived(firstLetter ? rows.slice(1) : rows);
+
   function getAge(birthdate) {
     if (!birthdate) return 0;
     return calculateAge(birthdate) ?? 0;
@@ -210,30 +214,12 @@
 
   function formatPhone(p) {
     if (!p) return '';
-    const number = typeof p === 'string' ? p : (p.number || p.value || '');
-    let label = '';
-    if (typeof p === 'object' && p !== null) {
-      if (typeof p.label === 'object' && p.label !== null) {
-        label = p.label.Valid ? p.label.String : '';
-      } else if (typeof p.label === 'string') {
-        label = p.label;
-      }
-    }
-    return label ? `${number} (${label})` : number;
+    return typeof p === 'string' ? p : (p.phone || p.number || p.value || '');
   }
 
   function formatEmail(e) {
     if (!e) return '';
-    const address = typeof e === 'string' ? e : (e.address || e.email || e.value || '');
-    let label = '';
-    if (typeof e === 'object' && e !== null) {
-      if (typeof e.label === 'object' && e.label !== null) {
-        label = e.label.Valid ? e.label.String : '';
-      } else if (typeof e.label === 'string') {
-        label = e.label;
-      }
-    }
-    return label ? `${address} (${label})` : address;
+    return typeof e === 'string' ? e : (e.email || e.address || e.value || '');
   }
 
   let activeFilters = $derived(
@@ -247,16 +233,18 @@
 
 <div class="contacts-page animate-in" style="--search-h: {searchHeight}px">
   <div class="search-bar" bind:clientHeight={searchHeight}>
-    <div class="search-field">
-      <Search class="search-icon" size={18} />
-      <input
-        class="input"
-        type="search"
-        placeholder={t('contactsSearch')}
-        value={search.value}
-        oninput={(e) => onSearchInput(e.target.value)}
-      />
-    </div>
+    <Search class="search-icon" size={18} />
+    <input
+      class="input"
+      type="search"
+      placeholder={t('contactsSearch')}
+      value={search.value}
+      oninput={(e) => onSearchInput(e.target.value)}
+    />
+  </div>
+
+  <div class="list-toolbar">
+    {#if firstLetter}<h2 class="letter-head-inline">{firstLetter}</h2>{/if}
     <div class="toolbar-actions">
       <button class="icon-btn" onclick={() => fetchContacts()} title={t('contactsRefresh')} aria-label={t('contactsRefresh')} aria-busy={syncing} disabled={syncing}>
         <RefreshCw class={syncing ? 'spin-icon' : ''} size={18} />
@@ -379,7 +367,7 @@
     </div>
   {:else if contacts.value.length > 0}
     <div class="contacts-list">
-      {#each rows as row (row.key)}
+      {#each listRows as row (row.key)}
         {#if row.letter}
           <h2 class="letter-head">{row.letter}</h2>
         {:else}
@@ -434,21 +422,25 @@
 <style>
   .contacts-page { padding-bottom: 80px; }
 
-  .search-bar {
+  .list-toolbar {
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
   }
 
-  .search-field {
-    position: relative;
-    flex: 1;
-    min-width: 0;
+  .letter-head-inline {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text2);
+    padding: 0 4px;
   }
 
   .toolbar-actions {
     display: flex;
     gap: 4px;
+    margin-left: auto;
   }
 
   .icon-btn {
