@@ -127,6 +127,10 @@
     return calculateAge(birthdate) ?? 0;
   }
 
+  function byName(a, b) {
+    return (a.first_name || '').localeCompare(b.first_name || '') || (a.surname || '').localeCompare(b.surname || '');
+  }
+
   function sortContacts(list) {
     const sorted = [...list];
     sorted.sort((a, b) => {
@@ -147,10 +151,11 @@
           if (birthA && !birthB) return -1;
           if (!birthA || !birthB) return 0;
           return birthB.getTime() - birthA.getTime();
+        // Creation time, not last edit. Contacts with no known creation time (0) count as the oldest.
         case 'recent_newest':
-          return (b.updated_at || 0) - (a.updated_at || 0);
+          return (b.created_at || 0) - (a.created_at || 0) || byName(a, b);
         case 'recent_oldest':
-          return (a.updated_at || 0) - (b.updated_at || 0);
+          return (a.created_at || 0) - (b.created_at || 0) || byName(a, b);
         default:
           return 0;
       }
