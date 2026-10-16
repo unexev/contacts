@@ -123,14 +123,22 @@
 
   function formatPhone(p) {
     if (typeof p === 'string') return p;
-    const number = p.phone || p.number || p.value || '—';
-    let label = '';
-    if (typeof p.label === 'object' && p.label !== null) {
-      label = p.label.Valid ? p.label.String : '';
-    } else if (typeof p.label === 'string') {
-      label = p.label;
-    }
-    return label ? `${number} (${label})` : number;
+    return p.phone || p.number || p.value || '—';
+  }
+
+  // The label ("Casa", "Trabajo") goes in the helper line, not in parentheses after the number.
+  function phoneLabel(p) {
+    if (!p || typeof p === 'string') return '';
+    if (typeof p.label === 'object' && p.label !== null) return p.label.Valid ? p.label.String : '';
+    return typeof p.label === 'string' ? p.label : '';
+  }
+
+  function phoneMeta(p) {
+    return [
+      phoneLabel(p),
+      p.is_active ? t('phoneInUse') : t('phoneNotInUse'),
+      p.created_at ? `${t('phoneSavedOn')} ${formatSavedDate(p.created_at)}` : ''
+    ].filter(Boolean).join(' · ');
   }
 
   function docTypeLabel(type) {
@@ -247,7 +255,7 @@
         <div class="section-card-body">
           {#each c.phones as phone}
             <div class="detail-item">
-              <div><span class:inactive-phone={!phone.is_active} class="field-value">{formatPhone(phone)}</span><small class="field-helper">{phone.is_active ? t('phoneInUse') : t('phoneNotInUse')}{#if phone.created_at} · {t('phoneSavedOn')} {formatSavedDate(phone.created_at)}{/if}</small></div>
+              <div><span class:inactive-phone={!phone.is_active} class="field-value">{formatPhone(phone)}</span><small class="field-helper">{phoneMeta(phone)}</small></div>
               <div class="item-actions">
                 {#if phone.phone}
                   <button
