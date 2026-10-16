@@ -247,17 +247,16 @@
 
 <div class="contacts-page animate-in" style="--search-h: {searchHeight}px">
   <div class="search-bar" bind:clientHeight={searchHeight}>
-    <Search class="search-icon" size={18} />
-    <input
-      class="input"
-      type="search"
-      placeholder={t('contactsSearch')}
-      value={search.value}
-      oninput={(e) => onSearchInput(e.target.value)}
-    />
-  </div>
-
-  <div class="toolbar">
+    <div class="search-field">
+      <Search class="search-icon" size={18} />
+      <input
+        class="input"
+        type="search"
+        placeholder={t('contactsSearch')}
+        value={search.value}
+        oninput={(e) => onSearchInput(e.target.value)}
+      />
+    </div>
     <div class="toolbar-actions">
       <button class="icon-btn" onclick={() => fetchContacts()} title={t('contactsRefresh')} aria-label={t('contactsRefresh')} aria-busy={syncing} disabled={syncing}>
         <RefreshCw class={syncing ? 'spin-icon' : ''} size={18} />
@@ -435,11 +434,16 @@
 <style>
   .contacts-page { padding-bottom: 80px; }
 
-  .toolbar {
+  .search-bar {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    margin-bottom: 12px;
+    gap: 4px;
+  }
+
+  .search-field {
+    position: relative;
+    flex: 1;
+    min-width: 0;
   }
 
   .toolbar-actions {
