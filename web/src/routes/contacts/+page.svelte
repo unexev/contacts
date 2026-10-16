@@ -18,14 +18,15 @@
   let filterMaritalStatus = $state('');
 
   let sortBy = $state('firstname_az');
+  let loadError = $state(false);
 
   const sortOptions = [
-    { value: 'firstname_az', label: 'First name (A-Z)' },
-    { value: 'surname_az', label: 'Surname (A-Z)' },
-    { value: 'age_oldest', label: 'Age (oldest to youngest)' },
-    { value: 'age_youngest', label: 'Age (youngest to oldest)' },
-    { value: 'recent_newest', label: 'Recently added (newest first)' },
-    { value: 'recent_oldest', label: 'Recently added (oldest first)' }
+    { value: 'firstname_az', key: 'sortFirstName' },
+    { value: 'surname_az', key: 'sortSurname' },
+    { value: 'age_oldest', key: 'sortAgeOldest' },
+    { value: 'age_youngest', key: 'sortAgeYoungest' },
+    { value: 'recent_newest', key: 'sortRecentNewest' },
+    { value: 'recent_oldest', key: 'sortRecentOldest' }
   ];
 
   onMount(() => {
@@ -35,6 +36,7 @@
 
   async function fetchContacts() {
     loading.value = true;
+    loadError = false;
     try {
        let params = ['limit=100'];
       if (search.value) params.push(`search=${encodeURIComponent(search.value)}`);
@@ -61,8 +63,8 @@
        }
        contacts.value = sortContacts(list);
     } catch (err) {
-      if (err.message === 'unauthorized') goto('/login');
-      contacts.value = [];
+      if (err.message === 'unauthorized') { goto('/login'); return; }
+      loadError = true;
     } finally {
       loading.value = false;
     }
@@ -187,16 +189,16 @@
 
   <div class="toolbar">
     <div class="toolbar-actions">
-      <button class="icon-btn" onclick={() => fetchContacts()} title="Refresh">
+      <button class="icon-btn" onclick={() => fetchContacts()} title={t('contactsRefresh')} aria-label={t('contactsRefresh')}>
         <RefreshCw size={18} />
       </button>
-      <button class="icon-btn" class:active={showFilters} onclick={() => { showFilters = !showFilters; showSort = false; }} title="Filter">
+      <button class="icon-btn" class:active={showFilters} onclick={() => { showFilters = !showFilters; showSort = false; }} title={t('contactsFilter')} aria-label={t('contactsFilter')}>
         <Filter size={18} />
         {#if activeFilters > 0}
           <span class="filter-badge">{activeFilters}</span>
         {/if}
       </button>
-      <button class="icon-btn" class:active={showSort} onclick={() => { showSort = !showSort; showFilters = false; }} title="Sort">
+      <button class="icon-btn" class:active={showSort} onclick={() => { showSort = !showSort; showFilters = false; }} title={t('contactsSort')} aria-label={t('contactsSort')}>
         <ArrowUpDown size={18} />
       </button>
     </div>
@@ -205,68 +207,68 @@
   {#if showFilters}
     <div class="filter-panel">
       <div class="filter-header">
-        <span class="filter-title">Filters</span>
-        <button class="filter-clear" onclick={clearFilters}>Clear all</button>
+        <span class="filter-title">{t('filtersTitle')}</span>
+        <button class="filter-clear" onclick={clearFilters}>{t('filtersClear')}</button>
       </div>
 
       <div class="filter-section">
-        <span class="filter-label">Gender</span>
+        <span class="filter-label">{t('filterGender')}</span>
         <div class="filter-chips">
-          <button class="chip" class:active={filterGender === ''} onclick={() => filterGender = ''}>All</button>
-           <button class="chip" class:active={filterGender === 'MALE'} onclick={() => filterGender = 'MALE'}>Male</button>
-           <button class="chip" class:active={filterGender === 'FEMALE'} onclick={() => filterGender = 'FEMALE'}>Female</button>
-           <button class="chip" class:active={filterGender === 'NONE'} onclick={() => filterGender = 'NONE'}>No gender</button>
+          <button class="chip" class:active={filterGender === ''} onclick={() => filterGender = ''}>{t('filterAll')}</button>
+           <button class="chip" class:active={filterGender === 'MALE'} onclick={() => filterGender = 'MALE'}>{t('filterMale')}</button>
+           <button class="chip" class:active={filterGender === 'FEMALE'} onclick={() => filterGender = 'FEMALE'}>{t('filterFemale')}</button>
+           <button class="chip" class:active={filterGender === 'NONE'} onclick={() => filterGender = 'NONE'}>{t('filterNoGender')}</button>
         </div>
       </div>
 
       <div class="filter-section">
-        <span class="filter-label">Birthday</span>
+        <span class="filter-label">{t('filterBirthday')}</span>
         <div class="filter-chips">
-          <button class="chip" class:active={filterBirthday === ''} onclick={() => filterBirthday = ''}>All</button>
-          <button class="chip" class:active={filterBirthday === 'yes'} onclick={() => filterBirthday = 'yes'}>With birthday</button>
-          <button class="chip" class:active={filterBirthday === 'no'} onclick={() => filterBirthday = 'no'}>No birthday</button>
+          <button class="chip" class:active={filterBirthday === ''} onclick={() => filterBirthday = ''}>{t('filterAll')}</button>
+          <button class="chip" class:active={filterBirthday === 'yes'} onclick={() => filterBirthday = 'yes'}>{t('filterWithBirthday')}</button>
+          <button class="chip" class:active={filterBirthday === 'no'} onclick={() => filterBirthday = 'no'}>{t('filterNoBirthday')}</button>
         </div>
       </div>
 
       <div class="filter-section">
-        <span class="filter-label">ID card</span>
+        <span class="filter-label">{t('filterIdCard')}</span>
         <div class="filter-chips">
-          <button class="chip" class:active={filterIDCard === ''} onclick={() => filterIDCard = ''}>All</button>
-          <button class="chip" class:active={filterIDCard === 'yes'} onclick={() => filterIDCard = 'yes'}>With ID card</button>
-          <button class="chip" class:active={filterIDCard === 'no'} onclick={() => filterIDCard = 'no'}>Without ID card</button>
+          <button class="chip" class:active={filterIDCard === ''} onclick={() => filterIDCard = ''}>{t('filterAll')}</button>
+          <button class="chip" class:active={filterIDCard === 'yes'} onclick={() => filterIDCard = 'yes'}>{t('filterWithIdCard')}</button>
+          <button class="chip" class:active={filterIDCard === 'no'} onclick={() => filterIDCard = 'no'}>{t('filterWithoutIdCard')}</button>
         </div>
       </div>
 
       <div class="filter-section">
-        <span class="filter-label">Organization</span>
+        <span class="filter-label">{t('filterOrganization')}</span>
         <div class="filter-chips">
-          <button class="chip" class:active={filterOrganization === ''} onclick={() => filterOrganization = ''}>All</button>
-          <button class="chip" class:active={filterOrganization === 'yes'} onclick={() => filterOrganization = 'yes'}>With organization</button>
-          <button class="chip" class:active={filterOrganization === 'no'} onclick={() => filterOrganization = 'no'}>Without organization</button>
+          <button class="chip" class:active={filterOrganization === ''} onclick={() => filterOrganization = ''}>{t('filterAll')}</button>
+          <button class="chip" class:active={filterOrganization === 'yes'} onclick={() => filterOrganization = 'yes'}>{t('filterWithOrganization')}</button>
+          <button class="chip" class:active={filterOrganization === 'no'} onclick={() => filterOrganization = 'no'}>{t('filterWithoutOrganization')}</button>
         </div>
       </div>
 
       <div class="filter-section">
-        <span class="filter-label">Marital status</span>
+        <span class="filter-label">{t('filterMaritalStatus')}</span>
         <div class="filter-chips">
-          <button class="chip" class:active={filterMaritalStatus === ''} onclick={() => filterMaritalStatus = ''}>All</button>
-          <button class="chip" class:active={filterMaritalStatus === 'yes'} onclick={() => filterMaritalStatus = 'yes'}>With marital status</button>
-          <button class="chip" class:active={filterMaritalStatus === 'no'} onclick={() => filterMaritalStatus = 'no'}>Without marital status</button>
+          <button class="chip" class:active={filterMaritalStatus === ''} onclick={() => filterMaritalStatus = ''}>{t('filterAll')}</button>
+          <button class="chip" class:active={filterMaritalStatus === 'yes'} onclick={() => filterMaritalStatus = 'yes'}>{t('filterWithMaritalStatus')}</button>
+          <button class="chip" class:active={filterMaritalStatus === 'no'} onclick={() => filterMaritalStatus = 'no'}>{t('filterWithoutMaritalStatus')}</button>
         </div>
       </div>
 
-      <button class="btn btn-primary btn-full" onclick={applyFilters}>Apply filters</button>
+      <button class="btn btn-primary btn-full" onclick={applyFilters}>{t('filtersApply')}</button>
     </div>
   {/if}
 
   {#if showSort}
     <div class="sort-panel">
       <div class="sort-header">
-        <span class="sort-title">Sort by</span>
+        <span class="sort-title">{t('sortTitle')}</span>
       </div>
       {#each sortOptions as opt}
         <button class="sort-option" class:active={sortBy === opt.value} onclick={() => selectSort(opt.value)}>
-          <span>{opt.label}</span>
+          <span>{t(opt.key)}</span>
           {#if sortBy === opt.value}
             <Check size={18} class="sort-check" />
           {/if}
@@ -275,8 +277,15 @@
     </div>
   {/if}
 
+  {#if loadError}
+    <div class="load-error" role="alert">
+      <span>{t('contactsLoadError')}</span>
+      <button class="btn btn-secondary" onclick={fetchContacts}>{t('contactsRetry')}</button>
+    </div>
+  {/if}
+
   {#if loading.value && contacts.value.length === 0}
-    <div class="contacts-list" aria-busy="true" aria-label={t('msgSaving')}>
+    <div class="contacts-list" aria-busy="true" aria-label={t('contactsLoading')} role="status">
       {#each Array(8) as _, i}
         <div class="list-item" aria-hidden="true">
           <span class="skeleton skeleton-circle" style="width:44px;height:44px"></span>
@@ -287,13 +296,13 @@
         </div>
       {/each}
     </div>
-  {:else if contacts.value.length === 0}
+  {:else if contacts.value.length === 0 && !loadError}
     <div class="empty-state">
       <Search class="empty-state-icon" size={48} />
       <div class="empty-state-text">{t('contactsEmpty')}</div>
       <div class="empty-state-hint">{t('contactsEmptyHint')}</div>
     </div>
-  {:else}
+  {:else if contacts.value.length > 0}
     <div class="contacts-list">
       {#each contacts.value as contact (contact.contact_id)}
         <button
@@ -310,7 +319,7 @@
               {/if}
              {#if sortBy === 'age_oldest' || sortBy === 'age_youngest'}
                <div class="list-item-detail">
-                 {formatAge(contact.birthdate) || 'Edad no registrada'}
+                 {formatAge(contact.birthdate) || t('contactsAgeUnknown')}
                </div>
              {/if}
              {#if contact.phones?.length}
@@ -353,7 +362,7 @@
     border-radius: 8px;
     background: transparent;
     border: none;
-    color: var(--accent);
+    color: var(--accent-text);
     cursor: pointer;
     transition: background 0.15s;
     position: relative;
@@ -406,7 +415,7 @@
 
   .filter-clear {
     font-size: 13px;
-    color: var(--accent);
+    color: var(--accent-text);
     background: none;
     border: none;
     cursor: pointer;
@@ -496,11 +505,11 @@
   }
 
   .sort-option.active {
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   :global(.sort-check) {
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   .contacts-list {
@@ -543,6 +552,20 @@
   :global(.list-item-arrow) {
     color: var(--text2);
     flex-shrink: 0;
+  }
+
+  .load-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    background: var(--surface);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 15px;
   }
 
   .empty-state-hint {
