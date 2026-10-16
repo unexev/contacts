@@ -558,7 +558,7 @@
   .keyword-item .card-action { min-height: 44px; width: 44px; padding: 5px; margin: -6px -4px -6px 0; border: 0; background: transparent; }
 
   .btn-ghost.danger {
-    color: var(--danger);
+    color: var(--danger-text);
   }
 
   .detail-avatar-section {
@@ -590,7 +590,7 @@
     letter-spacing: -0.3px;
   }
 
-  .deceased-status { color: var(--danger); }
+  .deceased-status { color: var(--danger-text); }
   .add-data-footer { margin-top: 24px; display: flex; flex-direction: column; gap: 12px; }
   .add-main-btn { width: 100%; justify-content: center; min-height: 48px; font-size: 0.9375rem; gap: 8px; transition: all 0.2s ease; }
   .add-main-btn.is-open { background: var(--surface2) !important; border-color: var(--border) !important; color: var(--text2) !important; }
@@ -609,7 +609,7 @@
 
   .detail-error {
     background: rgba(255, 69, 58, 0.12);
-    color: var(--danger);
+    color: var(--danger-text);
     padding: 10px 14px;
     border-radius: var(--radius);
     font-size: 0.875rem;

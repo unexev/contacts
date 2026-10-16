@@ -294,9 +294,9 @@
   }
 
   .day-cell.today {
-    background: var(--accent);
+    background: var(--accent-strong);
     color: white;
-    border-color: var(--accent);
+    border-color: var(--accent-strong);
   }
 
   .day-cell.has-birthday {

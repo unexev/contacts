@@ -712,7 +712,7 @@
    }
 
    .list-item-status { font-size: 0.75rem; color: var(--text2); }
-   .deceased-status { color: var(--danger); }
+   .deceased-status { color: var(--danger-text); }
 
 
   .empty-state-hint {

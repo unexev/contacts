@@ -38,7 +38,7 @@
     height: 60px;
     border-radius: 50%;
     background: rgba(255, 69, 58, 0.12);
-    color: var(--danger);
+    color: var(--danger-text);
     font-size: 1.75rem;
     font-weight: 700;
     display: flex;

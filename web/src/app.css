@@ -25,6 +25,8 @@
   --accent-text: #005bb8;
   --accent-strong: #0066cc;
   --danger: #FF453A;
+  --danger-text: #b3261e;
+  --danger-strong: #b3261e;
   --border: #d1d1d6;
   --radius: 12px;
 }
@@ -37,6 +39,7 @@
   --text: #FFFFFF;
   --text2: #9a9a9f;
   --accent-text: #4da3ff;
+  --danger-text: #ff7a72;
   --border: #38383A;
 }
 
@@ -91,7 +94,7 @@ a:hover { text-decoration: underline; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-primary {
-  background: var(--accent);
+  background: var(--accent-strong);
   color: white;
 }
 
@@ -101,7 +104,7 @@ a:hover { text-decoration: underline; }
 }
 
 .btn-danger {
-  background: var(--danger);
+  background: var(--danger-strong);
   color: white;
 }
 
@@ -201,7 +204,7 @@ input[type="date"].input::-webkit-date-and-time-value {
 
 .form-error {
   font-size: 0.8125rem;
-  color: var(--danger);
+  color: var(--danger-text);
   margin-top: 4px;
 }
 
@@ -331,14 +334,14 @@ input[type="date"].input::-webkit-date-and-time-value {
 }
 
 .form-header .btn-ghost:last-child {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
   color: #fff;
 }
 
 .form-header .btn-ghost:last-child:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent) 88%, black);
-  border-color: color-mix(in srgb, var(--accent) 88%, black);
+  background: color-mix(in srgb, var(--accent-strong) 88%, black);
+  border-color: color-mix(in srgb, var(--accent-strong) 88%, black);
 }
 
 .field-row {

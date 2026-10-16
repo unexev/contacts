@@ -110,7 +110,7 @@
 
   .login-error {
     background: rgba(255, 69, 58, 0.12);
-    color: var(--danger);
+    color: var(--danger-text);
     padding: 10px 14px;
     border-radius: var(--radius);
     font-size: 0.875rem;
