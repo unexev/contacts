@@ -16,6 +16,10 @@
   let showAddMenu = $state(false);
   let deleting = $state(false);
   let error = $state('');
+  const cap = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+  const editLabel = (itemKey) => t('actionEditItem').replace('{item}', t(itemKey));
+  const addLabel = (itemKey) => t('actionAddItem').replace('{item}', t(itemKey));
+
   let phoneMenu = $state(null); // { number, trigger }
 
   // Delete confirmation dialog: focus moves in, stays trapped, and returns on close.
@@ -179,8 +183,8 @@
 
     <div class="section-card">
       <div class="section-card-header">
-        <span class="section-card-title">{t('contactPersonal')}</span>
-        <button class="card-action" onclick={() => editSection('personal')}><Pencil size={16} /> Editar</button>
+        <h2 class="section-card-title">{t('contactPersonal')}</h2>
+        <button class="card-action" aria-label={editLabel('itemPersonal')} onclick={() => editSection('personal')}><Pencil size={16} /> {t('actionEdit')}</button>
       </div>
       <div class="section-card-body">
          <div class="field-row">
@@ -218,8 +222,8 @@
     {#if c.phones?.length}
       <div class="section-card">
         <div class="section-card-header">
-          <span class="section-card-title">{t('contactPhones')}</span>
-          <button class="card-action" onclick={() => editSection('phone', true)}><Plus size={16} /> Agregar</button>
+          <h2 class="section-card-title">{t('contactPhones')}</h2>
+          <button class="card-action" aria-label={addLabel('itemPhone')} onclick={() => editSection('phone', true)}><Plus size={16} /> {t('actionAdd')}</button>
         </div>
         <div class="section-card-body">
           {#each c.phones as phone}
@@ -235,7 +239,7 @@
                     onclick={(e) => togglePhoneMenu(e, phone.phone)}
                   ><Ellipsis size={16} /></button>
                 {/if}
-                <button class="card-action icon-only" aria-label="Editar teléfono" onclick={() => editSection('phone')}><Pencil size={16} /></button>
+                <button class="card-action icon-only" aria-label={editLabel('itemPhone')} onclick={() => editSection('phone')}><Pencil size={16} /></button>
               </div>
             </div>
           {/each}
@@ -246,14 +250,14 @@
     {#if c.emails?.length}
       <div class="section-card">
         <div class="section-card-header">
-          <span class="section-card-title">{t('contactEmails')}</span>
-          <button class="card-action" onclick={() => editSection('email', true)}><Plus size={16} /> Agregar</button>
+          <h2 class="section-card-title">{t('contactEmails')}</h2>
+          <button class="card-action" aria-label={addLabel('itemEmail')} onclick={() => editSection('email', true)}><Plus size={16} /> {t('actionAdd')}</button>
         </div>
         <div class="section-card-body">
           {#each c.emails as email}
             <div class="detail-item">
               <span class="field-value">{formatEmail(email)}</span>
-              <button class="card-action icon-only" aria-label="Editar correo" onclick={() => editSection('email')}><Pencil size={16} /></button>
+              <button class="card-action icon-only" aria-label={editLabel('itemEmail')} onclick={() => editSection('email')}><Pencil size={16} /></button>
             </div>
           {/each}
         </div>
@@ -263,14 +267,14 @@
     {#if c.urls?.length}
       <div class="section-card">
         <div class="section-card-header">
-          <span class="section-card-title">{t('contactUrls')}</span>
-          <button class="card-action" onclick={() => editSection('url', true)}><Plus size={16} /> Agregar</button>
+          <h2 class="section-card-title">{t('contactUrls')}</h2>
+          <button class="card-action" aria-label={addLabel('itemUrl')} onclick={() => editSection('url', true)}><Plus size={16} /> {t('actionAdd')}</button>
         </div>
         <div class="section-card-body">
           {#each c.urls as url}
             <div class="detail-item">
               <span class="field-value">{formatUrl(url)}</span>
-              <button class="card-action icon-only" aria-label="Editar URL" onclick={() => editSection('url')}><Pencil size={16} /></button>
+              <button class="card-action icon-only" aria-label={editLabel('itemUrl')} onclick={() => editSection('url')}><Pencil size={16} /></button>
             </div>
           {/each}
         </div>
@@ -280,12 +284,12 @@
     {#if c.notes?.length}
       <div class="section-card">
         <div class="section-card-header">
-          <span class="section-card-title">{t('contactNotes')}</span>
-          <button class="card-action" onclick={() => editSection('note', true)}><Plus size={16} /> Agregar</button>
+          <h2 class="section-card-title">{t('contactNotes')}</h2>
+          <button class="card-action" aria-label={addLabel('itemNote')} onclick={() => editSection('note', true)}><Plus size={16} /> {t('actionAdd')}</button>
         </div>
         <div class="section-card-body">
           {#each c.notes as note}
-            <div class="detail-item"><div class="notes-text">{note.note || note.text || formatValue(note)}</div><button class="card-action icon-only" aria-label="Editar nota" onclick={() => editSection('note')}><Pencil size={16} /></button></div>
+            <div class="detail-item"><div class="notes-text">{note.note || note.text || formatValue(note)}</div><button class="card-action icon-only" aria-label={editLabel('itemNote')} onclick={() => editSection('note')}><Pencil size={16} /></button></div>
           {/each}
         </div>
       </div>
@@ -294,13 +298,13 @@
     {#if c.keywords?.length}
       <div class="section-card">
         <div class="section-card-header">
-          <span class="section-card-title">{t('contactKeywords')}</span>
-          <button class="card-action" onclick={() => editSection('keyword', true)}><Plus size={16} /> Agregar</button>
+          <h2 class="section-card-title">{t('contactKeywords')}</h2>
+          <button class="card-action" aria-label={addLabel('itemKeyword')} onclick={() => editSection('keyword', true)}><Plus size={16} /> {t('actionAdd')}</button>
         </div>
         <div class="section-card-body">
           <div class="keywords-list">
             {#each c.keywords as kw}
-              <span class="keyword-item"><span class="keyword-tag">{kw}</span><button class="card-action icon-only" aria-label="Editar palabra clave" onclick={() => editSection('keyword')}><Pencil size={16} /></button></span>
+              <span class="keyword-item"><span class="keyword-tag">{kw}</span><button class="card-action icon-only" aria-label={editLabel('itemKeyword')} onclick={() => editSection('keyword')}><Pencil size={16} /></button></span>
             {/each}
           </div>
         </div>
@@ -310,8 +314,8 @@
     {#if c.identity_cards?.length}
       <div class="section-card">
         <div class="section-card-header">
-          <span class="section-card-title">{t('contactIdentity')}</span>
-          <button class="card-action" onclick={() => editSection('card', true)}><Plus size={16} /> Agregar</button>
+          <h2 class="section-card-title">{t('contactIdentity')}</h2>
+          <button class="card-action" aria-label={addLabel('itemCard')} onclick={() => editSection('card', true)}><Plus size={16} /> {t('actionAdd')}</button>
         </div>
         <div class="section-card-body">
           {#each c.identity_cards as card}
@@ -326,7 +330,7 @@
                   </small>
                 {/if}
               </div>
-              <button class="card-action icon-only" aria-label="Editar documento" onclick={() => editSection('card')}><Pencil size={16} /></button>
+              <button class="card-action icon-only" aria-label={editLabel('itemCard')} onclick={() => editSection('card')}><Pencil size={16} /></button>
             </div>
           {/each}
         </div>
@@ -336,15 +340,15 @@
     {#if c.bank_accounts?.length}
       <div class="section-card">
         <div class="section-card-header">
-          <span class="section-card-title">{t('contactBank')}</span>
-          <button class="card-action" onclick={() => editSection('bank', true)}><Plus size={16} /> Agregar</button>
+          <h2 class="section-card-title">{t('contactBank')}</h2>
+          <button class="card-action" aria-label={addLabel('itemBank')} onclick={() => editSection('bank', true)}><Plus size={16} /> {t('actionAdd')}</button>
         </div>
         <div class="section-card-body">
           {#each c.bank_accounts as acc}
             <div class="detail-item">
               <span class="field-label">{formatValue(acc.bank_name) !== '—' ? formatValue(acc.bank_name) : (acc.bank || acc.name || 'Account')}</span>
               <span class="field-value">{acc.account_number || acc.number || acc.iban || acc.value || '—'}</span>
-              <button class="card-action icon-only" aria-label="Editar cuenta bancaria" onclick={() => editSection('bank')}><Pencil size={16} /></button>
+              <button class="card-action icon-only" aria-label={editLabel('itemBank')} onclick={() => editSection('bank')}><Pencil size={16} /></button>
             </div>
           {/each}
         </div>
@@ -354,14 +358,14 @@
     {#if c.relationships?.length}
       <div class="section-card">
         <div class="section-card-header">
-          <span class="section-card-title">{t('contactRelationships')}</span>
-          <button class="card-action" onclick={() => editSection('relationship', true)}><Plus size={16} /> Agregar</button>
+          <h2 class="section-card-title">{t('contactRelationships')}</h2>
+          <button class="card-action" aria-label={addLabel('itemRelationship')} onclick={() => editSection('relationship', true)}><Plus size={16} /> {t('actionAdd')}</button>
         </div>
         <div class="section-card-body">
           {#each c.relationships as rel}
             <div class="detail-item relation-item">
               <div>
-                <span class="field-label">{rel.type_label || rel.type_id || 'Contact'}</span>
+                <span class="field-label">{rel.type_label || rel.type_id || '—'}</span>
                 {#if rel.related_contact_id}
                   <a class="field-value related-contact" href={`/contacts/${rel.related_contact_id}`}>
                     {rel.related_contact_name || rel.contact_name || rel.name || rel.related_contact_id}
@@ -372,7 +376,7 @@
               </div>
               <div class="item-actions">
                 <span class="related-arrow" aria-hidden="true">›</span>
-                <button class="card-action icon-only" aria-label="Editar relación" onclick={() => editSection('relationship')}><Pencil size={16} /></button>
+                <button class="card-action icon-only" aria-label={editLabel('itemRelationship')} onclick={() => editSection('relationship')}><Pencil size={16} /></button>
               </div>
             </div>
           {/each}
@@ -383,8 +387,8 @@
     {#if c.organizations?.length}
       <div class="section-card">
         <div class="section-card-header">
-          <span class="section-card-title">{t('contactOrganizations')}</span>
-          <button class="card-action" onclick={() => editSection('organization', true)}><Plus size={16} /> Agregar</button>
+          <h2 class="section-card-title">{t('contactOrganizations')}</h2>
+          <button class="card-action" aria-label={addLabel('itemOrganization')} onclick={() => editSection('organization', true)}><Plus size={16} /> {t('actionAdd')}</button>
         </div>
         <div class="section-card-body">
            {#each sortedOrganizations(c.organizations) as org}
@@ -396,7 +400,7 @@
                    <small class="field-helper">{formatValue(org.date)}{#if formatAgeAt(c.birthdate, org.date)} · {formatAgeAt(c.birthdate, org.date)}{/if}</small>
                  {/if}
                </div>
-              <button class="card-action icon-only" aria-label="Editar organización" onclick={() => editSection('organization')}><Pencil size={16} /></button>
+              <button class="card-action icon-only" aria-label={editLabel('itemOrganization')} onclick={() => editSection('organization')}><Pencil size={16} /></button>
             </div>
           {/each}
         </div>
@@ -406,14 +410,14 @@
     {#if c.locations?.length}
       <div class="section-card">
         <div class="section-card-header">
-          <span class="section-card-title">{t('locationTitle')}</span>
-          <button class="card-action" onclick={() => editSection('location', true)}><Plus size={16} /> Agregar</button>
+          <h2 class="section-card-title">{t('locationTitle')}</h2>
+          <button class="card-action" aria-label={addLabel('itemLocation')} onclick={() => editSection('location', true)}><Plus size={16} /> {t('actionAdd')}</button>
         </div>
         <div class="section-card-body">
           {#each c.locations as location}
             <div class="detail-item">
               <div><span class="field-label">{locationType(location.location_type)}</span><span class="field-value location-value">{[location.address, location.city, location.region, location.country, location.postal_code].filter(Boolean).join(', ') || '—'}</span>{#if location.latitude !== null && location.longitude !== null}<small class="field-helper">{location.latitude}, {location.longitude}</small>{/if}</div>
-              <button class="card-action icon-only" aria-label="Editar ubicación" onclick={() => editSection('location')}><Pencil size={16} /></button>
+              <button class="card-action icon-only" aria-label={editLabel('itemLocation')} onclick={() => editSection('location')}><Pencil size={16} /></button>
             </div>
           {/each}
         </div>
@@ -423,8 +427,8 @@
     {#if c.nationalities?.length}
       <div class="section-card">
         <div class="section-card-header">
-          <span class="section-card-title">{t('nationalityTitle')}</span>
-          <button class="card-action" onclick={() => editSection('nationality', true)}><Plus size={16} /> Agregar</button>
+          <h2 class="section-card-title">{t('nationalityTitle')}</h2>
+          <button class="card-action" aria-label={addLabel('itemNationality')} onclick={() => editSection('nationality', true)}><Plus size={16} /> {t('actionAdd')}</button>
         </div>
         <div class="section-card-body">
           {#each c.nationalities as nat}
@@ -434,7 +438,7 @@
                 {#if formatValue(nat.note) !== '—'}<span class="field-value location-value">{formatValue(nat.note)}</span>{/if}
                 {#if formatValue(nat.acquired_at) !== '—'}<small class="field-helper">{formatDate(nat.acquired_at)}</small>{/if}
               </div>
-              <button class="card-action icon-only" aria-label="Editar nacionalidad" onclick={() => editSection('nationality')}><Pencil size={16} /></button>
+              <button class="card-action icon-only" aria-label={editLabel('itemNationality')} onclick={() => editSection('nationality')}><Pencil size={16} /></button>
             </div>
           {/each}
         </div>
@@ -444,13 +448,13 @@
       <!-- Agregar datos - botón único al final, desplegable mobile-friendly -->
       <div class="add-data-footer">
         <button class="{showAddMenu ? 'btn btn-secondary' : 'btn btn-primary'} add-main-btn" class:is-open={showAddMenu} onclick={() => showAddMenu = !showAddMenu} aria-expanded={showAddMenu} aria-haspopup="menu">
-          {#if showAddMenu}<X size={18} /> Cerrar{:else}<Plus size={18} /> Agregar{/if}
+          {#if showAddMenu}<X size={18} /> {t('actionClose')}{:else}<Plus size={18} /> {t('actionAdd')}{/if}
         </button>
         {#if showAddMenu}
           <div class="add-menu" role="menu">
-            {#each [['phone', 'Teléfono'], ['email', 'Correo'], ['card', 'Documento'], ['organization', 'Organización'], ['location', 'Ubicación'], ['nationality', 'Nacionalidad'], ['url', 'Sitio web'], ['note', 'Nota'], ['keyword', 'Palabra clave'], ['bank', 'Cuenta bancaria'], ['relationship', 'Relación']] as item}
+            {#each [['phone', 'itemPhone'], ['email', 'itemEmail'], ['card', 'itemCard'], ['organization', 'itemOrganization'], ['location', 'itemLocation'], ['nationality', 'itemNationality'], ['url', 'itemUrl'], ['note', 'itemNote'], ['keyword', 'itemKeyword'], ['bank', 'itemBank'], ['relationship', 'itemRelationship']] as item}
               <button class="add-menu-item" role="menuitem" onclick={() => { showAddMenu = false; editSection(item[0], true); }}>
-                <Plus size={14} /> {item[1]}
+                <Plus size={14} /> {cap(t(item[1]))}
               </button>
             {/each}
           </div>
@@ -525,7 +529,7 @@
   }
 
   .card-action:hover { background: var(--surface); border-color: var(--accent); }
-  .card-action.icon-only { width: 40px; padding: 8px; }
+  .card-action.icon-only { width: 44px; padding: 8px; }
 
   .detail-item {
     display: grid;
@@ -551,7 +555,7 @@
   }
 
   .keyword-item .keyword-tag { padding: 0; border: 0; background: transparent; }
-  .keyword-item .card-action { min-height: 32px; width: 32px; padding: 5px; border: 0; background: transparent; }
+  .keyword-item .card-action { min-height: 44px; width: 44px; padding: 5px; margin: -6px -4px -6px 0; border: 0; background: transparent; }
 
   .btn-ghost.danger {
     color: var(--danger);
@@ -565,8 +569,8 @@
   }
 
   .detail-avatar {
-    width: 80px;
-    height: 80px;
+    width: 5rem;
+    height: 5rem;
     border-radius: 50%;
     background: var(--surface);
     border: 2px solid var(--accent);

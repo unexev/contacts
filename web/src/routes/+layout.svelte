@@ -190,6 +190,15 @@
 
   .tab:hover { text-decoration: none; }
 
+  /* Long labels (large text sizes) truncate instead of colliding with neighbours. */
+  .tab > span:not(.tab-badge) {
+    max-width: 100%;
+    padding: 0 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .tab.active { color: var(--accent-text); }
 
   .tab-badge {
