@@ -149,12 +149,12 @@
 
   .combobox-option.create {
     justify-content: flex-start;
-    color: var(--accent);
+    color: var(--accent-text);
     font-weight: 500;
   }
 
   .combobox-option :global(.combobox-check) {
-    color: var(--accent);
+    color: var(--accent-text);
     flex-shrink: 0;
   }
 </style>

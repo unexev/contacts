@@ -159,7 +159,7 @@
     justify-content: center;
     font-size: 14px;
     font-weight: 700;
-    color: var(--accent);
+    color: var(--accent-text);
     background: color-mix(in srgb, var(--accent) 12%, transparent);
     border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
   }
@@ -217,7 +217,7 @@
     margin-bottom: 16px;
   }
 
-  .highlight { color: var(--accent); }
+  .highlight { color: var(--accent-text); }
 
   .hero-subtitle {
     font-size: 17px;
@@ -284,7 +284,7 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 16px;
-    color: var(--accent);
+    color: var(--accent-text);
     background: color-mix(in srgb, var(--accent) 12%, transparent);
   }
 
@@ -378,7 +378,7 @@
   }
 
   .plan-features :global(.plan-check) {
-    color: var(--accent);
+    color: var(--accent-text);
     flex-shrink: 0;
   }
 

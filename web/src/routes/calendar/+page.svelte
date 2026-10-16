@@ -401,7 +401,7 @@
     justify-content: center;
     font-weight: 600;
     font-size: 14px;
-    color: var(--accent);
+    color: var(--accent-text);
     flex-shrink: 0;
   }
 

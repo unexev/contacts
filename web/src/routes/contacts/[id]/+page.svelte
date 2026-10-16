@@ -453,7 +453,7 @@
     border: 1px solid var(--border);
     border-radius: 9px;
     background: var(--surface2);
-    color: var(--accent);
+    color: var(--accent-text);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -511,7 +511,7 @@
     justify-content: center;
     font-size: 28px;
     font-weight: 700;
-    color: var(--accent);
+    color: var(--accent-text);
     margin-bottom: 12px;
   }
 
@@ -529,7 +529,7 @@
   .add-main-btn.is-open:hover { background: var(--surface) !important; color: var(--text) !important; border-color: var(--text2) !important; }
   .add-menu { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; animation: fadeIn 0.15s ease; }
   .add-menu-item { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer; justify-content: flex-start; }
-  .add-menu-item:hover { background: var(--surface); border-color: var(--accent); color: var(--accent); }
+  .add-menu-item:hover { background: var(--surface); border-color: var(--accent); color: var(--accent-text); }
   .organization-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
   .organization-copy strong { font-size: 15px; color: var(--text); }
   .relation-item { cursor: pointer; border-radius: 10px; transition: background 0.15s ease; }
@@ -565,12 +565,12 @@
     background: var(--surface2);
     border-radius: 20px;
     font-size: 13px;
-    color: var(--accent);
+    color: var(--accent-text);
     border: 1px solid var(--border);
   }
 
   .field-helper { display: block; color: var(--text2); font-size: 12px; margin-top: 2px; }
-  .related-contact { color: var(--accent); text-decoration: none; }
+  .related-contact { color: var(--accent-text); text-decoration: none; }
   .related-contact:hover { text-decoration: underline; }
 
   @keyframes fadeIn {

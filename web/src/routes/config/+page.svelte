@@ -172,7 +172,7 @@
   .lang-btn.active {
     border-color: var(--accent);
     background: rgba(10, 132, 255, 0.12);
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   .logout-btn {

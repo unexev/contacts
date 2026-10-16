@@ -135,7 +135,7 @@
   }
 
   .topnav-link.active {
-    color: var(--accent);
+    color: var(--accent-text);
     background: rgba(10, 132, 255, 0.1);
   }
 
@@ -185,7 +185,7 @@
 
   .tab:hover { text-decoration: none; }
 
-  .tab.active { color: var(--accent); }
+  .tab.active { color: var(--accent-text); }
 
   .tab-badge {
     position: absolute;
