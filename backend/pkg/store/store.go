@@ -183,7 +183,13 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 	offsetIdx := argIdx + 1
 	selectQuery := fmt.Sprintf(`
 		SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
-		       c.birthdate, c.gender, c.status_id, ms.marital_status, c.deceased, c.updated_at
+		       c.birthdate, c.gender, c.status_id, ms.marital_status, c.deceased, c.updated_at,
+		       COALESCE((SELECT p.phone FROM contact_phones p
+		                 WHERE p.user_id = c.user_id AND p.contact_id = c.contact_id
+		                 ORDER BY p.is_active DESC, p.phone_id LIMIT 1), '') AS primary_phone,
+		       COALESCE((SELECT e.email FROM contact_emails e
+		                 WHERE e.user_id = c.user_id AND e.contact_id = c.contact_id
+		                 ORDER BY e.email_id LIMIT 1), '') AS primary_email
 		FROM contacts c
 		LEFT JOIN marital_status ms ON c.status_id = ms.status_id
 		WHERE %s
@@ -203,6 +209,7 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 		if err := rows.Scan(
 			&c.UserID, &c.ContactID, &c.FirstName, &c.MiddleName, &c.Surname,
 			&c.Birthdate, &c.Gender, &c.StatusID, &c.MaritalStatus, &c.Deceased, &c.UpdatedAt,
+			&c.PrimaryPhone, &c.PrimaryEmail,
 		); err != nil {
 			return nil, 0, err
 		}

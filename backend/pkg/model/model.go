@@ -30,6 +30,9 @@ type Contact struct {
 	MaritalStatus sql.NullString `json:"marital_status"`
 	Deceased      bool           `json:"deceased"`
 	UpdatedAt     int64          `json:"updated_at"`
+	// Filled only by ListContacts, so list rows can offer quick actions.
+	PrimaryPhone string `json:"primary_phone,omitempty"`
+	PrimaryEmail string `json:"primary_email,omitempty"`
 }
 
 // MarshalJSON implements custom JSON marshaling to handle NullString
