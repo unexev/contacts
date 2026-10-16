@@ -78,7 +78,8 @@
 
 <style>
   .topnav {
-    position: absolute;
+    display: none;
+    position: fixed;
     top: 0;
     left: 0;
     right: 0;
@@ -88,7 +89,6 @@
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border);
     z-index: 100;
-    display: flex;
     align-items: center;
   }
 
@@ -154,10 +154,6 @@
     font-weight: 600;
   }
 
-  .topnav-link {
-    display: none;
-  }
-
   .tabbar {
     position: fixed;
     left: 0;
@@ -209,15 +205,11 @@
   }
 
   @media (min-width: 601px) {
-    .topnav { position: fixed; }
+    .topnav { display: flex; }
 
     .tabbar { display: none; }
 
     .topnav-inner { padding: 0 20px; }
-
-    .topnav-link {
-      display: inline-block;
-    }
   }
 
   main {
@@ -227,12 +219,14 @@
   }
 
   main.has-nav {
-    padding-top: 76px;
     padding-bottom: calc(76px + env(safe-area-inset-bottom));
   }
 
   @media (min-width: 601px) {
-    main.has-nav { padding-bottom: 20px; }
+    main.has-nav {
+      padding-top: 76px;
+      padding-bottom: 20px;
+    }
   }
 
   main.full {
