@@ -232,16 +232,6 @@
     return (f + s).toUpperCase() || '?';
   }
 
-  function formatPhone(p) {
-    if (!p) return '';
-    return typeof p === 'string' ? p : (p.phone || p.number || p.value || '');
-  }
-
-  function formatEmail(e) {
-    if (!e) return '';
-    return typeof e === 'string' ? e : (e.email || e.address || e.value || '');
-  }
-
   let activeFilters = $derived(
     (filterGender ? 1 : 0) +
     (filterBirthday ? 1 : 0) +
@@ -364,6 +354,7 @@
           <h2 class="letter-head">{row.letter}</h2>
         {:else}
         {@const contact = row.contact}
+        {@const phone = primaryPhone(contact)}
         <div class="list-item">
         <button class="row-main" onclick={() => goto(`/contacts/${contact.contact_id}`)}>
           <div class="avatar">{getInitials(contact)}</div>
@@ -379,12 +370,9 @@
                  {formatAge(contact.birthdate) || t('contactsAgeUnknown')}
                </div>
              {/if}
-             {#if contact.phones?.length}
-              <div class="list-item-detail">{formatPhone(contact.phones[0])}</div>
-            {/if}
-            {#if contact.emails?.length}
-              <div class="list-item-detail">{formatEmail(contact.emails[0])}</div>
-            {/if}
+              {#if phone}
+                <div class="list-item-detail">{phone}</div>
+              {/if}
           </div>
         </button>
         {#if hasActions(contact)}
