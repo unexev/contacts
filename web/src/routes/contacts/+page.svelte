@@ -169,8 +169,23 @@
     debounceTimer = setTimeout(fetchContacts, 300);
   }
 
-  function applyFilters() {
-    showFilters = false;
+  const TRI = [['', 'filterAll'], ['yes', 'filterWith'], ['no', 'filterWithout']];
+  let filterGroups = $derived([
+    { name: 'filterGender', label: 'filterGender', value: filterGender, options: [['', 'filterAll'], ['MALE', 'filterMale'], ['FEMALE', 'filterFemale'], ['NONE', 'filterNoGender']] },
+    { name: 'filterBirthday', label: 'filterBirthday', value: filterBirthday, options: TRI },
+    { name: 'filterIDCard', label: 'filterIdCard', value: filterIDCard, options: TRI },
+    { name: 'filterOrganization', label: 'filterOrganization', value: filterOrganization, options: TRI },
+    { name: 'filterMaritalStatus', label: 'filterMaritalStatus', value: filterMaritalStatus, options: TRI }
+  ]);
+  let resultsLabel = $derived(contacts.value.length === 1 ? t('filtersResultsOne') : t('filtersResultsMany').replace('{count}', contacts.value.length));
+
+  // Filters apply as soon as one changes, like the search box.
+  function setFilter(name, value) {
+    if (name === 'filterGender') filterGender = value;
+    else if (name === 'filterBirthday') filterBirthday = value;
+    else if (name === 'filterIDCard') filterIDCard = value;
+    else if (name === 'filterOrganization') filterOrganization = value;
+    else if (name === 'filterMaritalStatus') filterMaritalStatus = value;
     persistView();
     fetchContacts();
   }
@@ -269,57 +284,29 @@
   {#if showFilters}
     <div class="filter-panel">
       <div class="filter-header">
-        <span class="filter-title">{t('filtersTitle')}</span>
-        <button class="filter-clear" onclick={clearFilters}>{t('filtersClear')}</button>
+        <span class="filter-title">{t('filtersTitle')} <span class="filter-count" aria-live="polite">· {resultsLabel}</span></span>
+        <button class="filter-clear" onclick={clearFilters} disabled={activeFilters === 0}>{t('filtersClear')}</button>
       </div>
 
-      <div class="filter-section">
-        <span class="filter-label">{t('filterGender')}</span>
-        <div class="filter-chips">
-          <button class="chip" class:active={filterGender === ''} aria-pressed={filterGender === ''} onclick={() => filterGender = ''}>{t('filterAll')}</button>
-           <button class="chip" class:active={filterGender === 'MALE'} aria-pressed={filterGender === 'MALE'} onclick={() => filterGender = 'MALE'}>{t('filterMale')}</button>
-           <button class="chip" class:active={filterGender === 'FEMALE'} aria-pressed={filterGender === 'FEMALE'} onclick={() => filterGender = 'FEMALE'}>{t('filterFemale')}</button>
-           <button class="chip" class:active={filterGender === 'NONE'} aria-pressed={filterGender === 'NONE'} onclick={() => filterGender = 'NONE'}>{t('filterNoGender')}</button>
-        </div>
-      </div>
-
-      <div class="filter-section">
-        <span class="filter-label">{t('filterBirthday')}</span>
-        <div class="filter-chips">
-          <button class="chip" class:active={filterBirthday === ''} aria-pressed={filterBirthday === ''} onclick={() => filterBirthday = ''}>{t('filterAll')}</button>
-          <button class="chip" class:active={filterBirthday === 'yes'} aria-pressed={filterBirthday === 'yes'} onclick={() => filterBirthday = 'yes'}>{t('filterWithBirthday')}</button>
-          <button class="chip" class:active={filterBirthday === 'no'} aria-pressed={filterBirthday === 'no'} onclick={() => filterBirthday = 'no'}>{t('filterNoBirthday')}</button>
-        </div>
-      </div>
-
-      <div class="filter-section">
-        <span class="filter-label">{t('filterIdCard')}</span>
-        <div class="filter-chips">
-          <button class="chip" class:active={filterIDCard === ''} aria-pressed={filterIDCard === ''} onclick={() => filterIDCard = ''}>{t('filterAll')}</button>
-          <button class="chip" class:active={filterIDCard === 'yes'} aria-pressed={filterIDCard === 'yes'} onclick={() => filterIDCard = 'yes'}>{t('filterWithIdCard')}</button>
-          <button class="chip" class:active={filterIDCard === 'no'} aria-pressed={filterIDCard === 'no'} onclick={() => filterIDCard = 'no'}>{t('filterWithoutIdCard')}</button>
-        </div>
-      </div>
-
-      <div class="filter-section">
-        <span class="filter-label">{t('filterOrganization')}</span>
-        <div class="filter-chips">
-          <button class="chip" class:active={filterOrganization === ''} aria-pressed={filterOrganization === ''} onclick={() => filterOrganization = ''}>{t('filterAll')}</button>
-          <button class="chip" class:active={filterOrganization === 'yes'} aria-pressed={filterOrganization === 'yes'} onclick={() => filterOrganization = 'yes'}>{t('filterWithOrganization')}</button>
-          <button class="chip" class:active={filterOrganization === 'no'} aria-pressed={filterOrganization === 'no'} onclick={() => filterOrganization = 'no'}>{t('filterWithoutOrganization')}</button>
-        </div>
-      </div>
-
-      <div class="filter-section">
-        <span class="filter-label">{t('filterMaritalStatus')}</span>
-        <div class="filter-chips">
-          <button class="chip" class:active={filterMaritalStatus === ''} aria-pressed={filterMaritalStatus === ''} onclick={() => filterMaritalStatus = ''}>{t('filterAll')}</button>
-          <button class="chip" class:active={filterMaritalStatus === 'yes'} aria-pressed={filterMaritalStatus === 'yes'} onclick={() => filterMaritalStatus = 'yes'}>{t('filterWithMaritalStatus')}</button>
-          <button class="chip" class:active={filterMaritalStatus === 'no'} aria-pressed={filterMaritalStatus === 'no'} onclick={() => filterMaritalStatus = 'no'}>{t('filterWithoutMaritalStatus')}</button>
-        </div>
-      </div>
-
-      <button class="btn btn-primary btn-full" onclick={applyFilters}>{t('filtersApply')}</button>
+      {#each filterGroups as group (group.name)}
+        <fieldset class="filter-group">
+          <legend class="filter-label">{t(group.label)}</legend>
+          <div class="segmented">
+            {#each group.options as [value, label]}
+              <label class:selected={group.value === value}>
+                <input
+                  type="radio"
+                  name={group.name}
+                  {value}
+                  checked={group.value === value}
+                  onchange={() => setFilter(group.name, value)}
+                />
+                <span>{t(label)}</span>
+              </label>
+            {/each}
+          </div>
+        </fieldset>
+      {/each}
     </div>
   {/if}
 
@@ -516,43 +503,75 @@
     cursor: pointer;
   }
 
-  .filter-section {
-    margin-bottom: 16px;
+  .filter-count {
+    font-weight: 400;
+    color: var(--text2);
+  }
+
+  .filter-clear:disabled {
+    color: var(--text2);
+    cursor: default;
+  }
+
+  .filter-group {
+    border: 0;
+    margin: 0 0 12px;
+    padding: 0;
+    min-width: 0;
   }
 
   .filter-label {
-    display: block;
+    padding: 0;
     font-size: 0.8125rem;
     color: var(--text2);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
 
-  .filter-chips {
+  /* Native radios under the labels: group semantics and arrow keys for free. */
+  .segmented {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .chip {
-    padding: 8px 14px;
-    border-radius: 20px;
     border: 1px solid var(--border);
-    background: transparent;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .segmented label {
+    position: relative;
+    flex: 1;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    font-size: 0.875rem;
     color: var(--text);
-    font-size: 0.8125rem;
+    background: transparent;
     cursor: pointer;
-    transition: all 0.15s;
-    font-family: inherit;
+    text-align: center;
   }
 
-  .chip:hover {
-    border-color: var(--text2);
-  }
+  .segmented label + label { border-left: 1px solid var(--border); }
+  .segmented label:hover { background: var(--surface2); }
 
-  .chip.active {
+  .segmented label.selected {
     background: var(--accent-strong);
-    border-color: var(--accent);
     color: white;
+    font-weight: 600;
+  }
+
+  .segmented input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .segmented label:has(input:focus-visible) {
+    outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    outline-offset: -3px;
   }
 
   .sort-panel {
