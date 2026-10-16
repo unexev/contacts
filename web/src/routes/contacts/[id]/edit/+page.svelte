@@ -46,6 +46,9 @@
   let original = $state({ phones: [], emails: [], urls: [], notes: [], cards: [], bankAccounts: [], organizations: [], locations: [], keywords: [], relationships: [], nationalities: [] });
   let error = $state('');
   let loadFailed = $state(false);
+  // The form is only shown (and Save only enabled) once the contact has loaded, so an
+  // early Save can never overwrite real data with empty fields.
+  let ready = $state(false);
   let saving = $state(false);
   const documentTypes = DOCUMENT_TYPES;
 
@@ -100,24 +103,18 @@
     if (!A.token) return goto('/login');
     error = '';
     loadFailed = false;
+    ready = false;
     try {
-      const [c, statuses, orgs, achievements, relTypes, contactsData] = await Promise.all([
+      // Optional pickers load in parallel but never hold the form back.
+      const orgsReq = api('/api/organizations').catch(() => []);
+      const achievementsReq = api('/api/organizations/achievements').catch(() => []);
+      const relTypesReq = api('/api/relationship-types').catch(() => []);
+      const contactsReq = api('/api/contacts?limit=100').catch(() => ({ data: [] }));
+      const [c, statuses] = await Promise.all([
         api(`/api/contacts/${id}`),
-        api('/api/marital-statuses'),
-        api('/api/organizations').catch(() => []),
-        api('/api/organizations/achievements').catch(() => []),
-        api('/api/relationship-types').catch(() => []),
-        api('/api/contacts?limit=100').catch(() => ({ data: [] }))
+        api('/api/marital-statuses')
       ]);
       maritalStatuses = Array.isArray(statuses) ? statuses : (statuses?.statuses || []);
-      availableOrgs = Array.isArray(orgs) ? orgs : (orgs?.data || orgs?.organizations || []);
-      availableAchievements = Array.isArray(achievements) ? achievements : (achievements?.data || []);
-      relationshipTypes = Array.isArray(relTypes) ? relTypes : (relTypes?.data || relTypes?.types || []);
-      const contactsList = contactsData?.data || contactsData?.contacts || (Array.isArray(contactsData) ? contactsData : []);
-      availableContacts = contactsList.filter(contact => contact.contact_id !== id).map(contact => ({
-        id: contact.contact_id,
-        label: `${contact.first_name || ''} ${contact.middle_name || ''} ${contact.surname || ''}`.trim() || contact.contact_id
-      }));
       first_name = c.first_name || ''; middle_name = c.middle_name || ''; surname = c.surname || '';
       birthdate = dateInput(c.birthdate);
       gender = c.gender || '';
@@ -155,6 +152,18 @@
       if (addSection === 'organization') addOrganization();
       if (addSection === 'location') addLocation();
       if (addSection === 'nationality') addNationality();
+      ready = true;
+
+      orgsReq.then(orgs => { availableOrgs = Array.isArray(orgs) ? orgs : (orgs?.data || orgs?.organizations || []); });
+      achievementsReq.then(list => { availableAchievements = Array.isArray(list) ? list : (list?.data || []); });
+      relTypesReq.then(types => { relationshipTypes = Array.isArray(types) ? types : (types?.data || types?.types || []); });
+      contactsReq.then(contactsData => {
+        const contactsList = contactsData?.data || contactsData?.contacts || (Array.isArray(contactsData) ? contactsData : []);
+        availableContacts = contactsList.filter(contact => contact.contact_id !== id).map(contact => ({
+          id: contact.contact_id,
+          label: [contact.first_name, contact.middle_name, contact.surname].filter(Boolean).join(' ') || contact.contact_id
+        }));
+      });
     } catch (e) {
       if (e.message === 'Invalid credentials') { goto('/login'); return; }
       error = friendlyError(e, t);
@@ -236,6 +245,7 @@
 
   async function save(e) {
     e.preventDefault();
+    if (!ready) return;
     error = '';
     if (!first_name.trim() || !surname.trim()) {
       error = t('contactNamesRequired');
@@ -255,8 +265,19 @@
 </script>
 
 <div class="new-contact-page animate-in">
-  <div class="form-header"><button class="btn-ghost" onclick={() => goto(`/contacts/${id}`)}>{t('contactCancel')}</button><h1 class="form-title">{selectedSection ? `Editar ${editTitle}` : editTitle}</h1><button class="btn-ghost" onclick={save} disabled={saving}>{saving ? '...' : t('contactSave')}</button></div>
+  <div class="form-header"><button class="btn-ghost" onclick={() => goto(`/contacts/${id}`)}>{t('contactCancel')}</button><h1 class="form-title">{selectedSection ? `Editar ${editTitle}` : editTitle}</h1><button class="btn-ghost" onclick={save} disabled={saving || !ready}>{saving ? '...' : t('contactSave')}</button></div>
   {#if error}<ErrorNotice message={error} onretry={loadFailed ? load : undefined} />{/if}
+  {#if !ready && !error}
+    <div class="form-card" role="status" aria-busy="true" aria-label={t('contactLoading')}>
+      {#each Array(5) as _}
+        <div class="form-group">
+          <span class="skeleton skeleton-line" style="width:35%;margin-bottom:8px"></span>
+          <span class="skeleton" style="height:3rem;width:100%;border-radius:12px"></span>
+        </div>
+      {/each}
+    </div>
+  {/if}
+  {#if ready}
   <form onsubmit={save}>
      {#if !selectedSection || selectedSection === 'personal'}
     <div class="form-card"><h2 class="form-section-title">Datos personales</h2><div class="form-group"><label class="form-label" for="first_name">{t('contactFirstName')} *</label><input id="first_name" class="input" bind:value={first_name} /></div><div class="form-group"><label class="form-label" for="middle_name">{t('contactMiddleName')}</label><input id="middle_name" class="input" bind:value={middle_name} /></div><div class="form-group"><label class="form-label" for="surname">{t('contactSurname')} *</label><input id="surname" class="input" bind:value={surname} /></div><div class="form-group"><label class="form-label" for="birthdate">{t('contactBirthdate')}</label><input id="birthdate" class="input" type="date" bind:value={birthdate} /></div><div class="form-group"><label class="form-label" for="gender">{t('contactGender')}</label><select id="gender" class="select" bind:value={gender}><option value="">{t('contactGenderUnspecified')}</option><option value="MALE">{t('contactGenderMale')}</option><option value="FEMALE">{t('contactGenderFemale')}</option></select></div><div class="form-group"><label class="form-label" for="marital_status">{t('contactMaritalStatus')}</label><select id="marital_status" class="select" bind:value={marital_status}><option value="">—</option>{#each maritalStatuses as status}<option value={status.status_id}>{status.marital_status}</option>{/each}</select></div></div>
@@ -431,6 +452,7 @@
     </RelatedSection>
     {/if}
   </form>
+  {/if}
 </div>
 
 <style>
