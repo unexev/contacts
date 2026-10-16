@@ -30,6 +30,8 @@ type Contact struct {
 	MaritalStatus sql.NullString `json:"marital_status"`
 	Deceased      bool           `json:"deceased"`
 	UpdatedAt     int64          `json:"updated_at"`
+	// Creation time in ms; 0 when unknown (imported contacts). Only ListContacts fills it.
+	CreatedAt int64 `json:"created_at"`
 	// Filled only by ListContacts, so list rows can offer quick actions.
 	PrimaryPhone string `json:"primary_phone,omitempty"`
 	PrimaryEmail string `json:"primary_email,omitempty"`

@@ -183,7 +183,7 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 	offsetIdx := argIdx + 1
 	selectQuery := fmt.Sprintf(`
 		SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
-		       c.birthdate, c.gender, c.status_id, ms.marital_status, c.deceased, c.updated_at,
+		       c.birthdate, c.gender, c.status_id, ms.marital_status, c.deceased, c.updated_at, c.created_at,
 		       COALESCE((SELECT p.phone FROM contact_phones p
 		                 WHERE p.user_id = c.user_id AND p.contact_id = c.contact_id
 		                 ORDER BY p.is_active DESC, p.phone_id LIMIT 1), '') AS primary_phone,
@@ -208,7 +208,7 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 		var c model.Contact
 		if err := rows.Scan(
 			&c.UserID, &c.ContactID, &c.FirstName, &c.MiddleName, &c.Surname,
-			&c.Birthdate, &c.Gender, &c.StatusID, &c.MaritalStatus, &c.Deceased, &c.UpdatedAt,
+			&c.Birthdate, &c.Gender, &c.StatusID, &c.MaritalStatus, &c.Deceased, &c.UpdatedAt, &c.CreatedAt,
 			&c.PrimaryPhone, &c.PrimaryEmail,
 		); err != nil {
 			return nil, 0, err
@@ -238,12 +238,13 @@ func (s *Store) CreateContact(userID string, c model.Contact) (model.Contact, er
 		c.ContactID = genID("cnt")
 	}
 	c.UpdatedAt = time.Now().UnixMilli()
+	c.CreatedAt = c.UpdatedAt
 	_, err := s.pool.Exec(context.Background(),
 		`INSERT INTO contacts (user_id, contact_id, first_name, middle_name, surname,
-		        birthdate, gender, status_id, deceased, updated_at, deleted)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0)`,
+		        birthdate, gender, status_id, deceased, updated_at, created_at, deleted)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0)`,
 		c.UserID, c.ContactID, c.FirstName, c.MiddleName, c.Surname,
-		c.Birthdate, c.Gender, c.StatusID, c.Deceased, c.UpdatedAt,
+		c.Birthdate, c.Gender, c.StatusID, c.Deceased, c.UpdatedAt, c.CreatedAt,
 	)
 	return c, err
 }
