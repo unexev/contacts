@@ -8,7 +8,7 @@
   // Anchored quick-actions menu for one phone number and/or one email address.
   // The parent owns open/close state and the trigger; onclose(restoreFocus) is
   // called for every way of dismissing it.
-  let { phone = '', email = '', anchor, onclose } = $props();
+  let { phone = '', email = '', canCall = true, anchor, onclose } = $props();
 
   const MENU_WIDTH = 220;
   const origin = { scrollY: window.scrollY, width: window.innerWidth };
@@ -18,7 +18,7 @@
 
   function place() {
     const rect = anchor.getBoundingClientRect();
-    const height = menuItemCount(phone, email) * 44 + 10;
+    const height = menuItemCount(phone, email, canCall) * 44 + 10;
     const below = rect.bottom + 4;
     // Flip above the trigger when there is no room before the bottom tab bar.
     const top = below + height > window.innerHeight - 72 ? Math.max(8, rect.top - height - 4) : below;
@@ -89,10 +89,10 @@
   bind:this={menuEl}
   onkeydown={onMenuKeydown}
 >
-  {#if phone}
+  {#if phone && canCall}
     <a class="menu-item" role="menuitem" href={telHref(phone)} onclick={() => onclose(false)}><Phone size={18} />{t('actionCall')}</a>
   {/if}
-  {#if wa}
+  {#if wa && canCall}
     <a class="menu-item" role="menuitem" href={wa} target="_blank" rel="noopener noreferrer" onclick={() => onclose(false)}><MessageCircle size={18} />{t('actionWhatsApp')}</a>
   {/if}
   {#if email}

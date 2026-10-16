@@ -20,7 +20,16 @@
   const editLabel = (itemKey) => t('actionEditItem').replace('{item}', t(itemKey));
   const addLabel = (itemKey) => t('actionAddItem').replace('{item}', t(itemKey));
 
-  let phoneMenu = $state(null); // { number, trigger }
+  let addToggle = $state(null);
+
+  function onWindowKeydown(event) {
+    if (event.key === 'Escape' && showAddMenu && !showDeleteModal) {
+      showAddMenu = false;
+      addToggle?.focus();
+    }
+  }
+
+  let phoneMenu = $state(null); // { number, active, trigger }
 
   // Delete confirmation dialog: focus moves in, stays trapped, and returns on close.
   let deleteTrigger = null;
@@ -51,8 +60,8 @@
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
 
-  function togglePhoneMenu(event, number) {
-    phoneMenu = phoneMenu?.trigger === event.currentTarget ? null : { number, trigger: event.currentTarget };
+  function togglePhoneMenu(event, number, active) {
+    phoneMenu = phoneMenu?.trigger === event.currentTarget ? null : { number, active, trigger: event.currentTarget };
   }
 
   function closePhoneMenu(restoreFocus = true) {
@@ -129,6 +138,8 @@
   }
 </script>
 
+<svelte:window onkeydown={onWindowKeydown} />
+
 <div class="detail-page animate-in">
   <div class="detail-header">
     <button class="btn-ghost" onclick={() => goto('/contacts')}>
@@ -142,7 +153,7 @@
   </div>
 
   {#if phoneMenu}
-    <ContactActionsMenu phone={phoneMenu.number} anchor={phoneMenu.trigger} onclose={closePhoneMenu} />
+    <ContactActionsMenu phone={phoneMenu.number} canCall={phoneMenu.active} anchor={phoneMenu.trigger} onclose={closePhoneMenu} />
   {/if}
 
   {#if error}
@@ -236,10 +247,10 @@
                     aria-haspopup="menu"
                     aria-expanded={phoneMenu?.number === phone.phone}
                     aria-label={`${t('contactMore')}: ${phone.phone}`}
-                    onclick={(e) => togglePhoneMenu(e, phone.phone)}
+                    onclick={(e) => togglePhoneMenu(e, phone.phone, phone.is_active)}
                   ><Ellipsis size={16} /></button>
                 {/if}
-                <button class="card-action icon-only" aria-label={editLabel('itemPhone')} onclick={() => editSection('phone')}><Pencil size={16} /></button>
+                <button class="card-action icon-only" aria-label={`${editLabel('itemPhone')}: ${phone.phone}`} onclick={() => editSection('phone')}><Pencil size={16} /></button>
               </div>
             </div>
           {/each}
@@ -447,13 +458,13 @@
 
       <!-- Agregar datos - botón único al final, desplegable mobile-friendly -->
       <div class="add-data-footer">
-        <button class="{showAddMenu ? 'btn btn-secondary' : 'btn btn-primary'} add-main-btn" class:is-open={showAddMenu} onclick={() => showAddMenu = !showAddMenu} aria-expanded={showAddMenu} aria-haspopup="menu">
+        <button class="{showAddMenu ? 'btn btn-secondary' : 'btn btn-primary'} add-main-btn" class:is-open={showAddMenu} onclick={() => showAddMenu = !showAddMenu} aria-expanded={showAddMenu} aria-controls="add-menu" bind:this={addToggle}>
           {#if showAddMenu}<X size={18} /> {t('actionClose')}{:else}<Plus size={18} /> {t('actionAdd')}{/if}
         </button>
         {#if showAddMenu}
-          <div class="add-menu" role="menu">
+          <div class="add-menu" id="add-menu">
             {#each [['phone', 'itemPhone'], ['email', 'itemEmail'], ['card', 'itemCard'], ['organization', 'itemOrganization'], ['location', 'itemLocation'], ['nationality', 'itemNationality'], ['url', 'itemUrl'], ['note', 'itemNote'], ['keyword', 'itemKeyword'], ['bank', 'itemBank'], ['relationship', 'itemRelationship']] as item}
-              <button class="add-menu-item" role="menuitem" onclick={() => { showAddMenu = false; editSection(item[0], true); }}>
+              <button class="add-menu-item" onclick={() => { showAddMenu = false; editSection(item[0], true); }}>
                 <Plus size={14} /> {cap(t(item[1]))}
               </button>
             {/each}

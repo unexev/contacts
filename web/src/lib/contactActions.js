@@ -60,7 +60,8 @@ export function hasActions(contact) {
   return Boolean(primaryPhone(contact) || primaryEmail(contact));
 }
 
-// Number of entries the actions menu will render for this phone and email.
-export function menuItemCount(phone, email) {
-  return (phone ? 2 : 0) + (whatsappHref(phone) ? 1 : 0) + (email ? 1 : 0);
+// Number of entries the actions menu will render. Inactive numbers only offer Copy.
+export function menuItemCount(phone, email, canCall = true) {
+  const calls = Boolean(phone) && canCall;
+  return (calls ? 1 : 0) + (calls && whatsappHref(phone) ? 1 : 0) + (phone ? 1 : 0) + (email ? 1 : 0);
 }
