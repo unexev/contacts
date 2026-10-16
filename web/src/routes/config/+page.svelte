@@ -1,6 +1,6 @@
 <script>
   import { A, setToken } from '$lib/api.svelte.js';
-  import { locale, t } from '$lib/i18n.svelte.js';
+  import { locale, t, setLocale } from '$lib/i18n.svelte.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { Sun, Moon, Monitor } from '@lucide/svelte';
@@ -17,7 +17,7 @@
   }
 
   function setLang(lang) {
-    locale.value = lang;
+    setLocale(lang);
   }
 </script>
 
@@ -34,13 +34,17 @@
           <button
             class="lang-btn"
             class:active={locale.value === 'es'}
+            aria-pressed={locale.value === 'es'}
+            lang="es"
             onclick={() => setLang('es')}
           >
-            <span>Espanol</span>
+            <span>Español</span>
           </button>
           <button
             class="lang-btn"
             class:active={locale.value === 'en'}
+            aria-pressed={locale.value === 'en'}
+            lang="en"
             onclick={() => setLang('en')}
           >
             <span>English</span>

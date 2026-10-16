@@ -1,6 +1,6 @@
 <script>
   import { A } from '$lib/api.svelte.js';
-  import { locale, t } from '$lib/i18n.svelte.js';
+  import { locale, t, setLocale } from '$lib/i18n.svelte.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { Contact, IdCard, CalendarDays, Users, Download, Globe, Check } from '@lucide/svelte';
@@ -27,7 +27,7 @@
   ];
 
   function toggleLang() {
-    locale.value = locale.value === 'es' ? 'en' : 'es';
+    setLocale(locale.value === 'es' ? 'en' : 'es');
   }
 </script>
 

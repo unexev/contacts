@@ -1,5 +1,5 @@
 <script>
-  import { locale, t } from '$lib/i18n.svelte.js';
+  import { locale, t, setLocale } from '$lib/i18n.svelte.js';
   import {
     Info,
     HardDrive,
@@ -31,7 +31,7 @@
   ];
 
   function toggleLang() {
-    locale.value = locale.value === 'es' ? 'en' : 'es';
+    setLocale(locale.value === 'es' ? 'en' : 'es');
   }
 </script>
 

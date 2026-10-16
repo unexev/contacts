@@ -2,7 +2,7 @@
   import '../app.css';
   import { A, loadToken, setToken } from '$lib/api.svelte.js';
   import { contacts } from '$lib/stores.svelte.js';
-  import { t } from '$lib/i18n.svelte.js';
+  import { t, restoreLocale } from '$lib/i18n.svelte.js';
   import { toast } from '$lib/toast.svelte.js';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
@@ -13,6 +13,7 @@
 
   // Restore the session before child routes run their access checks.
   loadToken();
+  restoreLocale();
 
   let navItems = $derived([
     { href: '/contacts', label: t('navContacts'), icon: Users },

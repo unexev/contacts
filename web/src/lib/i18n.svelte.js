@@ -609,6 +609,29 @@ const translations = {
   }
 };
 
+const LOCALE_KEY = 'locale';
+
+// Keeps <html lang> in step with the UI language (screen readers pick the voice from it).
+function applyLang() {
+  if (typeof document !== 'undefined') document.documentElement.lang = locale.value;
+}
+
+export function setLocale(lang) {
+  if (!translations[lang]) return;
+  locale.value = lang;
+  try { localStorage.setItem(LOCALE_KEY, lang); } catch {}
+  applyLang();
+}
+
+// Restores the saved language. Runs before the first render so there is no flash of the other one.
+export function restoreLocale() {
+  try {
+    const saved = localStorage.getItem(LOCALE_KEY);
+    if (saved && translations[saved]) locale.value = saved;
+  } catch {}
+  applyLang();
+}
+
 export function t(key) {
   return translations[locale.value]?.[key] ?? translations.es?.[key] ?? key;
 }
