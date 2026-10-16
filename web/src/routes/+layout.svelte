@@ -108,7 +108,7 @@
   }
 
   .topnav-logo {
-    font-size: 20px;
+    font-size: 1.25rem;
     font-weight: 700;
     color: var(--text);
     text-decoration: none;
@@ -126,7 +126,7 @@
   .topnav-link {
     padding: 6px 14px;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 500;
     color: var(--text2);
     text-decoration: none;
@@ -155,7 +155,7 @@
     background: var(--accent-strong);
     color: white;
     border-radius: 9px;
-    font-size: 11px;
+    font-size: 0.6875rem;
     font-weight: 600;
   }
 
@@ -182,7 +182,7 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
-    font-size: 11px;
+    font-size: 0.6875rem;
     font-weight: 500;
     color: var(--text2);
     text-decoration: none;
@@ -205,7 +205,7 @@
     background: var(--accent-strong);
     color: white;
     border-radius: 8px;
-    font-size: 10px;
+    font-size: 0.625rem;
     font-weight: 600;
   }
 

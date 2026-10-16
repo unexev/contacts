@@ -157,7 +157,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 700;
     color: var(--accent-text);
     background: color-mix(in srgb, var(--accent) 12%, transparent);
@@ -166,7 +166,7 @@
 
   .brand-name {
     display: none;
-    font-size: 18px;
+    font-size: 1.125rem;
     font-weight: 700;
     letter-spacing: -0.3px;
   }
@@ -179,7 +179,7 @@
 
   .nav-link {
     display: none;
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text2);
   }
 
@@ -188,7 +188,7 @@
     min-height: 44px;
     padding: 0 10px;
     border-radius: 8px;
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--text2);
     background: transparent;
@@ -210,7 +210,7 @@
   }
 
   .hero-title {
-    font-size: 34px;
+    font-size: 2.125rem;
     font-weight: 800;
     line-height: 1.15;
     letter-spacing: -0.8px;
@@ -220,7 +220,7 @@
   .highlight { color: var(--accent-text); }
 
   .hero-subtitle {
-    font-size: 17px;
+    font-size: 1.0625rem;
     color: var(--text2);
     margin-bottom: 32px;
   }
@@ -236,7 +236,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 1rem;
   }
 
   .cta:hover { text-decoration: none; }
@@ -255,7 +255,7 @@
   }
 
   .section-title {
-    font-size: 26px;
+    font-size: 1.625rem;
     font-weight: 800;
     text-align: center;
     letter-spacing: -0.5px;
@@ -289,13 +289,13 @@
   }
 
   .feature-title {
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 700;
     margin-bottom: 4px;
   }
 
   .feature-desc {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text2);
   }
 
@@ -332,14 +332,14 @@
     transform: translateX(-50%);
     padding: 2px 12px;
     border-radius: 999px;
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: 600;
     color: white;
     background: var(--accent);
   }
 
   .plan-name {
-    font-size: 13px;
+    font-size: 0.8125rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -348,14 +348,14 @@
   }
 
   .plan-price {
-    font-size: 40px;
+    font-size: 2.5rem;
     font-weight: 800;
     letter-spacing: -1px;
     line-height: 1.1;
   }
 
   .plan-period {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text2);
     margin-bottom: 24px;
   }
@@ -363,7 +363,7 @@
   .plan-features {
     list-style: none;
     text-align: left;
-    font-size: 14px;
+    font-size: 0.875rem;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -410,7 +410,7 @@
     text-align: center;
     padding: 24px 16px;
     border-top: 1px solid var(--border);
-    font-size: 13px;
+    font-size: 0.8125rem;
     color: var(--text2);
   }
 
@@ -424,8 +424,8 @@
       padding: 0 8px;
     }
     .hero { padding: 88px 24px; }
-    .hero-title { font-size: 48px; }
-    .hero-subtitle { font-size: 19px; }
+    .hero-title { font-size: 3rem; }
+    .hero-subtitle { font-size: 1.1875rem; }
     .hero-actions {
       flex-direction: row;
       justify-content: center;
@@ -433,7 +433,7 @@
     .cta { padding: 0 28px; }
     .feature-grid { grid-template-columns: repeat(2, 1fr); }
     .plan-grid { grid-template-columns: repeat(2, 1fr); }
-    .section-title { font-size: 30px; }
+    .section-title { font-size: 1.875rem; }
   }
 
   @media (min-width: 960px) {

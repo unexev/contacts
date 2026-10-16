@@ -102,7 +102,7 @@
   }
 
   .register-title {
-    font-size: 28px;
+    font-size: 1.75rem;
     font-weight: 700;
     text-align: center;
     margin-bottom: 28px;
@@ -114,7 +114,7 @@
     color: var(--danger);
     padding: 10px 14px;
     border-radius: var(--radius);
-    font-size: 14px;
+    font-size: 0.875rem;
     margin-bottom: 16px;
     text-align: center;
   }
@@ -122,7 +122,7 @@
   .register-footer {
     text-align: center;
     margin-top: 20px;
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text2);
   }
 

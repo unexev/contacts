@@ -241,7 +241,7 @@
   }
 
   .calendar-title {
-    font-size: 22px;
+    font-size: 1.375rem;
     font-weight: 700;
   }
 
@@ -260,7 +260,7 @@
 
   .day-header {
     text-align: center;
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--text2);
     padding: 8px 0;
@@ -309,7 +309,7 @@
   }
 
   .day-number {
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 500;
   }
 
@@ -339,7 +339,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     color: var(--text2);
-    font-size: 14px;
+    font-size: 0.875rem;
   }
 
   .modal-overlay {
@@ -371,7 +371,7 @@
   }
 
   .modal-title {
-    font-size: 18px;
+    font-size: 1.125rem;
     font-weight: 600;
   }
 
@@ -382,7 +382,7 @@
     background: var(--surface2);
     border: none;
     color: var(--text2);
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
   }
@@ -430,7 +430,7 @@
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--accent-text);
     flex-shrink: 0;
   }
@@ -441,7 +441,7 @@
   }
 
   .birthday-name {
-    font-size: 15px;
+    font-size: 0.9375rem;
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
@@ -449,12 +449,12 @@
   }
 
   .birthday-age {
-    font-size: 13px;
+    font-size: 0.8125rem;
     color: var(--text2);
   }
 
   .birthday-arrow {
     color: var(--text2);
-    font-size: 16px;
+    font-size: 1rem;
   }
 </style>

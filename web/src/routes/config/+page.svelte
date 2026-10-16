@@ -98,7 +98,7 @@
   .config-page { padding-bottom: 40px; }
 
   .config-title {
-    font-size: 28px;
+    font-size: 1.75rem;
     font-weight: 700;
     margin-bottom: 24px;
     letter-spacing: -0.5px;
@@ -136,7 +136,7 @@
     background: transparent;
     color: var(--text2);
     font: inherit;
-    font-size: 13px;
+    font-size: 0.8125rem;
     cursor: pointer;
     transition: background .2s, color .2s, box-shadow .2s;
   }
@@ -158,7 +158,7 @@
     border: 2px solid var(--border);
     border-radius: var(--radius);
     color: var(--text);
-    font-size: 15px;
+    font-size: 0.9375rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s;

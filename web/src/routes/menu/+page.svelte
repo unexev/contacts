@@ -23,12 +23,12 @@
 </div>
 
 <style>
-  .menu-page h1 { font-size: 28px; margin-bottom: 22px; }
+  .menu-page h1 { font-size: 1.75rem; margin-bottom: 22px; }
   .menu-item { display:flex; align-items:center; gap:12px; padding:15px; margin-bottom:12px; background:var(--surface); border:1px solid var(--border); border-radius:14px; color:var(--text); text-decoration:none; }
   .menu-item:hover { background:var(--surface2); text-decoration:none; }
   .menu-icon { display:grid; place-items:center; width:36px; height:36px; border-radius:10px; color:var(--accent); background:rgba(10,132,255,.12); }
   .menu-icon.sync { color:#34c759; background:rgba(52,199,89,.12); }
   .menu-copy { display:flex; flex:1; flex-direction:column; gap:2px; }
-  .menu-copy strong { font-size:16px; }
-  .menu-copy small { color:var(--text2); font-size:12px; }
+  .menu-copy strong { font-size: 1rem; }
+  .menu-copy small { color:var(--text2); font-size: 0.75rem; }
 </style>

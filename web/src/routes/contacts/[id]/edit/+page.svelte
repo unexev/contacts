@@ -333,7 +333,7 @@
     {/if}
     {#if !selectedSection || selectedSection === 'relationship'}
     <RelatedSection title="Relaciones" add={addRelationship}>
-      <p class="form-hint" style="margin:-4px 0 8px; color:var(--text2); font-size:13px;">Selecciona el contacto y el tipo de relación (ej: Hermano, Padre).</p>
+      <p class="form-hint" style="margin:-4px 0 8px; color:var(--text2); font-size: 0.8125rem;">Selecciona el contacto y el tipo de relación (ej: Hermano, Padre).</p>
       {#each relationships as relation, i}
         <div class="related-item">
           <div class="related-grid">
@@ -355,7 +355,7 @@
             <button type="button" class="icon-button danger" aria-label="Eliminar relación" onclick={() => removeAt(relationships, i)}><Trash2 size={16} /></button>
           </div>
           {#if relation.related_contact_id}
-            <small style="color:var(--text2); font-size:12px;">{availableContacts.find(c => c.id === relation.related_contact_id)?.label || relation.related_contact_id}</small>
+            <small style="color:var(--text2); font-size: 0.75rem;">{availableContacts.find(c => c.id === relation.related_contact_id)?.label || relation.related_contact_id}</small>
           {/if}
         </div>
       {/each}
@@ -363,7 +363,7 @@
     {/if}
     {#if !selectedSection || selectedSection === 'organization'}
     <RelatedSection title={t('contactOrganizations')} add={addOrganization}>
-      <p class="form-hint" style="margin: -4px 0 8px; color: var(--text2); font-size: 13px;">{t('organizationHint')}</p>
+      <p class="form-hint" style="margin: -4px 0 8px; color: var(--text2); font-size: 0.8125rem;">{t('organizationHint')}</p>
       {#each organizations as organization, i}
         <div class="related-item org-item">
           <div class="org-grid">
@@ -448,19 +448,19 @@
      onto one row once there's room. */
   .org-grid { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
   .org-grid :global(.combobox), .org-grid .date-field { grid-column: 1 / -1; }
-  .form-hint { color: var(--text2); font-size: 12px; }
+  .form-hint { color: var(--text2); font-size: 0.75rem; }
   .date-field { display: flex; flex-direction: column; gap: 4px; }
-  .date-label { font-size: 12px; color: var(--text2); line-height: 1; }
+  .date-label { font-size: 0.75rem; color: var(--text2); line-height: 1; }
   .date-label .optional { font-weight: 400; opacity: 0.8; }
   textarea.input { resize: vertical; }
   .icon-button { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--text2); cursor: pointer; flex-shrink: 0; }
   .icon-button.danger:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
-   .phone-status { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--text2); font-size: 14px; cursor: pointer; }
-   .deceased-toggle { display: inline-flex; align-items: center; gap: 8px; color: var(--text2); font-size: 14px; cursor: pointer; }
+   .phone-status { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--text2); font-size: 0.875rem; cursor: pointer; }
+   .deceased-toggle { display: inline-flex; align-items: center; gap: 8px; color: var(--text2); font-size: 0.875rem; cursor: pointer; }
   .phone-status input { width: 18px; height: 18px; accent-color: var(--accent); }
   .coordinates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-  .note-counter { font-size: 12px; color: var(--text2); text-align: right; margin-top: 4px; }
-  .doc-error { color: var(--danger); font-size: 12px; margin: 6px 0 0; }
+  .note-counter { font-size: 0.75rem; color: var(--text2); text-align: right; margin-top: 4px; }
+  .doc-error { color: var(--danger); font-size: 0.75rem; margin: 6px 0 0; }
   @media (min-width: 640px) {
     .org-grid { grid-template-columns: 1.3fr 1.2fr 1fr auto; }
     .org-grid :global(.combobox), .org-grid .date-field { grid-column: auto; }

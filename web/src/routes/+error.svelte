@@ -39,7 +39,7 @@
     border-radius: 50%;
     background: rgba(255, 69, 58, 0.12);
     color: var(--danger);
-    font-size: 28px;
+    font-size: 1.75rem;
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -48,13 +48,13 @@
   }
 
   .error-title {
-    font-size: 22px;
+    font-size: 1.375rem;
     font-weight: 700;
     margin-bottom: 8px;
   }
 
   .error-message {
-    font-size: 15px;
+    font-size: 0.9375rem;
     color: var(--text2);
     margin-bottom: 24px;
     word-break: break-word;

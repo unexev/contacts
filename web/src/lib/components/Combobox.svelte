@@ -138,7 +138,7 @@
     min-height: 44px;
     padding: 8px 12px;
     border-radius: 8px;
-    font-size: 15px;
+    font-size: 0.9375rem;
     color: var(--text);
     cursor: pointer;
   }

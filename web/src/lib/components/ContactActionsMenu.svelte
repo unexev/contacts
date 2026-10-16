@@ -128,7 +128,7 @@
     border-radius: 8px;
     color: var(--text);
     font: inherit;
-    font-size: 15px;
+    font-size: 0.9375rem;
     text-align: left;
     text-decoration: none;
     cursor: pointer;

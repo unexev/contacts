@@ -148,7 +148,7 @@
   }
 
   .form-title {
-    font-size: 18px;
+    font-size: 1.125rem;
     font-weight: 600;
   }
 
@@ -165,7 +165,7 @@
     color: var(--danger);
     padding: 10px 14px;
     border-radius: var(--radius);
-    font-size: 14px;
+    font-size: 0.875rem;
     margin-bottom: 16px;
     text-align: center;
   }

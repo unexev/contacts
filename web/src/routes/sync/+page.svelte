@@ -31,5 +31,5 @@
 </div>
 
 <style>
-  .sync-page h1 { font-size:28px; margin-bottom:22px; }.section-card { padding:16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; }.section-card h2 { font-size:17px; margin-bottom:6px; }.section-card p { color:var(--text2); font-size:14px; margin-bottom:16px; }.status { margin-top:14px; padding:12px; border-radius:8px; background:rgba(52,199,89,.15); }
+  .sync-page h1 { font-size: 1.75rem; margin-bottom:22px; }.section-card { padding:16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; }.section-card h2 { font-size: 1.0625rem; margin-bottom:6px; }.section-card p { color:var(--text2); font-size: 0.875rem; margin-bottom:16px; }.status { margin-top:14px; padding:12px; border-radius:8px; background:rgba(52,199,89,.15); }
 </style>

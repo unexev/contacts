@@ -481,7 +481,7 @@
     border-radius: 50%;
     background: var(--accent-strong);
     color: white;
-    font-size: 10px;
+    font-size: 0.625rem;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -504,13 +504,13 @@
   }
 
   .filter-title {
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--text);
   }
 
   .filter-clear {
-    font-size: 13px;
+    font-size: 0.8125rem;
     color: var(--accent-text);
     background: none;
     border: none;
@@ -523,7 +523,7 @@
 
   .filter-label {
     display: block;
-    font-size: 13px;
+    font-size: 0.8125rem;
     color: var(--text2);
     margin-bottom: 8px;
   }
@@ -540,7 +540,7 @@
     border: 1px solid var(--border);
     background: transparent;
     color: var(--text);
-    font-size: 13px;
+    font-size: 0.8125rem;
     cursor: pointer;
     transition: all 0.15s;
     font-family: inherit;
@@ -570,7 +570,7 @@
   }
 
   .sort-title {
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--text);
   }
@@ -585,7 +585,7 @@
     border: none;
     border-bottom: 1px solid var(--border);
     color: var(--text);
-    font-size: 15px;
+    font-size: 0.9375rem;
     cursor: pointer;
     text-align: left;
     font-family: inherit;
@@ -631,7 +631,7 @@
     position: sticky;
     top: var(--search-h, 66px);
     z-index: 40;
-    font-size: 13px;
+    font-size: 0.8125rem;
     font-weight: 600;
     color: var(--text2);
     padding: 6px 4px;
@@ -695,7 +695,7 @@
   }
 
   .list-item-name {
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 500;
     color: var(--text);
     white-space: nowrap;
@@ -704,19 +704,19 @@
   }
 
    .list-item-detail {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text2);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
    }
 
-   .list-item-status { font-size: 12px; color: var(--text2); }
+   .list-item-status { font-size: 0.75rem; color: var(--text2); }
    .deceased-status { color: var(--danger); }
 
 
   .empty-state-hint {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text2);
     opacity: 0.7;
   }
