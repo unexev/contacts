@@ -371,7 +371,7 @@
                </div>
              {/if}
               {#if phone}
-                <div class="list-item-detail">{phone}</div>
+                <div class="list-item-detail">{phone}{contact.primary_phone_inactive ? ` · ${t('phoneNotInUse')}` : ''}</div>
               {/if}
           </div>
         </button>
@@ -393,7 +393,7 @@
   {/if}
 
   {#if menu}
-    <ContactActionsMenu phone={primaryPhone(menu.contact)} email={primaryEmail(menu.contact)} anchor={menu.trigger} onclose={closeMenu} />
+    <ContactActionsMenu phone={primaryPhone(menu.contact)} email={primaryEmail(menu.contact)} canCall={!menu.contact.primary_phone_inactive} anchor={menu.trigger} onclose={closeMenu} />
   {/if}
 
   <button class="fab" aria-label={t('contactNew')} onclick={() => goto('/contacts/new')}>+</button>
