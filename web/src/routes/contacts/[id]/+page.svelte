@@ -5,7 +5,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
-  import { ArrowLeft, Pencil, Plus, Trash2, RefreshCw, Skull, X } from '@lucide/svelte';
+  import { ArrowLeft, Pencil, Plus, Trash2, Skull, X } from '@lucide/svelte';
   import { formatAge, formatAgeAt, parseContactDate } from '$lib/date.js';
   import { formatValue, formatPhone as formatPhoneBase, formatEmail, formatUrl, formatDate, formatSavedDate } from '$lib/format.js';
   import { resolveDocTypeLabel } from '$lib/docTypes.js';
@@ -101,8 +101,20 @@
   {/if}
 
   {#if loading.value}
-    <div class="empty-state">
-      <RefreshCw class="spinning" size={48} />
+    <div aria-busy="true" aria-hidden="true">
+      <div class="detail-avatar-section">
+        <span class="skeleton skeleton-circle" style="width:80px;height:80px;margin-bottom:12px"></span>
+        <span class="skeleton" style="width:180px;height:24px"></span>
+      </div>
+      {#each Array(3) as _}
+        <div class="section-card">
+          <div class="section-card-body">
+            <span class="skeleton skeleton-line" style="width:40%;margin-bottom:14px"></span>
+            <span class="skeleton skeleton-line" style="width:75%;margin-bottom:10px"></span>
+            <span class="skeleton skeleton-line" style="width:60%"></span>
+          </div>
+        </div>
+      {/each}
     </div>
   {:else if currentContact.value}
     {@const c = currentContact.value}
@@ -560,15 +572,6 @@
   .field-helper { display: block; color: var(--text2); font-size: 12px; margin-top: 2px; }
   .related-contact { color: var(--accent); text-decoration: none; }
   .related-contact:hover { text-decoration: underline; }
-
-  :global(.spinning) {
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
 
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(4px); }

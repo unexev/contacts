@@ -276,9 +276,16 @@
   {/if}
 
   {#if loading.value && contacts.value.length === 0}
-    <div class="empty-state">
-      <RefreshCw class="spinning" size={48} />
-      <div class="empty-state-text">{t('msgSaving')}</div>
+    <div class="contacts-list" aria-busy="true" aria-label={t('msgSaving')}>
+      {#each Array(8) as _, i}
+        <div class="list-item" aria-hidden="true">
+          <span class="skeleton skeleton-circle" style="width:44px;height:44px"></span>
+          <div class="list-item-content">
+            <span class="skeleton skeleton-line" style="width:{55 + (i * 7) % 30}%;height:16px;margin-bottom:8px"></span>
+            <span class="skeleton skeleton-line" style="width:{35 + (i * 11) % 25}%"></span>
+          </div>
+        </div>
+      {/each}
     </div>
   {:else if contacts.value.length === 0}
     <div class="empty-state">
@@ -553,12 +560,4 @@
     pointer-events: none;
   }
 
-  :global(.spinning) {
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
 </style>
