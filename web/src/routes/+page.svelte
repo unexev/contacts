@@ -3,7 +3,7 @@
   import { locale, t, setLocale } from '$lib/i18n.svelte.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { Contact, IdCard, CalendarDays, Users, Download, Globe, Check } from '@lucide/svelte';
+  import { Contact, IdCard, CalendarDays, Users, Globe, Check } from '@lucide/svelte';
 
   let ready = $state(false);
 
@@ -17,7 +17,6 @@
     { icon: IdCard, title: 'landingFeatDocsTitle', desc: 'landingFeatDocsDesc' },
     { icon: CalendarDays, title: 'landingFeatCalendarTitle', desc: 'landingFeatCalendarDesc' },
     { icon: Users, title: 'landingFeatRelatedTitle', desc: 'landingFeatRelatedDesc' },
-    { icon: Download, title: 'landingFeatSyncTitle', desc: 'landingFeatSyncDesc' },
     { icon: Globe, title: 'landingFeatNationalitiesTitle', desc: 'landingFeatNationalitiesDesc' }
   ];
 
@@ -432,11 +431,18 @@
     }
     .cta { padding: 0 28px; }
     .feature-grid { grid-template-columns: repeat(2, 1fr); }
+    /* An odd last card spans the row instead of leaving a hole. */
+    .feature-grid > :last-child:nth-child(odd) { grid-column: 1 / -1; }
     .plan-grid { grid-template-columns: repeat(2, 1fr); }
     .section-title { font-size: 1.875rem; }
   }
 
   @media (min-width: 960px) {
-    .feature-grid { grid-template-columns: repeat(3, 1fr); }
+    /* Six tracks: rows of three cards, and a last row of two cards sharing the width. */
+    .feature-grid { grid-template-columns: repeat(6, 1fr); }
+    .feature-grid > * { grid-column: span 2; }
+    .feature-grid > :last-child:nth-child(3n + 2),
+    .feature-grid > :nth-last-child(2):nth-child(3n + 1) { grid-column: span 3; }
+    .feature-grid > :last-child:nth-child(3n + 1) { grid-column: 1 / -1; }
   }
 </style>
