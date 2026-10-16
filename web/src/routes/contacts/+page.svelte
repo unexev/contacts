@@ -19,6 +19,7 @@
 
   let sortBy = $state('firstname_az');
   let loadError = $state(false);
+  let syncing = $state(false);
 
   const sortOptions = [
     { value: 'firstname_az', key: 'sortFirstName' },
@@ -39,6 +40,7 @@
   async function fetchContacts() {
     const myId = ++fetchId;
     loading.value = true;
+    syncing = true;
     loadError = false;
     try {
        let params = ['limit=100'];
@@ -73,7 +75,10 @@
       if (err.message === 'unauthorized') { goto('/login'); return; }
       loadError = true;
     } finally {
-      if (myId === fetchId) loading.value = false;
+      if (myId === fetchId) {
+        loading.value = false;
+        syncing = false;
+      }
     }
   }
 
@@ -220,8 +225,8 @@
 
   <div class="toolbar">
     <div class="toolbar-actions">
-      <button class="icon-btn" onclick={() => fetchContacts()} title={t('contactsRefresh')} aria-label={t('contactsRefresh')}>
-        <RefreshCw size={18} />
+      <button class="icon-btn" onclick={() => fetchContacts()} title={t('contactsRefresh')} aria-label={t('contactsRefresh')} aria-busy={syncing} disabled={syncing}>
+        <RefreshCw class={syncing ? 'spin-icon' : ''} size={18} />
       </button>
       <button class="icon-btn" class:active={showFilters} onclick={() => { showFilters = !showFilters; showSort = false; }} title={t('contactsFilter')} aria-label={t('contactsFilter')}>
         <Filter size={18} />
@@ -552,6 +557,19 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+  }
+
+  :global(.spin-icon) {
+    animation: spin 0.9s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(.spin-icon) { animation: none; opacity: 0.5; }
   }
 
   .letter-head {
