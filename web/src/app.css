@@ -482,3 +482,22 @@ input[type="date"].input::-webkit-date-and-time-value {
 @media (min-width: 601px) {
   .toast { bottom: 24px; }
 }
+
+/* Checkbox + label rows (e.g. "deceased"): the whole label is a 44px touch target. */
+.deceased-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  color: var(--text2);
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.deceased-toggle input {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--accent-strong);
+}

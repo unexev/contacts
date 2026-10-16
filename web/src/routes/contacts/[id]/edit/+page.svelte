@@ -456,7 +456,6 @@
   .icon-button { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--text2); cursor: pointer; flex-shrink: 0; }
   .icon-button.danger:hover { color: var(--danger-text); background: color-mix(in srgb, var(--danger) 12%, transparent); }
    .phone-status { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--text2); font-size: 0.875rem; cursor: pointer; }
-   .deceased-toggle { display: inline-flex; align-items: center; gap: 8px; color: var(--text2); font-size: 0.875rem; cursor: pointer; }
   .phone-status input { width: 18px; height: 18px; accent-color: var(--accent); }
   .coordinates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
   .note-counter { font-size: 0.75rem; color: var(--text2); text-align: right; margin-top: 4px; }
