@@ -1,0 +1,366 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-16T02:06:59.132877Z",
+  "title": "Design System: Contacts",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Signal Blue",
+        "canonical": "#0a84ff",
+        "tonalRamp": [
+          "#021426",
+          "#043464",
+          "#0654a2",
+          "#0974e0",
+          "#2994ff",
+          "#68b3ff",
+          "#a7d3ff",
+          "#e6f3ff"
+        ]
+      },
+      "danger": {
+        "role": "secondary",
+        "displayName": "Alert Red",
+        "canonical": "#ff453a",
+        "tonalRamp": [
+          "#260a09",
+          "#641b17",
+          "#a22c25",
+          "#e03d33",
+          "#ff5d53",
+          "#ff8d86",
+          "#ffbdb9",
+          "#ffeceb"
+        ]
+      },
+      "bg-light": {
+        "role": "neutral",
+        "displayName": "Mist Canvas",
+        "canonical": "#f2f2f7",
+        "tonalRamp": [
+          "#242425",
+          "#5f5f61",
+          "#9a9a9d",
+          "#d5d5d9",
+          "#f4f4f8",
+          "#f7f7fa",
+          "#fafafc",
+          "#fefefe"
+        ]
+      },
+      "surface-light": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#262626",
+          "#646464",
+          "#a2a2a2",
+          "#e0e0e0",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff"
+        ]
+      },
+      "surface-2-light": {
+        "role": "neutral",
+        "displayName": "Pale Slate",
+        "canonical": "#e5e5ea",
+        "tonalRamp": [
+          "#222223",
+          "#5a5a5c",
+          "#929295",
+          "#c9c9ce",
+          "#e8e8ed",
+          "#efeff2",
+          "#f6f6f8",
+          "#fcfcfd"
+        ]
+      },
+      "text-light": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#1c1c1e",
+        "tonalRamp": [
+          "#040404",
+          "#0b0b0c",
+          "#121213",
+          "#19191a",
+          "#39393b",
+          "#747475",
+          "#aeaeaf",
+          "#e8e8e8"
+        ]
+      },
+      "text-2-light": {
+        "role": "neutral",
+        "displayName": "Graphite",
+        "canonical": "#6c6c70",
+        "tonalRamp": [
+          "#101011",
+          "#2a2a2c",
+          "#454547",
+          "#5f5f62",
+          "#7f7f82",
+          "#a5a5a7",
+          "#cacacc",
+          "#f0f0f1"
+        ]
+      },
+      "border-light": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#d1d1d6",
+        "tonalRamp": [
+          "#1f1f20",
+          "#525254",
+          "#858588",
+          "#b8b8bc",
+          "#d7d7db",
+          "#e3e3e6",
+          "#efeff0",
+          "#fafafb"
+        ]
+      },
+      "bg-dark": {
+        "role": "neutral",
+        "displayName": "True Black",
+        "canonical": "#000000",
+        "tonalRamp": [
+          "#000000",
+          "#000000",
+          "#000000",
+          "#000000",
+          "#212121",
+          "#626262",
+          "#a4a4a4",
+          "#e6e6e6"
+        ]
+      },
+      "surface-dark": {
+        "role": "neutral",
+        "displayName": "Charcoal",
+        "canonical": "#1c1c1e",
+        "tonalRamp": [
+          "#040404",
+          "#0b0b0c",
+          "#121213",
+          "#19191a",
+          "#39393b",
+          "#747475",
+          "#aeaeaf",
+          "#e8e8e8"
+        ]
+      },
+      "surface-2-dark": {
+        "role": "neutral",
+        "displayName": "Deep Slate",
+        "canonical": "#2c2c2e",
+        "tonalRamp": [
+          "#070707",
+          "#111112",
+          "#1c1c1d",
+          "#272728",
+          "#474749",
+          "#7d7d7f",
+          "#b4b4b4",
+          "#eaeaea"
+        ]
+      },
+      "text-dark": {
+        "role": "neutral",
+        "displayName": "White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#262626",
+          "#646464",
+          "#a2a2a2",
+          "#e0e0e0",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff"
+        ]
+      },
+      "text-2-dark": {
+        "role": "neutral",
+        "displayName": "Ash",
+        "canonical": "#8e8e93",
+        "tonalRamp": [
+          "#151516",
+          "#38383a",
+          "#5a5a5d",
+          "#7d7d81",
+          "#9d9da1",
+          "#bababd",
+          "#d7d7d8",
+          "#f4f4f4"
+        ]
+      },
+      "border-dark": {
+        "role": "neutral",
+        "displayName": "Dark Hairline",
+        "canonical": "#38383a",
+        "tonalRamp": [
+          "#080809",
+          "#161617",
+          "#242425",
+          "#313133",
+          "#525253",
+          "#858586",
+          "#b8b8b9",
+          "#ebebeb"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "title": {
+        "displayName": "Title",
+        "purpose": "Contact name on the detail page."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Form and modal titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Field values, list names, inputs."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase section card titles."
+      }
+    },
+    "shadows": [
+      {
+        "name": "floating-action",
+        "value": "0 4px 16px rgba(10, 132, 255, 0.4)",
+        "purpose": "Add-contact floating button only."
+      }
+    ],
+    "motion": [
+      {
+        "name": "press",
+        "value": "transform 0.1s",
+        "purpose": "Buttons scale to 0.97 when pressed."
+      },
+      {
+        "name": "state",
+        "value": "0.15s",
+        "purpose": "Background and border transitions."
+      },
+      {
+        "name": "shimmer",
+        "value": "1.4s ease-in-out infinite",
+        "purpose": "Loading skeleton, disabled by prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile",
+        "value": "600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main action on a screen.",
+      "html": "<button class=\"ds-btn-primary\">Guardar</button>",
+      "css": ".ds-btn-primary{font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;min-height:44px;padding:10px 20px;border:none;border-radius:12px;background:#0a84ff;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s} .ds-btn-primary:hover{filter:brightness(1.06)} .ds-btn-primary:active{transform:scale(.97)} .ds-btn-primary:focus-visible{outline:3px solid rgba(10,132,255,.45);outline-offset:2px}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary actions such as Back or Edit.",
+      "html": "<button class=\"ds-btn-ghost\">Volver</button>",
+      "css": ".ds-btn-ghost{font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;min-height:44px;padding:10px 16px;border:1px solid #d1d1d6;border-radius:10px;background:#e5e5ea;color:#0a84ff;font-size:15px;font-weight:600;cursor:pointer} .ds-btn-ghost:hover{background:#fff;border-color:#6c6c70} .ds-btn-ghost:focus-visible{outline:3px solid rgba(10,132,255,.45);outline-offset:2px}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Single-line field.",
+      "html": "<input class=\"ds-input\" placeholder=\"Buscar contacto\">",
+      "css": ".ds-input{font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;width:100%;padding:12px 16px;background:#e5e5ea;border:1px solid #d1d1d6;border-radius:12px;color:#1c1c1e;font-size:16px;outline:none} .ds-input::placeholder{color:#6c6c70} .ds-input:focus{border-color:#0a84ff}"
+    },
+    {
+      "name": "Contact Row",
+      "kind": "card",
+      "refersTo": "list-item",
+      "description": "Contact list row with initials avatar.",
+      "html": "<div class=\"ds-row\"><span class=\"ds-avatar\">AM</span><div><div class=\"ds-name\">Ana Mora</div><div class=\"ds-detail\">0991234567</div></div></div>",
+      "css": ".ds-row{font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;display:flex;align-items:center;gap:14px;padding:14px 16px;background:#fff;border:1px solid #d1d1d6;border-radius:12px;color:#1c1c1e} .ds-row:hover{background:#e5e5ea} .ds-avatar{width:44px;height:44px;border-radius:50%;background:#e5e5ea;color:#0a84ff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:16px} .ds-name{font-size:16px;font-weight:500} .ds-detail{font-size:14px;color:#6c6c70}"
+    },
+    {
+      "name": "Section Card",
+      "kind": "card",
+      "refersTo": "section-card",
+      "description": "Grouped fields on the contact detail page.",
+      "html": "<div class=\"ds-section\"><div class=\"ds-section-head\">TELEFONOS</div><div class=\"ds-section-body\">0991234567</div></div>",
+      "css": ".ds-section{font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;background:#fff;border:1px solid #d1d1d6;border-radius:12px;overflow:hidden} .ds-section-head{padding:14px 16px;border-bottom:1px solid #d1d1d6;font-size:13px;font-weight:600;color:#6c6c70;letter-spacing:.5px} .ds-section-body{padding:14px 16px;font-size:15px;color:#1c1c1e}"
+    },
+    {
+      "name": "Tab Bar",
+      "kind": "nav",
+      "refersTo": "",
+      "description": "Mobile bottom navigation.",
+      "html": "<nav class=\"ds-tabbar\"><a class=\"ds-tab active\">Contactos</a><a class=\"ds-tab\">Calendario</a><a class=\"ds-tab\">Ajustes</a></nav>",
+      "css": ".ds-tabbar{font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;display:flex;border-top:1px solid #d1d1d6;background:#fff} .ds-tab{flex:1;min-height:56px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#6c6c70} .ds-tab.active{color:#0a84ff}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Field Ledger",
+    "overview": "A ledger is read, not admired. Every contact is a row of facts and the interface exists to put the right fact under the thumb quickly. Flat, ruled surfaces, one blue accent, system type.",
+    "keyCharacteristics": [
+      "Flat surfaces separated by 1px borders; depth through tone, not shadow.",
+      "One accent color, used only for actionable and active elements.",
+      "System font stack, hierarchy through weight and size.",
+      "44px minimum touch targets; navigation reachable by thumb on mobile.",
+      "Skeletons and states that mirror the final layout."
+    ],
+    "rules": [
+      {
+        "name": "The One Voice Rule",
+        "body": "Signal Blue marks what can be acted on or what is current. If a blue element is neither, remove the blue.",
+        "section": "colors"
+      },
+      {
+        "name": "The Contrast Floor Rule",
+        "body": "Secondary text on a surface must keep at least 4.5:1.",
+        "section": "colors"
+      },
+      {
+        "name": "The Short Caps Rule",
+        "body": "Uppercase is reserved for section labels of four words or fewer.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Cards, rows and inputs carry no shadow at rest or on hover.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep every touch target at 44px or larger, and keep primary navigation at the bottom on mobile.",
+      "Do use Signal Blue (#0a84ff) only for actionable or active elements.",
+      "Do separate surfaces with a 1px Hairline border and a tone shift.",
+      "Do make loading, empty and error states mirror the real layout.",
+      "Do keep secondary text at 4.5:1 or better in both themes."
+    ],
+    "donts": [
+      "Don't build a heavy corporate CRM: no endless forms, deep menus or visual noise.",
+      "Don't use generic template SaaS patterns: identical card grids, gradients, hero metrics.",
+      "Don't make it a decorative or childish app: no illustrations, emoji or animation that gets in the way of work.",
+      "Don't add shadows to cards, rows or inputs; the floating add button is the only exception.",
+      "Don't use border-left greater than 1px as a colored accent stripe on rows or cards.",
+      "Don't use gradient text or glass effects as decoration.",
+      "Don't use a generic spinning icon for loading; use a skeleton that matches the layout."
+    ]
+  }
+}
