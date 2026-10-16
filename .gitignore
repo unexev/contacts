@@ -32,3 +32,6 @@ Thumbs.db
 # Playwright artifacts
 .playwright-mcp/
 .playwright/
+
+# ODD task tracking
+odd/
