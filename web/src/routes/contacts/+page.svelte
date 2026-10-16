@@ -419,7 +419,7 @@
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--accent-strong);
     color: white;
     font-size: 10px;
     font-weight: 600;
@@ -491,7 +491,7 @@
   }
 
   .chip.active {
-    background: var(--accent);
+    background: var(--accent-strong);
     border-color: var(--accent);
     color: white;
   }

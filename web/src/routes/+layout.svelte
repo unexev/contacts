@@ -147,7 +147,7 @@
     height: 18px;
     padding: 0 5px;
     margin-left: 6px;
-    background: var(--accent);
+    background: var(--accent-strong);
     color: white;
     border-radius: 9px;
     font-size: 11px;
@@ -197,7 +197,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: var(--accent);
+    background: var(--accent-strong);
     color: white;
     border-radius: 8px;
     font-size: 10px;
