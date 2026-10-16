@@ -1,6 +1,8 @@
 <script>
   import { A, api, setToken } from '$lib/api.svelte.js';
   import { t } from '$lib/i18n.svelte.js';
+  import ErrorNotice from '$lib/components/ErrorNotice.svelte';
+  import { friendlyError } from '$lib/errors.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
 
@@ -16,8 +18,8 @@
   async function handleRegister(e) {
     e.preventDefault();
     error = '';
-    if (!email || !password) { error = 'All fields are required'; return; }
-    if (password.length < 8) { error = 'Password must be at least 8 characters'; return; }
+    if (!email || !password) { error = t('authAllRequired'); return; }
+    if (password.length < 8) { error = t('authPasswordShort'); return; }
     loading = true;
     try {
       const data = await api('/api/auth/register', {
@@ -28,7 +30,7 @@
       if (data.user) A.user = data.user;
       goto('/contacts');
     } catch (err) {
-      error = err.message;
+      error = friendlyError(err, t);
     } finally {
       loading = false;
     }
@@ -40,7 +42,7 @@
     <h1 class="register-title">{t('registerTitle')}</h1>
 
     {#if error}
-      <div class="register-error">{error}</div>
+      <ErrorNotice message={error} />
     {/if}
 
     <form onsubmit={handleRegister}>
@@ -107,16 +109,6 @@
     text-align: center;
     margin-bottom: 28px;
     letter-spacing: -0.5px;
-  }
-
-  .register-error {
-    background: rgba(255, 69, 58, 0.12);
-    color: var(--danger-text);
-    padding: 10px 14px;
-    border-radius: var(--radius);
-    font-size: 0.875rem;
-    margin-bottom: 16px;
-    text-align: center;
   }
 
   .register-footer {

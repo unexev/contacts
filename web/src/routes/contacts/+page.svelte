@@ -7,6 +7,7 @@
   import { Search, RefreshCw, ArrowUpDown, Filter, X, Check, Ellipsis } from '@lucide/svelte';
   import { hasActions, primaryPhone, primaryEmail } from '$lib/contactActions.js';
   import ContactActionsMenu from '$lib/components/ContactActionsMenu.svelte';
+  import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { loadView, saveView } from '$lib/viewState.js';
   import { calculateAge, formatAge, parseContactDate } from '$lib/date.js';
 
@@ -347,10 +348,7 @@
   {/if}
 
   {#if loadError}
-    <div class="load-error" role="alert">
-      <span>{t('contactsLoadError')}</span>
-      <button class="btn btn-secondary" onclick={fetchContacts}>{t('contactsRetry')}</button>
-    </div>
+    <ErrorNotice message={t('contactsLoadError')} onretry={fetchContacts} />
   {/if}
 
   {#if loading.value && contacts.value.length === 0}

@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { t, locale } from '$lib/i18n.svelte.js';
+  import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { ChevronLeft, ChevronRight, Cake } from '@lucide/svelte';
   import { calculateAge, parseContactDate } from '$lib/date.js';
 
@@ -153,10 +154,7 @@
   </div>
 
   {#if loadError}
-    <div class="load-error" role="alert">
-      <span>{t('calendarLoadError')}</span>
-      <button class="btn btn-secondary" onclick={fetchBirthdays}>{t('contactsRetry')}</button>
-    </div>
+    <ErrorNotice message={t('calendarLoadError')} onretry={fetchBirthdays} />
   {/if}
 
   <div class="calendar-grid" class:loading aria-busy={loading}>

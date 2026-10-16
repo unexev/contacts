@@ -1,4 +1,6 @@
 <script>
+  import ErrorNotice from '$lib/components/ErrorNotice.svelte';
+  import { friendlyError } from '$lib/errors.js';
   import { A, api } from '$lib/api.svelte.js';
   import { t } from '$lib/i18n.svelte.js';
   import { page } from '$app/stores';
@@ -43,6 +45,7 @@
   let nationalities = $state([]);
   let original = $state({ phones: [], emails: [], urls: [], notes: [], cards: [], bankAccounts: [], organizations: [], locations: [], keywords: [], relationships: [], nationalities: [] });
   let error = $state('');
+  let loadFailed = $state(false);
   let saving = $state(false);
   const documentTypes = DOCUMENT_TYPES;
 
@@ -93,8 +96,10 @@
   function addLocation() { locations = [...locations, { location_type: 'residence', address: '', city: '', region: '', country: '', postal_code: '', latitude: null, longitude: null }]; }
   function addNationality() { nationalities = [...nationalities, { country_code: '', acquired_at: '', note: '' }]; }
 
-  onMount(async () => {
+  async function load() {
     if (!A.token) return goto('/login');
+    error = '';
+    loadFailed = false;
     try {
       const [c, statuses, orgs, achievements, relTypes, contactsData] = await Promise.all([
         api(`/api/contacts/${id}`),
@@ -150,8 +155,14 @@
       if (addSection === 'organization') addOrganization();
       if (addSection === 'location') addLocation();
       if (addSection === 'nationality') addNationality();
-    } catch (e) { error = e.message; }
-  });
+    } catch (e) {
+      if (e.message === 'Invalid credentials') { goto('/login'); return; }
+      error = friendlyError(e, t);
+      loadFailed = true;
+    }
+  }
+
+  onMount(load);
 
   async function saveCollection(items, oldIds, path, idKey) {
     const currentIds = items.map(item => item[idKey]).filter(Boolean);
@@ -227,7 +238,7 @@
     e.preventDefault();
     error = '';
     if (!first_name.trim() || !surname.trim()) {
-      error = 'Nombre y apellido son obligatorios';
+      error = t('contactNamesRequired');
       return;
     }
     saving = true;
@@ -236,7 +247,7 @@
       await Promise.all(collectSaveTasks());
       goto(`/contacts/${id}`);
     } catch (err) {
-      error = err.message;
+      error = friendlyError(err, t);
     } finally {
       saving = false;
     }
@@ -245,7 +256,7 @@
 
 <div class="new-contact-page animate-in">
   <div class="form-header"><button class="btn-ghost" onclick={() => goto(`/contacts/${id}`)}>{t('contactCancel')}</button><h1 class="form-title">{selectedSection ? `Editar ${editTitle}` : editTitle}</h1><button class="btn-ghost" onclick={save} disabled={saving}>{saving ? '...' : t('contactSave')}</button></div>
-  {#if error}<div class="form-error-banner">{error}</div>{/if}
+  {#if error}<ErrorNotice message={error} onretry={loadFailed ? load : undefined} />{/if}
   <form onsubmit={save}>
      {#if !selectedSection || selectedSection === 'personal'}
     <div class="form-card"><h2 class="form-section-title">Datos personales</h2><div class="form-group"><label class="form-label" for="first_name">{t('contactFirstName')} *</label><input id="first_name" class="input" bind:value={first_name} /></div><div class="form-group"><label class="form-label" for="middle_name">{t('contactMiddleName')}</label><input id="middle_name" class="input" bind:value={middle_name} /></div><div class="form-group"><label class="form-label" for="surname">{t('contactSurname')} *</label><input id="surname" class="input" bind:value={surname} /></div><div class="form-group"><label class="form-label" for="birthdate">{t('contactBirthdate')}</label><input id="birthdate" class="input" type="date" bind:value={birthdate} /></div><div class="form-group"><label class="form-label" for="gender">{t('contactGender')}</label><select id="gender" class="select" bind:value={gender}><option value="">{t('contactGenderUnspecified')}</option><option value="MALE">{t('contactGenderMale')}</option><option value="FEMALE">{t('contactGenderFemale')}</option></select></div><div class="form-group"><label class="form-label" for="marital_status">{t('contactMaritalStatus')}</label><select id="marital_status" class="select" bind:value={marital_status}><option value="">—</option>{#each maritalStatuses as status}<option value={status.status_id}>{status.marital_status}</option>{/each}</select></div></div>

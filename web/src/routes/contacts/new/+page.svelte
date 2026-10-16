@@ -1,6 +1,8 @@
 <script>
   import { A, api } from '$lib/api.svelte.js';
   import { t } from '$lib/i18n.svelte.js';
+  import ErrorNotice from '$lib/components/ErrorNotice.svelte';
+  import { friendlyError } from '$lib/errors.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
 
@@ -26,10 +28,10 @@
   async function handleSave(e) {
     e.preventDefault();
     error = '';
-    if (!first_name.trim()) { error = 'First name is required'; return; }
-    if (!surname.trim()) { error = 'Surname is required'; return; }
-    if (first_name.length > 255) { error = 'First name too long'; return; }
-    if (surname.length > 255) { error = 'Surname too long'; return; }
+    if (!first_name.trim()) { error = t('contactFirstNameRequired'); return; }
+    if (!surname.trim()) { error = t('contactSurnameRequired'); return; }
+    if (first_name.length > 255) { error = t('contactNameTooLong'); return; }
+    if (surname.length > 255) { error = t('contactNameTooLong'); return; }
     saving = true;
     try {
       const body = { first_name, middle_name, surname };
@@ -43,7 +45,7 @@
       if (id) goto(`/contacts/${id}`);
       else goto('/contacts');
     } catch (err) {
-      error = err.message;
+      error = friendlyError(err, t);
     } finally {
       saving = false;
     }
@@ -60,7 +62,7 @@
   </div>
 
   {#if error}
-    <div class="form-error-banner">{error}</div>
+    <ErrorNotice message={error} />
   {/if}
 
   <form onsubmit={handleSave}>
@@ -160,13 +162,4 @@
     margin-bottom: 16px;
   }
 
-  .form-error-banner {
-    background: rgba(255, 69, 58, 0.12);
-    color: var(--danger-text);
-    padding: 10px 14px;
-    border-radius: var(--radius);
-    font-size: 0.875rem;
-    margin-bottom: 16px;
-    text-align: center;
-  }
 </style>

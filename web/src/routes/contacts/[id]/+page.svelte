@@ -11,11 +11,14 @@
   import { resolveDocTypeLabel } from '$lib/docTypes.js';
   import { resolveCountryLabel } from '$lib/countries.js';
   import ContactActionsMenu from '$lib/components/ContactActionsMenu.svelte';
+  import ErrorNotice from '$lib/components/ErrorNotice.svelte';
+  import { friendlyError } from '$lib/errors.js';
 
   let showDeleteModal = $state(false);
   let showAddMenu = $state(false);
   let deleting = $state(false);
   let error = $state('');
+  let canRetry = $state(false);
   const cap = (text) => text.charAt(0).toUpperCase() + text.slice(1);
   const editLabel = (itemKey) => t('actionEditItem').replace('{item}', t(itemKey));
   const addLabel = (itemKey) => t('actionAddItem').replace('{item}', t(itemKey));
@@ -80,12 +83,16 @@
   async function fetchContact() {
     loading.value = true;
     error = '';
+    canRetry = false;
+    // Never show the previous contact's data under an error for this one.
+    currentContact.value = null;
     try {
       const data = await api(`/api/contacts/${contactId}`);
       currentContact.value = data;
     } catch (err) {
-      if (err.message === 'unauthorized') goto('/login');
-      error = err.message;
+      if (err.message === 'Invalid credentials') { goto('/login'); return; }
+      error = friendlyError(err, t);
+      canRetry = true;
     } finally {
       loading.value = false;
     }
@@ -97,7 +104,8 @@
       await api(`/api/contacts/${contactId}`, { method: 'DELETE' });
       goto('/contacts');
     } catch (err) {
-      error = err.message;
+      error = friendlyError(err, t);
+      canRetry = false;
     } finally {
       deleting = false;
       showDeleteModal = false;
@@ -157,11 +165,11 @@
   {/if}
 
   {#if error}
-    <div class="detail-error">{error}</div>
+    <ErrorNotice message={error} onretry={canRetry ? fetchContact : undefined} />
   {/if}
 
   {#if loading.value}
-    <div aria-busy="true" aria-hidden="true">
+    <div aria-busy="true" role="status" aria-label={t('contactLoading')}>
       <div class="detail-avatar-section">
         <span class="skeleton skeleton-circle" style="width:80px;height:80px;margin-bottom:12px"></span>
         <span class="skeleton" style="width:180px;height:24px"></span>
@@ -617,16 +625,6 @@
   .related-contact::after { content: ''; position: absolute; inset: 0; border-radius: 10px; }
   .relation-item .item-actions { position: relative; z-index: 1; }
   .related-arrow { color: var(--text2); font-size: 1.25rem; line-height: 1; padding: 0 4px; }
-
-  .detail-error {
-    background: rgba(255, 69, 58, 0.12);
-    color: var(--danger-text);
-    padding: 10px 14px;
-    border-radius: var(--radius);
-    font-size: 0.875rem;
-    margin-bottom: 16px;
-    text-align: center;
-  }
 
   .notes-text {
     font-size: 0.9375rem;
