@@ -34,7 +34,9 @@ type Contact struct {
 	CreatedAt int64 `json:"created_at"`
 	// Filled only by ListContacts, so list rows can offer quick actions.
 	PrimaryPhone string `json:"primary_phone,omitempty"`
-	PrimaryEmail string `json:"primary_email,omitempty"`
+	// True when the contact's only phones are marked as no longer in use.
+	PrimaryPhoneInactive bool   `json:"primary_phone_inactive,omitempty"`
+	PrimaryEmail         string `json:"primary_email,omitempty"`
 }
 
 // MarshalJSON implements custom JSON marshaling to handle NullString
