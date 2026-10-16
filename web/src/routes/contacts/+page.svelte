@@ -29,6 +29,7 @@
   }
   let loadError = $state(false);
   let syncing = $state(false);
+  let searchHeight = $state(66);
 
   const sortOptions = [
     { value: 'firstname_az', key: 'sortFirstName' },
@@ -321,8 +322,8 @@
 
 <svelte:window onkeydown={onWindowKeydown} onclick={onWindowClick} onresize={onViewportChange} onscroll={onViewportChange} />
 
-<div class="contacts-page animate-in">
-  <div class="search-bar">
+<div class="contacts-page animate-in" style="--search-h: {searchHeight}px">
+  <div class="search-bar" bind:clientHeight={searchHeight}>
     <Search class="search-icon" size={18} />
     <input
       class="input"
@@ -441,6 +442,15 @@
           </div>
         </div>
       {/each}
+    </div>
+  {:else if contacts.value.length === 0 && !loadError && (activeFilters > 0 || search.value)}
+    <div class="empty-state">
+      <Search class="empty-state-icon" size={48} />
+      <div class="empty-state-text">{t('contactsNoResults')}</div>
+      <div class="empty-state-hint">{activeFilters > 0 ? t('contactsNoResultsFilters') : t('contactsNoResultsSearch')}</div>
+      {#if activeFilters > 0}
+        <button class="btn btn-secondary no-results-action" onclick={clearFilters}>{t('filtersClear')}</button>
+      {/if}
     </div>
   {:else if contacts.value.length === 0 && !loadError}
     <div class="empty-state">
@@ -723,11 +733,21 @@
   }
 
   .letter-head {
+    position: sticky;
+    top: var(--search-h, 66px);
+    z-index: 40;
     font-size: 13px;
     font-weight: 600;
     color: var(--text2);
-    padding: 12px 4px 0;
+    padding: 6px 4px;
+    background: var(--bg);
   }
+
+  @media (min-width: 601px) {
+    .letter-head { top: calc(56px + var(--search-h, 66px)); }
+  }
+
+  .no-results-action { margin-top: 16px; }
 
   .list-item {
     width: 100%;
