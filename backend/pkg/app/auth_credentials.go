@@ -7,6 +7,7 @@ import (
 	"net/mail"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 
 	"contacts/pkg/auth"
@@ -71,7 +72,16 @@ func (a *App) updateCredentials(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hash, err := a.store.GetPasswordHashByID(claims.UserID)
-	if err != nil || bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.CurrentPassword)) != nil {
+	if errors.Is(err, pgx.ErrNoRows) {
+		errResp(w, http.StatusUnauthorized, "invalid credentials")
+		return
+	}
+	if err != nil {
+		log.Printf("load password hash error: %v", err)
+		errResp(w, http.StatusInternalServerError, "failed to verify credentials")
+		return
+	}
+	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.CurrentPassword)) != nil {
 		errResp(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
