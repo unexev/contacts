@@ -67,6 +67,7 @@ func (a *App) Handler() http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(a.auth.Middleware)
 			r.Get("/auth/me", a.me)
+			r.Put("/auth/me", a.updateCredentials)
 
 			r.Get("/contacts", a.listContacts)
 			r.Post("/contacts", a.createContact)
@@ -253,6 +254,10 @@ func (a *App) register(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Email == "" || req.Password == "" {
 		errResp(w, http.StatusBadRequest, "email and password are required")
+		return
+	}
+	if msg := validatePasswordLength(req.Password); msg != "" {
+		errResp(w, http.StatusBadRequest, msg)
 		return
 	}
 
