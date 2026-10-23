@@ -77,7 +77,7 @@ func (a *App) updateCredentials(w http.ResponseWriter, r *http.Request) {
 		newEmail = *req.Email
 	}
 
-	err = a.store.UpdateCredentials(claims.UserID, newEmail, newHash)
+	refreshToken, err := a.store.UpdateCredentials(claims.UserID, newEmail, newHash, a.refreshTTL)
 	if errors.Is(err, store.ErrEmailTaken) {
 		errResp(w, http.StatusConflict, "email already in use")
 		return
@@ -85,12 +85,6 @@ func (a *App) updateCredentials(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("update credentials error: %v", err)
 		errResp(w, http.StatusInternalServerError, "failed to update credentials")
-		return
-	}
-
-	if err := a.store.RevokeAllRefreshTokens(claims.UserID); err != nil {
-		log.Printf("revoke refresh tokens error: %v", err)
-		errResp(w, http.StatusInternalServerError, "failed to revoke sessions")
 		return
 	}
 
@@ -102,11 +96,6 @@ func (a *App) updateCredentials(w http.ResponseWriter, r *http.Request) {
 	token, err := a.auth.Generate(user.UserID, user.Email, user.Role)
 	if err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to generate token")
-		return
-	}
-	refreshToken, err := a.store.IssueRefreshToken(user.UserID, a.refreshTTL)
-	if err != nil {
-		errResp(w, http.StatusInternalServerError, "failed to issue refresh token")
 		return
 	}
 	dataResp(w, http.StatusOK, model.AuthResponse{Token: token, User: user, RefreshToken: refreshToken})
