@@ -1,0 +1,59 @@
+export default {
+  expo: {
+    name: "Contacts",
+    slug: "contacts-app",
+    version: "1.0.0",
+    scheme: "contacts",
+    orientation: "default",
+    userInterfaceStyle: "automatic",
+    platforms: ["android", "web"],
+    icon: "./assets/images/icon.png",
+    splash: {
+      image: "./assets/images/splash-icon.png",
+      resizeMode: "contain",
+      backgroundColor: "#007AFF"
+    },
+    android: {
+      package: "com.luserv.c0ntacts",
+      googleServicesFile: "./google-services.json",
+      adaptiveIcon: {
+        foregroundImage: "./assets/images/android-icon-foreground.png",
+        backgroundImage: "./assets/images/android-icon-background.png",
+        monochromeImage: "./assets/images/android-icon-monochrome.png"
+      }
+    },
+    plugins: [
+      [
+        "expo-build-properties",
+        {
+          android: {
+            abis: ["arm64-v8a"],
+          },
+        },
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          androidAppId: process.env.EXPO_PUBLIC_ADMOB_APP_ID || "ca-app-pub-3940256099942544~3347511713",
+          iosAppId: process.env.ADMOB_IOS_APP_ID || "ca-app-pub-3940256099942544~1458002511",
+        }
+      ],
+      "@react-native-google-signin/google-signin",
+      "expo-font",
+      "expo-router",
+      "expo-web-browser"
+    ],
+    owner: "luserv33",
+    updates: {
+      url: "https://u.expo.dev/7b4d5e70-eff4-4dc2-addf-c45fa80b6fa9"
+    },
+    runtimeVersion: {
+      policy: "appVersion"
+    },
+    extra: {
+      eas: {
+        projectId: "7b4d5e70-eff4-4dc2-addf-c45fa80b6fa9"
+      }
+    }
+  }
+};

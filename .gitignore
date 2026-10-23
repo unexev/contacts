@@ -35,3 +35,20 @@ Thumbs.db
 
 # ODD task tracking
 odd/
+
+# Tool & agent artifacts
+.atl/
+.codegraph/
+check360-step*.png
+
+# Rust / Tauri
+# Rust / Tauri
+**/src-tauri/target/
+target/
+
+# Keystores & sensitive keys
+*.jks
+*.keystore
+google-services.json
+**/google-services.json
+
