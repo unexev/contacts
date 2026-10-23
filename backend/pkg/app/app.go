@@ -67,6 +67,7 @@ func (a *App) Handler() http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(a.auth.Middleware)
 			r.Get("/auth/me", a.me)
+			r.Put("/auth/me", a.updateCredentials)
 
 			r.Get("/contacts", a.listContacts)
 			r.Post("/contacts", a.createContact)
