@@ -256,6 +256,10 @@ func (a *App) register(w http.ResponseWriter, r *http.Request) {
 		errResp(w, http.StatusBadRequest, "email and password are required")
 		return
 	}
+	if msg := validatePasswordLength(req.Password); msg != "" {
+		errResp(w, http.StatusBadRequest, msg)
+		return
+	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {

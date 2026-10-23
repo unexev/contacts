@@ -14,7 +14,21 @@ import (
 	"contacts/pkg/store"
 )
 
-const minPasswordLen = 8
+const (
+	minPasswordLen = 8
+	// maxPasswordBytes is bcrypt's input limit; longer passwords make
+	// GenerateFromPassword fail with ErrPasswordTooLong.
+	maxPasswordBytes = 72
+)
+
+// validatePasswordLength returns an error message ("" when valid) for a
+// password that bcrypt cannot hash.
+func validatePasswordLength(password string) string {
+	if len(password) > maxPasswordBytes {
+		return "password must be at most 72 bytes"
+	}
+	return ""
+}
 
 type credentialsRequest struct {
 	CurrentPassword string  `json:"current_password"`
@@ -41,6 +55,9 @@ func validateCredentialsUpdate(req *credentialsRequest) string {
 	}
 	if req.NewPassword != nil && len(*req.NewPassword) < minPasswordLen {
 		return "password must be at least 8 characters"
+	}
+	if req.NewPassword != nil {
+		return validatePasswordLength(*req.NewPassword)
 	}
 	return ""
 }
