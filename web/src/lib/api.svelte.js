@@ -20,11 +20,12 @@ export function setToken(t) {
   } catch {}
 }
 
-export async function api(path, { method = 'GET', body, signal } = {}) {
+// keepSession: a 401 means a wrong re-entered password, not an expired session.
+export async function api(path, { method = 'GET', body, signal, keepSession = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (A.token) headers.Authorization = 'Bearer ' + A.token;
   const res = await fetch(BASE + path, { method, headers, body: body ? JSON.stringify(body) : undefined, signal });
-  if (res.status === 401) { setToken(''); throw new Error('Invalid credentials'); }
+  if (res.status === 401) { if (!keepSession) setToken(''); throw new Error('Invalid credentials'); }
   const raw = await res.json().catch(() => null);
   if (!res.ok) {
     const safeMsg = res.status === 401 ? 'Invalid credentials' :

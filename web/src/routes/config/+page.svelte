@@ -92,6 +92,8 @@
       </div>
     </div>
 
+    <a class="btn btn-secondary btn-full" href="/account">{t('configAccount')}</a>
+
     <button class="btn btn-danger btn-full logout-btn" onclick={handleLogout}>
       {t('configLogout')}
     </button>
