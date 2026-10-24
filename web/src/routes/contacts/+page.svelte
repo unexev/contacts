@@ -7,6 +7,7 @@
   import { Search, RefreshCw, ArrowUpDown, Filter, X, Check, Ellipsis } from '@lucide/svelte';
   import { hasActions, primaryPhone, primaryEmail } from '$lib/contactActions.js';
   import ContactActionsMenu from '$lib/components/ContactActionsMenu.svelte';
+  import Avatar from '$lib/components/Avatar.svelte';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { loadView, saveView } from '$lib/viewState.js';
   import { calculateAge, formatAge, parseContactDate } from '$lib/date.js';
@@ -226,12 +227,6 @@
     if (restoreFocus) trigger?.focus();
   }
 
-  function getInitials(c) {
-    const f = (c.first_name || '')[0] || '';
-    const s = (c.surname || '')[0] || '';
-    return (f + s).toUpperCase() || '?';
-  }
-
   let activeFilters = $derived(
     (filterGender ? 1 : 0) +
     (filterBirthday ? 1 : 0) +
@@ -359,7 +354,7 @@
         {@const phone = primaryPhone(contact)}
         <div class="list-item">
         <button class="row-main" onclick={() => goto(`/contacts/${contact.contact_id}`)}>
-          <div class="avatar">{getInitials(contact)}</div>
+          <Avatar {contact} size={44} />
             <div class="list-item-content">
               <div class="list-item-name">
                 {contact.first_name || ''} {contact.middle_name || ''} {contact.surname || ''}

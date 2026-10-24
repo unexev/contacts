@@ -5,12 +5,14 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
-  import { ArrowLeft, Pencil, Plus, Trash2, Skull, X, Ellipsis } from '@lucide/svelte';
+  import { ArrowLeft, Pencil, Plus, Trash2, Skull, X, Ellipsis, Camera } from '@lucide/svelte';
   import { formatAge, formatAgeAt, parseContactDate } from '$lib/date.js';
   import { formatValue, formatPhone as formatPhoneBase, formatEmail, formatUrl, formatDate, formatSavedDate } from '$lib/format.js';
   import { resolveDocTypeLabel } from '$lib/docTypes.js';
   import { resolveCountryLabel } from '$lib/countries.js';
   import ContactActionsMenu from '$lib/components/ContactActionsMenu.svelte';
+  import Avatar from '$lib/components/Avatar.svelte';
+  import { showToast } from '$lib/toast.svelte.js';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { friendlyError } from '$lib/errors.js';
 
@@ -23,10 +25,74 @@
   const editLabel = (itemKey) => t('actionEditItem').replace('{item}', t(itemKey));
   const addLabel = (itemKey) => t('actionAddItem').replace('{item}', t(itemKey));
 
+  const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+  const PHOTO_MAX_BYTES = 2 * 1024 * 1024;
+  let photoInput = $state(null);
+  let photoBusy = $state(''); // '' | 'upload' | 'remove'
+  let photoError = $state('');
+  let showPhotoModal = $state(false);
+  let photoTrigger = null;
+
+  function photoStatusError(err) {
+    if (err.status === 503) return t('photoErrorUnavailable');
+    if (err.status === 413) return t('photoErrorSize');
+    if (err.status === 400) return t('photoErrorType');
+    return friendlyError(err, t);
+  }
+
+  async function onPhotoSelected(event) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    input.value = ''; // allow picking the same file again
+    if (!file) return;
+    photoError = '';
+    if (!PHOTO_TYPES.includes(file.type)) { photoError = t('photoErrorType'); return; }
+    if (file.size > PHOTO_MAX_BYTES) { photoError = t('photoErrorSize'); return; }
+    photoBusy = 'upload';
+    try {
+      const form = new FormData();
+      form.append('photo', file);
+      const data = await api(`/api/contacts/${contactId}/photo`, { method: 'PUT', body: form });
+      if (currentContact.value) currentContact.value = { ...currentContact.value, photo_url: data?.photo_url };
+      showToast(t('photoUpdated'));
+    } catch (err) {
+      if (err.message === 'Invalid credentials') { goto('/login'); return; }
+      photoError = photoStatusError(err);
+    } finally {
+      photoBusy = '';
+    }
+  }
+
+  function openPhotoRemove(event) {
+    photoTrigger = event.currentTarget;
+    showPhotoModal = true;
+  }
+
+  function closePhotoRemove() {
+    showPhotoModal = false;
+    photoTrigger?.focus();
+  }
+
+  async function removePhoto() {
+    showPhotoModal = false;
+    photoError = '';
+    photoBusy = 'remove';
+    try {
+      await api(`/api/contacts/${contactId}/photo`, { method: 'DELETE' });
+      if (currentContact.value) currentContact.value = { ...currentContact.value, photo_url: undefined };
+      showToast(t('photoRemoved'));
+    } catch (err) {
+      if (err.message === 'Invalid credentials') { goto('/login'); return; }
+      photoError = photoStatusError(err);
+    } finally {
+      photoBusy = '';
+    }
+  }
+
   let addToggle = $state(null);
 
   function onWindowKeydown(event) {
-    if (event.key === 'Escape' && showAddMenu && !showDeleteModal) {
+    if (event.key === 'Escape' && showAddMenu && !showDeleteModal && !showPhotoModal) {
       showAddMenu = false;
       addToggle?.focus();
     }
@@ -50,11 +116,11 @@
 
   $effect(() => {
     // Start on the safe choice (Cancel) so Enter never deletes by accident.
-    if (showDeleteModal && dialogEl) dialogEl.querySelector('[data-autofocus]')?.focus();
+    if ((showDeleteModal || showPhotoModal) && dialogEl) dialogEl.querySelector('[data-autofocus]')?.focus();
   });
 
   function onDialogKeydown(event) {
-    if (event.key === 'Escape') { event.stopPropagation(); closeDelete(); return; }
+    if (event.key === 'Escape') { event.stopPropagation(); if (showPhotoModal) closePhotoRemove(); else closeDelete(); return; }
     if (event.key !== 'Tab') return;
     const focusable = [...dialogEl.querySelectorAll('button:not([disabled])')];
     const first = focusable[0];
@@ -196,13 +262,35 @@
     {@const c = currentContact.value}
 
     <div class="detail-avatar-section">
-      <div class="detail-avatar">
-         {#if c.deceased}
-           <Skull size={38} strokeWidth={1.8} aria-label={t('contactDeceased')} />
-         {:else}
-           {(c.first_name || '')[0] || '?'}{(c.surname || '')[0] || ''}
-         {/if}
+      {#if c.deceased && !c.photo_url}
+        <div class="detail-avatar">
+          <Skull size={38} strokeWidth={1.8} aria-label={t('contactDeceased')} />
+        </div>
+      {:else}
+        <div class="detail-avatar-wrap"><Avatar contact={c} size={80} bordered /></div>
+      {/if}
+      <input
+        bind:this={photoInput}
+        class="photo-input"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        tabindex="-1"
+        aria-hidden="true"
+        onchange={onPhotoSelected}
+      />
+      <div class="photo-actions">
+        <button class="card-action" onclick={() => photoInput?.click()} disabled={!!photoBusy}>
+          <Camera size={16} /> {photoBusy === 'upload' ? t('photoUploading') : c.photo_url ? t('photoChange') : t('photoAdd')}
+        </button>
+        {#if c.photo_url}
+          <button class="card-action" onclick={openPhotoRemove} disabled={!!photoBusy}>
+            <Trash2 size={16} /> {photoBusy === 'remove' ? t('photoRemoving') : t('photoRemove')}
+          </button>
+        {/if}
       </div>
+      {#if photoError}
+        <div class="photo-error"><ErrorNotice message={photoError} /></div>
+      {/if}
        <h1 class="detail-name">
          {c.first_name || ''} {c.middle_name || ''} {c.surname || ''}
        </h1>
@@ -517,7 +605,38 @@
   </div>
 {/if}
 
+{#if showPhotoModal}
+  <div class="modal-overlay" role="presentation" onclick={closePhotoRemove}>
+    <div
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="photo-title"
+      aria-describedby="photo-text"
+      tabindex="-1"
+      bind:this={dialogEl}
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={onDialogKeydown}
+    >
+      <div class="modal-title" id="photo-title">{t('photoRemoveTitle')}</div>
+      <div class="modal-text" id="photo-text">{t('photoRemoveHint')}</div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" data-autofocus onclick={closePhotoRemove}>
+          {t('contactCancel')}
+        </button>
+        <button class="btn btn-danger" onclick={removePhoto}>
+          {t('photoRemove')}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
+  .detail-avatar-wrap { margin-bottom: 12px; }
+  .photo-input { display: none; }
+  .photo-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 12px; }
+  .photo-error { width: 100%; }
   .detail-page { padding-bottom: 40px; }
 
   .detail-header {

@@ -224,20 +224,6 @@ input[type="date"].input::-webkit-date-and-time-value {
 
 .list-item:hover { background: var(--surface2); text-decoration: none; }
 
-.avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--surface2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 1rem;
-  color: var(--accent-text);
-  flex-shrink: 0;
-}
-
 .empty-state {
   text-align: center;
   padding: 60px 20px;

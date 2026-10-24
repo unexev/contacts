@@ -22,9 +22,11 @@ export function setToken(t) {
 
 // keepSession: a 401 means a wrong re-entered password, not an expired session.
 export async function api(path, { method = 'GET', body, signal, keepSession = false } = {}) {
-  const headers = { 'Content-Type': 'application/json' };
+  // FormData: leave Content-Type unset so the browser adds the multipart boundary.
+  const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
+  const headers = isForm ? {} : { 'Content-Type': 'application/json' };
   if (A.token) headers.Authorization = 'Bearer ' + A.token;
-  const res = await fetch(BASE + path, { method, headers, body: body ? JSON.stringify(body) : undefined, signal });
+  const res = await fetch(BASE + path, { method, headers, body: !body ? undefined : isForm ? body : JSON.stringify(body), signal });
   if (res.status === 401) { if (!keepSession) setToken(''); throw new Error('Invalid credentials'); }
   const raw = await res.json().catch(() => null);
   if (!res.ok) {
@@ -32,7 +34,7 @@ export async function api(path, { method = 'GET', body, signal, keepSession = fa
                     res.status === 409 ? 'Invalid request' :
                     res.status === 400 ? (raw?.error || 'Invalid input') :
                     'Something went wrong';
-    throw new Error(safeMsg);
+    throw Object.assign(new Error(safeMsg), { status: res.status });
   }
   return raw?.data !== undefined ? raw.data : raw;
 }
