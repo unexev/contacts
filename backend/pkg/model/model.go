@@ -38,6 +38,10 @@ type Contact struct {
 	// True when the contact's only phones are marked as no longer in use.
 	PrimaryPhoneInactive bool   `json:"primary_phone_inactive,omitempty"`
 	PrimaryEmail         string `json:"primary_email,omitempty"`
+	// Storage object path; never serialized and not part of sync.
+	PhotoPath string `json:"-"`
+	// Signed short-lived URL, filled by the app layer when the contact has a photo.
+	PhotoURL string `json:"photo_url,omitempty"`
 }
 
 // MarshalJSON implements custom JSON marshaling to handle NullString

@@ -184,6 +184,7 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 	selectQuery := fmt.Sprintf(`
 		SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
 		       c.birthdate, c.gender, c.status_id, ms.marital_status, c.deceased, c.updated_at, c.created_at,
+		       COALESCE(c.photo_path, '') AS photo_path,
 		       COALESCE(pp.phone, '') AS primary_phone,
 		       NOT COALESCE(pp.is_active, true) AS primary_phone_inactive,
 		       COALESCE((SELECT e.email FROM contact_emails e
@@ -213,6 +214,7 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 		if err := rows.Scan(
 			&c.UserID, &c.ContactID, &c.FirstName, &c.MiddleName, &c.Surname,
 			&c.Birthdate, &c.Gender, &c.StatusID, &c.MaritalStatus, &c.Deceased, &c.UpdatedAt, &c.CreatedAt,
+			&c.PhotoPath,
 			&c.PrimaryPhone, &c.PrimaryPhoneInactive, &c.PrimaryEmail,
 		); err != nil {
 			return nil, 0, err
@@ -226,13 +228,14 @@ func (s *Store) GetContact(userID, contactID string) (model.Contact, error) {
 	var c model.Contact
 	err := s.pool.QueryRow(context.Background(),
 		`SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
-		        c.birthdate, c.gender, c.status_id, ms.marital_status, c.deceased, c.updated_at
+		        c.birthdate, c.gender, c.status_id, ms.marital_status, c.deceased, c.updated_at,
+		        COALESCE(c.photo_path, '')
 		 FROM contacts c
 		 LEFT JOIN marital_status ms ON c.status_id = ms.status_id
 		 WHERE c.user_id = $1 AND c.contact_id = $2 AND c.deleted = 0`,
 		userID, contactID,
 	).Scan(&c.UserID, &c.ContactID, &c.FirstName, &c.MiddleName, &c.Surname,
-		&c.Birthdate, &c.Gender, &c.StatusID, &c.MaritalStatus, &c.Deceased, &c.UpdatedAt)
+		&c.Birthdate, &c.Gender, &c.StatusID, &c.MaritalStatus, &c.Deceased, &c.UpdatedAt, &c.PhotoPath)
 	return c, err
 }
 
@@ -274,6 +277,20 @@ func (s *Store) DeleteContact(userID, contactID string) error {
 	return err
 }
 
+// SetContactPhotoPath sets (or, when empty, clears) the contact's photo object path.
+// It deliberately leaves updated_at alone: photos are not part of sync.
+func (s *Store) SetContactPhotoPath(userID, contactID, path string) error {
+	var v any
+	if path != "" {
+		v = path
+	}
+	_, err := s.pool.Exec(context.Background(),
+		`UPDATE contacts SET photo_path = $3 WHERE user_id = $1 AND contact_id = $2 AND deleted = 0`,
+		userID, contactID, v,
+	)
+	return err
+}
+
 // ──────────────────────────── Contact Full ────────────────────
 
 func nullStr(ns sql.NullString) *string {
@@ -301,6 +318,8 @@ func (s *Store) GetContactFull(userID, contactID string) (map[string]interface{}
 		"marital_status": c.MaritalStatus.String,
 		"deceased":       c.Deceased,
 		"updated_at":     c.UpdatedAt,
+		// Internal: the app layer swaps this for a signed photo_url.
+		"photo_path": c.PhotoPath,
 	}
 
 	// The sections are independent, so fetch them concurrently and skip the

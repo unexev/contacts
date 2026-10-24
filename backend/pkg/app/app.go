@@ -14,6 +14,7 @@ import (
 	"contacts/pkg/docvalidate"
 	"contacts/pkg/model"
 	"contacts/pkg/noteval"
+	"contacts/pkg/storage"
 	"contacts/pkg/store"
 	"time"
 
@@ -24,6 +25,8 @@ import (
 type App struct {
 	store *store.Store
 	auth  *auth.Manager
+
+	photos storage.Store // nil when photo storage is not configured
 
 	refreshTTL   time.Duration
 	refreshGrace time.Duration
@@ -45,6 +48,9 @@ func New(s *store.Store, a *auth.Manager, opts ...Option) *App {
 		auth:         a,
 		refreshTTL:   time.Duration(cfg.RefreshTTLDays) * 24 * time.Hour,
 		refreshGrace: time.Duration(cfg.RefreshGraceSeconds) * time.Second,
+	}
+	if sc := storage.New(cfg.SupabaseURL, cfg.SupabaseServiceKey, cfg.SupabaseBucket); sc.Configured() {
+		app.photos = sc
 	}
 	for _, o := range opts {
 		o(app)
@@ -74,6 +80,9 @@ func (a *App) Handler() http.Handler {
 			r.Get("/contacts/{id}", a.getContact)
 			r.Put("/contacts/{id}", a.updateContact)
 			r.Delete("/contacts/{id}", a.deleteContact)
+
+			r.Put("/contacts/{id}/photo", a.putPhoto)
+			r.Delete("/contacts/{id}/photo", a.deletePhoto)
 
 			r.Get("/contacts/{id}/locations", a.listLocations)
 			r.Post("/contacts/{id}/locations", a.createLocation)
@@ -383,6 +392,7 @@ func (a *App) listContacts(w http.ResponseWriter, r *http.Request) {
 	if contacts == nil {
 		contacts = []model.Contact{}
 	}
+	a.signContactPhotos(r.Context(), contacts)
 	paginatedResp(w, http.StatusOK, contacts, total, limit, offset)
 }
 
@@ -428,6 +438,16 @@ func (a *App) getContact(w http.ResponseWriter, r *http.Request) {
 		errResp(w, http.StatusNotFound, "contact not found")
 		return
 	}
+	// photo_path is internal; expose only a signed URL.
+	path, _ := c["photo_path"].(string)
+	delete(c, "photo_path")
+	if path != "" {
+		sc := []model.Contact{{ContactID: contactID, PhotoPath: path}}
+		a.signContactPhotos(r.Context(), sc)
+		if sc[0].PhotoURL != "" {
+			c["photo_url"] = sc[0].PhotoURL
+		}
+	}
 	dataResp(w, http.StatusOK, c)
 }
 
@@ -469,9 +489,21 @@ func (a *App) deleteContact(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	contactID := chi.URLParam(r, "id")
 
+	var photoPath string
+	if a.photos != nil {
+		if c, err := a.store.GetContact(claims.UserID, contactID); err == nil {
+			photoPath = c.PhotoPath
+		}
+	}
 	if err := a.store.DeleteContact(claims.UserID, contactID); err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to delete contact")
 		return
+	}
+	if photoPath != "" {
+		// Best effort: the contact is already gone, so a leftover object must not fail the request.
+		if err := a.photos.Delete(r.Context(), photoPath); err != nil {
+			log.Printf("deleteContact photo cleanup error: user=%s contact=%s err=%v", claims.UserID, contactID, err)
+		}
 	}
 	dataResp(w, http.StatusOK, map[string]string{"message": "deleted"})
 }

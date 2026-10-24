@@ -16,6 +16,11 @@ type Config struct {
 	RefreshGraceSeconds int
 	DBMaxConns          int32
 	DBMinConns          int32
+
+	// Supabase Storage for contact photos; photo endpoints answer 503 when unset.
+	SupabaseURL        string
+	SupabaseServiceKey string
+	SupabaseBucket     string
 }
 
 func Load(required bool) (Config, error) {
@@ -29,6 +34,9 @@ func Load(required bool) (Config, error) {
 		RefreshGraceSeconds: 300,
 		DBMaxConns:          10,
 		DBMinConns:          2,
+		SupabaseURL:         os.Getenv("SUPABASE_URL"),
+		SupabaseServiceKey:  os.Getenv("SUPABASE_SERVICE_KEY"),
+		SupabaseBucket:      os.Getenv("SUPABASE_BUCKET"),
 	}
 
 	if v := os.Getenv("JWT_TTL_HOURS"); v != "" {
