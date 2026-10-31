@@ -6,6 +6,7 @@
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { ChevronLeft, ChevronRight, Cake } from '@lucide/svelte';
   import { calculateAge, parseContactDate } from '$lib/date.js';
+  import { getCached, setCached, isFresh } from '$lib/cache.svelte.js';
 
   let currentMonth = $state(new Date().getMonth());
   let currentYear = $state(new Date().getFullYear());
@@ -18,27 +19,47 @@
 
   onMount(() => {
     if (!A.token) { goto('/login'); return; }
-    fetchBirthdays();
+    loadBirthdays();
   });
+
+  function groupByDay(list) {
+    const map = {};
+    list.forEach(c => {
+      if (!c.birthdate) return;
+      const d = parseContactDate(c.birthdate);
+      if (d) {
+        const day = d.getDate();
+        if (!map[day]) map[day] = [];
+        map[day].push(c);
+      }
+    });
+    return map;
+  }
+
+  // Stale-while-revalidate: show the cached month right away, refetch only when stale.
+  function loadBirthdays() {
+    const key = `birthdays:${currentYear}-${currentMonth}`;
+    const cached = getCached(key);
+    if (cached) {
+      birthdays = groupByDay(cached.data);
+      loading = false;
+      loadError = false;
+    }
+    if (!isFresh(key)) fetchBirthdays();
+    else fetchId++; // drop any in-flight fetch for the previous month
+  }
 
   async function fetchBirthdays() {
     const myId = ++fetchId;
-    loading = true;
+    const key = `birthdays:${currentYear}-${currentMonth}`;
+    // Revalidating over a month already on screen keeps it un-dimmed.
+    loading = !getCached(key);
     loadError = false;
     try {
       const list = await apiAll(`/api/birthdays?month=${currentMonth + 1}&year=${currentYear}`);
       if (myId !== fetchId) return;
-      const map = {};
-      list.forEach(c => {
-        if (!c.birthdate) return;
-        const d = parseContactDate(c.birthdate);
-        if (d) {
-          const day = d.getDate();
-          if (!map[day]) map[day] = [];
-          map[day].push(c);
-        }
-      });
-      birthdays = map;
+      birthdays = groupByDay(list);
+      setCached(key, list);
     } catch (err) {
       if (myId !== fetchId) return;
       if (err.message === 'unauthorized' || err.message === 'Invalid credentials') { goto('/login'); return; }
@@ -57,7 +78,7 @@
       currentMonth--;
     }
     selectedDay = null;
-    fetchBirthdays();
+    loadBirthdays();
   }
 
   function nextMonth() {
@@ -68,7 +89,7 @@
       currentMonth++;
     }
     selectedDay = null;
-    fetchBirthdays();
+    loadBirthdays();
   }
 
   function getDaysInMonth() {

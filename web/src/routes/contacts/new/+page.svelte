@@ -5,6 +5,7 @@
   import { friendlyError } from '$lib/errors.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import { invalidate } from '$lib/cache.svelte.js';
 
   let first_name = $state('');
   let middle_name = $state('');
@@ -41,6 +42,8 @@
        body.deceased = deceased;
 
       const data = await api('/api/contacts', { method: 'POST', body });
+      invalidate('contacts');
+      invalidate('birthdays');
       const id = data.contact_id || data.id;
       if (id) goto(`/contacts/${id}`);
       else goto('/contacts');

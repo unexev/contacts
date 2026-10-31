@@ -10,6 +10,7 @@
   import Avatar from '$lib/components/Avatar.svelte';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { loadView, saveView } from '$lib/viewState.js';
+  import { getCached, setCached, isFresh } from '$lib/cache.svelte.js';
   import { calculateAge, formatAge, parseContactDate } from '$lib/date.js';
 
   let debounceTimer = $state(null);
@@ -45,44 +46,72 @@
 
   onMount(() => {
     if (!A.token) { goto('/login'); return; }
-    fetchContacts();
+    loadContacts();
   });
 
   let fetchId = 0;
 
+  // Query string for the current search and filters (without paging).
+  function buildParams() {
+    let params = ['limit=100'];
+    if (search.value) params.push(`search=${encodeURIComponent(search.value)}`);
+    if (filterGender) params.push(`gender=${encodeURIComponent(filterGender)}`);
+    if (filterBirthday === 'yes') params.push('has_birthday=true');
+    if (filterBirthday === 'no') params.push('has_birthday=false');
+    if (filterIDCard === 'yes') params.push('has_id_card=true');
+    if (filterIDCard === 'no') params.push('has_id_card=false');
+    if (filterOrganization === 'yes') params.push('has_organization=true');
+    if (filterOrganization === 'no') params.push('has_organization=false');
+    if (filterMaritalStatus === 'yes') params.push('has_marital_status=true');
+    if (filterMaritalStatus === 'no') params.push('has_marital_status=false');
+    return params.join('&');
+  }
+
+  // Stale-while-revalidate: show cached data right away, refetch only when stale.
+  function loadContacts() {
+    const key = `contacts?${buildParams()}`;
+    const cached = getCached(key);
+    if (cached) {
+      contacts.value = sortContacts(cached.data);
+      loading.value = false;
+      loadError = false;
+    }
+    if (!isFresh(key)) fetchContacts();
+    else {
+      // A fetch for the previous filters must not overwrite what is shown now.
+      fetchId++;
+      syncing = false;
+    }
+  }
+
   async function fetchContacts() {
     const myId = ++fetchId;
-    loading.value = true;
+    const paramString = buildParams();
+    const key = `contacts?${paramString}`;
+    // Revalidating over data already on screen keeps it visible instead of the skeleton.
+    const hasCached = !!getCached(key);
+    loading.value = contacts.value.length === 0 && !hasCached;
     syncing = true;
     loadError = false;
     try {
-       let params = ['limit=100'];
-      if (search.value) params.push(`search=${encodeURIComponent(search.value)}`);
-      if (filterGender) params.push(`gender=${encodeURIComponent(filterGender)}`);
-      if (filterBirthday === 'yes') params.push('has_birthday=true');
-      if (filterBirthday === 'no') params.push('has_birthday=false');
-      if (filterIDCard === 'yes') params.push('has_id_card=true');
-      if (filterIDCard === 'no') params.push('has_id_card=false');
-      if (filterOrganization === 'yes') params.push('has_organization=true');
-      if (filterOrganization === 'no') params.push('has_organization=false');
-      if (filterMaritalStatus === 'yes') params.push('has_marital_status=true');
-      if (filterMaritalStatus === 'no') params.push('has_marital_status=false');
-       let offset = 0;
-       let total = Infinity;
-       const list = [];
-       while (offset < total) {
-         const query = `?${params.join('&')}&offset=${offset}`;
-         const raw = await apiRaw(`/api/contacts${query}`);
-         if (myId !== fetchId) return;
-         const page = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
-         list.push(...page);
-         total = Number.isFinite(raw?.total) ? raw.total : list.length;
-         // Show the first page right away; later pages append in the background.
-         contacts.value = sortContacts(list);
-         if (offset === 0) loading.value = false;
-         if (page.length === 0) break;
-         offset += page.length;
-       }
+      let offset = 0;
+      let total = Infinity;
+      const list = [];
+      while (offset < total) {
+        const raw = await apiRaw(`/api/contacts?${paramString}&offset=${offset}`);
+        if (myId !== fetchId) return;
+        const page = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
+        list.push(...page);
+        total = Number.isFinite(raw?.total) ? raw.total : list.length;
+        // Show the first page right away; later pages append in the background.
+        // Over cached data, swap only once the whole list is in so the list does not shrink.
+        if (!hasCached) contacts.value = sortContacts(list);
+        if (offset === 0) loading.value = false;
+        if (page.length === 0) break;
+        offset += page.length;
+      }
+      contacts.value = sortContacts(list);
+      setCached(key, list);
     } catch (err) {
       if (myId !== fetchId) return;
       if (err.message === 'unauthorized') { goto('/login'); return; }
@@ -167,7 +196,7 @@
   function onSearchInput(val) {
     search.value = val;
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(fetchContacts, 300);
+    debounceTimer = setTimeout(loadContacts, 300);
   }
 
   const TRI = [['', 'filterAll'], ['yes', 'filterWith'], ['no', 'filterWithout']];
@@ -188,7 +217,7 @@
     else if (name === 'filterOrganization') filterOrganization = value;
     else if (name === 'filterMaritalStatus') filterMaritalStatus = value;
     persistView();
-    fetchContacts();
+    loadContacts();
   }
 
   function clearFilters() {
@@ -198,7 +227,7 @@
     filterOrganization = '';
     filterMaritalStatus = '';
     persistView();
-    fetchContacts();
+    loadContacts();
   }
 
   function selectSort(val) {
