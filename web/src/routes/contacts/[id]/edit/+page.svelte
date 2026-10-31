@@ -6,6 +6,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import { invalidate } from '$lib/cache.svelte.js';
   import { Trash2 } from '@lucide/svelte';
   import RelatedSection from '$lib/components/RelatedSection.svelte';
   import Combobox from '$lib/components/Combobox.svelte';
@@ -255,8 +256,13 @@
     try {
       await resolveOrganizations();
       await Promise.all(collectSaveTasks());
+      invalidate('contacts');
+      invalidate('birthdays');
       goto(`/contacts/${id}`);
     } catch (err) {
+      // Some writes may have gone through before the failure.
+      invalidate('contacts');
+      invalidate('birthdays');
       error = friendlyError(err, t);
     } finally {
       saving = false;

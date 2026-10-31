@@ -1,5 +1,7 @@
 const BASE = (import.meta.env.DEV ? '' : (import.meta.env.VITE_API_BASE_URL || 'https://contacts-lac-three.vercel.app')).replace(/\/+$/, '');
 
+import { clearCache } from './cache.svelte.js';
+
 export const A = $state({ token: '', user: null });
 
 export function loadToken() {
@@ -11,6 +13,7 @@ export function loadToken() {
 
 export function setToken(t) {
   A.token = t;
+  if (!t) clearCache();
   try {
     if (t) {
       localStorage.setItem('auth_token', t);

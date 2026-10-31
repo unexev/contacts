@@ -15,6 +15,7 @@
   import { showToast } from '$lib/toast.svelte.js';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { friendlyError } from '$lib/errors.js';
+  import { invalidate } from '$lib/cache.svelte.js';
 
   let showDeleteModal = $state(false);
   let showAddMenu = $state(false);
@@ -53,6 +54,8 @@
       const form = new FormData();
       form.append('photo', file);
       const data = await api(`/api/contacts/${contactId}/photo`, { method: 'PUT', body: form });
+      invalidate('contacts');
+      invalidate('birthdays');
       if (currentContact.value) currentContact.value = { ...currentContact.value, photo_url: data?.photo_url };
       showToast(t('photoUpdated'));
     } catch (err) {
@@ -79,6 +82,8 @@
     photoBusy = 'remove';
     try {
       await api(`/api/contacts/${contactId}/photo`, { method: 'DELETE' });
+      invalidate('contacts');
+      invalidate('birthdays');
       if (currentContact.value) currentContact.value = { ...currentContact.value, photo_url: undefined };
       showToast(t('photoRemoved'));
     } catch (err) {
@@ -168,6 +173,8 @@
     deleting = true;
     try {
       await api(`/api/contacts/${contactId}`, { method: 'DELETE' });
+      invalidate('contacts');
+      invalidate('birthdays');
       goto('/contacts');
     } catch (err) {
       error = friendlyError(err, t);
