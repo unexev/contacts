@@ -6,7 +6,7 @@
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { ChevronLeft, ChevronRight, Cake } from '@lucide/svelte';
   import { calculateAge, parseContactDate } from '$lib/date.js';
-  import { getCached, setCached, isFresh } from '$lib/cache.svelte.js';
+  import { getCached, setCached, isFresh, cacheGeneration } from '$lib/cache.svelte.js';
 
   let currentMonth = $state(new Date().getMonth());
   let currentYear = $state(new Date().getFullYear());
@@ -51,6 +51,7 @@
 
   async function fetchBirthdays() {
     const myId = ++fetchId;
+    const startedAt = cacheGeneration();
     const key = `birthdays:${currentYear}-${currentMonth}`;
     // Revalidating over a month already on screen keeps it un-dimmed.
     loading = !getCached(key);
@@ -59,7 +60,7 @@
       const list = await apiAll(`/api/birthdays?month=${currentMonth + 1}&year=${currentYear}`);
       if (myId !== fetchId) return;
       birthdays = groupByDay(list);
-      setCached(key, list);
+      setCached(key, list, startedAt);
     } catch (err) {
       if (myId !== fetchId) return;
       if (err.message === 'unauthorized' || err.message === 'Invalid credentials') { goto('/login'); return; }

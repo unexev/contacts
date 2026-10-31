@@ -8,7 +8,16 @@ export function getCached(key) {
   return entries.get(key);
 }
 
-export function setCached(key, data) {
+// Bumped by every invalidation. A fetch records it when it starts and hands it back to
+// setCached, so a result that raced with a mutation is not stored as fresh.
+let generation = 0;
+
+export function cacheGeneration() {
+  return generation;
+}
+
+export function setCached(key, data, startedAt = generation) {
+  if (startedAt !== generation) return;
   entries.set(key, { data, fetchedAt: Date.now(), dirty: false });
 }
 
@@ -19,11 +28,13 @@ export function isFresh(key, ttl = CACHE_TTL) {
 
 // Marks entries stale but keeps their data, so it can still be shown while revalidating.
 export function invalidate(prefix) {
+  generation++;
   for (const [key, entry] of entries) {
     if (key.startsWith(prefix)) entry.dirty = true;
   }
 }
 
 export function clearCache() {
+  generation++;
   entries.clear();
 }

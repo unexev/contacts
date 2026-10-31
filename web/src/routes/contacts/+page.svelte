@@ -10,7 +10,7 @@
   import Avatar from '$lib/components/Avatar.svelte';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { loadView, saveView } from '$lib/viewState.js';
-  import { getCached, setCached, isFresh } from '$lib/cache.svelte.js';
+  import { getCached, setCached, isFresh, cacheGeneration } from '$lib/cache.svelte.js';
   import { calculateAge, formatAge, parseContactDate } from '$lib/date.js';
 
   let debounceTimer = $state(null);
@@ -89,6 +89,7 @@
 
   async function fetchContacts() {
     const myId = ++fetchId;
+    const startedAt = cacheGeneration();
     const paramString = buildParams();
     const key = `contacts?${paramString}`;
     // Revalidating over data already on screen keeps it visible instead of the skeleton.
@@ -114,7 +115,7 @@
         offset += page.length;
       }
       contacts.value = sortContacts(list);
-      setCached(key, list);
+      setCached(key, list, startedAt);
     } catch (err) {
       if (myId !== fetchId) return;
       if (err.message === 'unauthorized') { goto('/login'); return; }
