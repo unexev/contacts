@@ -75,6 +75,9 @@
       contacts.value = sortContacts(cached.data);
       loading.value = false;
       loadError = false;
+    } else {
+      // Nothing cached for this query: the list on screen belongs to another one.
+      contacts.value = [];
     }
     if (!isFresh(key)) fetchContacts();
     else {
