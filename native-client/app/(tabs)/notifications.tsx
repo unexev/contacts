@@ -290,7 +290,7 @@ export default function NotificationsScreen() {
 
       {status && (
         <View style={[styles.statusBox, { backgroundColor: colors.statusSuccessBg }, { backgroundColor: statusError ? colors.statusErrorBg : colors.statusSuccessBg }]}>
-          <Text style={[styles.statusText, { color: colors.text }]}>{status}</Text>
+          <Text accessibilityLiveRegion="polite" accessibilityRole={statusError ? 'alert' : undefined} style={[styles.statusText, { color: colors.text }]}>{status}</Text>
         </View>
       )}
     </ScrollView>

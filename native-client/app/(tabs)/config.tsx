@@ -125,7 +125,7 @@ export default function Config() {
               ? <ActivityIndicator color="#fff" />
               : <Text style={styles.buttonText}>{t.config.signInWithGoogle}</Text>}
           </Pressable>
-          {signInError && <Text style={[styles.error, { color: colors.destructive }]}>{signInError}</Text>}
+          {signInError && <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={[styles.error, { color: colors.destructive }]}>{signInError}</Text>}
         </View>
       )}
 

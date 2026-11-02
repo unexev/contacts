@@ -188,7 +188,7 @@ export default function LoginScreen() {
         <Pressable style={styles.guestBtn} onPress={handleGuest}>
           <Text style={[styles.guestBtnText, { color: colors.accent }]}>{t.login.continueAsGuest}</Text>
         </Pressable>
-        {error && <Text style={[styles.error, { color: colors.destructiveText }]}>{error}</Text>}
+        {error && <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={[styles.error, { color: colors.destructiveText }]}>{error}</Text>}
         <Text style={[styles.disclaimer, { color: colors.textSecondary }]}>{t.login.disclaimer}</Text>
       </View>
     </ScrollView>

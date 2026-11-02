@@ -340,7 +340,7 @@ export default function SyncScreen() {
 
         {status && (
           <View style={[styles.statusBox, { backgroundColor: colors.statusSuccessBg }, { backgroundColor: status.startsWith('Error') ? colors.statusErrorBg : colors.statusSuccessBg }]}>
-            <Text style={[styles.statusText, { color: colors.text }]}>{status}</Text>
+            <Text accessibilityLiveRegion="polite" accessibilityRole={status.startsWith('Error') ? 'alert' : undefined} style={[styles.statusText, { color: colors.text }]}>{status}</Text>
           </View>
         )}
       </View>
@@ -361,7 +361,7 @@ export default function SyncScreen() {
           </Pressable>
           {hasBackup === false && (
             <View style={[styles.statusBox, { backgroundColor: colors.statusSuccessBg }, { backgroundColor: colors.statusErrorBg, marginBottom: 10 }]}>
-              <Text style={[styles.statusText, { color: colors.text }]}>{t.drive.notFound}</Text>
+              <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={[styles.statusText, { color: colors.text }]}>{t.drive.notFound}</Text>
             </View>
           )}
           <Pressable
@@ -375,7 +375,7 @@ export default function SyncScreen() {
           </Pressable>
           {driveStatus && (
             <View style={[styles.statusBox, { backgroundColor: colors.statusSuccessBg }, { backgroundColor: driveStatus.startsWith('Error') ? colors.statusErrorBg : colors.statusSuccessBg }]}>
-              <Text style={[styles.statusText, { color: colors.text }]}>{driveStatus}</Text>
+              <Text accessibilityLiveRegion="polite" accessibilityRole={driveStatus.startsWith('Error') ? 'alert' : undefined} style={[styles.statusText, { color: colors.text }]}>{driveStatus}</Text>
             </View>
           )}
         </View>
@@ -406,7 +406,7 @@ export default function SyncScreen() {
           <Text style={[styles.syncHint, { color: colors.textSecondary }]}>{lastSyncLabel}</Text>
           {syncStatus && (
             <View style={[styles.statusBox, { backgroundColor: colors.statusSuccessBg }, { backgroundColor: syncStatus.startsWith('Error') ? colors.statusErrorBg : colors.statusSuccessBg }]}>
-              <Text style={[styles.statusText, { color: colors.text }]}>{syncStatus}</Text>
+              <Text accessibilityLiveRegion="polite" accessibilityRole={syncStatus.startsWith('Error') ? 'alert' : undefined} style={[styles.statusText, { color: colors.text }]}>{syncStatus}</Text>
             </View>
           )}
         </View>
