@@ -4,6 +4,7 @@ import { db, getDatabaseSignature, writeDatabaseFromBase64 } from './db';
 import { toDisplay } from './contactUtils';
 import { createContactsActions } from './contactsActions';
 import type { Contact, ContactsContextType } from './contactsTypes';
+import { syncNow as syncNowApi } from './apiSync';
 import { useAuth } from './authContext';
 import { checkBackupExists, downloadDB } from './driveSync';
 import {
@@ -155,6 +156,34 @@ export function ContactsProvider({ children }: { children: ReactNode }) {
         });
         return () => sub.remove();
     }, [runWithToken, fetchContacts]);
+
+    // ── Sincronización con el backend propio (sesión email/contraseña) ───────────
+    // Corre al iniciar sesión, al abrir la app con una sesión guardada y al volver a primer plano.
+    const { apiSession } = useAuth();
+    const apiSyncing = useRef(false);
+
+    const runApiSync = useCallback(async () => {
+        if (apiSyncing.current) return;
+        apiSyncing.current = true;
+        try {
+            const res = await syncNowApi();
+            if (res.error) console.warn('[apiSync] sync falló:', res.error);
+            if (res.changed) await fetchContacts();
+        } catch (e) {
+            console.warn('[apiSync] sync falló:', e);
+        } finally {
+            apiSyncing.current = false;
+        }
+    }, [fetchContacts]);
+
+    useEffect(() => {
+        if (!apiSession) return;
+        void runApiSync();
+        const sub = AppState.addEventListener('change', (state) => {
+            if (state === 'active') void runApiSync();
+        });
+        return () => sub.remove();
+    }, [apiSession, runApiSync]);
 
     // Auto-restore: si la DB local está vacía al iniciar sesión, descarga el backup de Drive.
     const hasCheckedRestore = useRef(false);
