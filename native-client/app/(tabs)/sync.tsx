@@ -308,7 +308,7 @@ export default function SyncScreen() {
         <Text style={[styles.cardTitle, { color: colors.text }]}>{t.config.database}</Text>
         <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t.config.databaseDesc}</Text>
 
-        <Pressable
+        <Pressable accessibilityRole="button" accessibilityLabel={t.config.importVcfBtn}
           style={[styles.button, styles.buttonVcf, !!loadingOp && styles.buttonDisabled]}
           onPress={handleImportVcf}
           disabled={!!loadingOp}
@@ -318,7 +318,7 @@ export default function SyncScreen() {
             : <Text style={styles.buttonText}>{t.config.importVcfBtn}</Text>}
         </Pressable>
 
-        <Pressable
+        <Pressable accessibilityRole="button" accessibilityLabel={t.config.exportBtn}
           style={[styles.button, styles.buttonExport, { backgroundColor: colors.accent }, !!loadingOp && styles.buttonDisabled]}
           onPress={handleExport}
           disabled={!!loadingOp}
@@ -328,7 +328,7 @@ export default function SyncScreen() {
             : <Text style={styles.buttonText}>{t.config.exportBtn}</Text>}
         </Pressable>
 
-        <Pressable
+        <Pressable accessibilityRole="button" accessibilityLabel={t.config.importBtn}
           style={[styles.button, styles.buttonImport, { backgroundColor: colors.successSolid }, !!loadingOp && styles.buttonDisabled]}
           onPress={handleImport}
           disabled={!!loadingOp}
@@ -340,7 +340,7 @@ export default function SyncScreen() {
 
         {status && (
           <View style={[styles.statusBox, { backgroundColor: colors.statusSuccessBg }, { backgroundColor: status.startsWith('Error') ? colors.statusErrorBg : colors.statusSuccessBg }]}>
-            <Text style={[styles.statusText, { color: colors.text }]}>{status}</Text>
+            <Text accessibilityLiveRegion="polite" accessibilityRole={status.startsWith('Error') ? 'alert' : undefined} style={[styles.statusText, { color: colors.text }]}>{status}</Text>
           </View>
         )}
       </View>
@@ -350,7 +350,7 @@ export default function SyncScreen() {
         <View style={[styles.card, { marginTop: 16, backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacity }]}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>{t.drive.title}</Text>
           <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t.drive.desc}</Text>
-          <Pressable
+          <Pressable accessibilityRole="button" accessibilityLabel={t.drive.upload}
             style={[styles.button, styles.buttonDrive, !!loadingOp && styles.buttonDisabled]}
             onPress={handleDriveUpload}
             disabled={!!loadingOp}
@@ -361,10 +361,10 @@ export default function SyncScreen() {
           </Pressable>
           {hasBackup === false && (
             <View style={[styles.statusBox, { backgroundColor: colors.statusSuccessBg }, { backgroundColor: colors.statusErrorBg, marginBottom: 10 }]}>
-              <Text style={[styles.statusText, { color: colors.text }]}>{t.drive.notFound}</Text>
+              <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={[styles.statusText, { color: colors.text }]}>{t.drive.notFound}</Text>
             </View>
           )}
-          <Pressable
+          <Pressable accessibilityRole="button" accessibilityLabel={t.drive.restore}
             style={[styles.button, styles.buttonDriveRestore, (!!loadingOp || hasBackup === false) && styles.buttonDisabled]}
             onPress={handleDriveRestore}
             disabled={!!loadingOp || hasBackup === false}
@@ -375,7 +375,7 @@ export default function SyncScreen() {
           </Pressable>
           {driveStatus && (
             <View style={[styles.statusBox, { backgroundColor: colors.statusSuccessBg }, { backgroundColor: driveStatus.startsWith('Error') ? colors.statusErrorBg : colors.statusSuccessBg }]}>
-              <Text style={[styles.statusText, { color: colors.text }]}>{driveStatus}</Text>
+              <Text accessibilityLiveRegion="polite" accessibilityRole={driveStatus.startsWith('Error') ? 'alert' : undefined} style={[styles.statusText, { color: colors.text }]}>{driveStatus}</Text>
             </View>
           )}
         </View>
@@ -394,7 +394,7 @@ export default function SyncScreen() {
               disabled={!driveToken || syncing}
             />
           </View>
-          <Pressable
+          <Pressable accessibilityRole="button" accessibilityLabel={t.sync.syncNow}
             style={[styles.button, styles.buttonSync, (syncing || !driveToken) && styles.buttonDisabled]}
             onPress={handleSyncNow}
             disabled={syncing || !driveToken}
@@ -406,7 +406,7 @@ export default function SyncScreen() {
           <Text style={[styles.syncHint, { color: colors.textSecondary }]}>{lastSyncLabel}</Text>
           {syncStatus && (
             <View style={[styles.statusBox, { backgroundColor: colors.statusSuccessBg }, { backgroundColor: syncStatus.startsWith('Error') ? colors.statusErrorBg : colors.statusSuccessBg }]}>
-              <Text style={[styles.statusText, { color: colors.text }]}>{syncStatus}</Text>
+              <Text accessibilityLiveRegion="polite" accessibilityRole={syncStatus.startsWith('Error') ? 'alert' : undefined} style={[styles.statusText, { color: colors.text }]}>{syncStatus}</Text>
             </View>
           )}
         </View>

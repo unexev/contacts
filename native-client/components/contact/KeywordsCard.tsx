@@ -58,7 +58,7 @@ export default function KeywordsCard({ contactId, initialKeywords }: Props) {
 
   if (keywords.length === 0 && !adding) {
     return (
-      <Pressable style={s.addRow} onPress={openInput}>
+      <Pressable accessibilityRole="button" style={s.addRow} onPress={openInput}>
         <View style={s.addRowIcon} accessible={false} importantForAccessibility="no-hide-descendants"><Ionicons name="add" size={18} color={colors.accent} /></View>
         <Text style={s.addRowLabel}>{t.keywords.title}</Text>
       </Pressable>
@@ -70,7 +70,7 @@ export default function KeywordsCard({ contactId, initialKeywords }: Props) {
       <View style={s.cardHeader}>
         <Text style={s.cardTitle}>{t.keywords.title}</Text>
         {!adding && (
-          <Pressable style={s.addButton} onPress={openInput} accessibilityLabel={t.keywords.title}>
+          <Pressable accessibilityRole="button" style={s.addButton} onPress={openInput} accessibilityLabel={t.keywords.title}>
             <AddButtonLabel />
           </Pressable>
         )}
@@ -78,9 +78,9 @@ export default function KeywordsCard({ contactId, initialKeywords }: Props) {
 
       <View style={styles.chipsContainer}>
         {keywords.map(kw => (
-          <Pressable key={kw.id} style={[styles.chip, { backgroundColor: colors.accentSubtle }]} onLongPress={() => handleRemove(kw)}>
+          <Pressable accessible={false} key={kw.id} style={[styles.chip, { backgroundColor: colors.accentSubtle }]} onLongPress={() => handleRemove(kw)}>
             <Text style={[styles.chipText, { color: colors.accent }]}>{kw.keyword}</Text>
-            <Pressable onPress={() => handleRemove(kw)} hitSlop={6} accessibilityLabel={t.common.delete}>
+            <Pressable accessibilityRole="button" onPress={() => handleRemove(kw)} hitSlop={6} accessibilityLabel={t.common.delete}>
               <Ionicons name="close" size={14} color={colors.accent} />
             </Pressable>
           </Pressable>
@@ -88,7 +88,7 @@ export default function KeywordsCard({ contactId, initialKeywords }: Props) {
 
         {adding && (
           <View style={[styles.inputChip, { borderColor: colors.accent }, { backgroundColor: colors.bg }]}>
-            <TextInput
+            <TextInput accessibilityLabel={t.keywords.placeholder}
               ref={inputRef}
               style={styles.inputChipText}
               value={input}

@@ -83,7 +83,7 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
   return (
     <>
       {cards.length === 0 ? (
-        <Pressable style={s.addRow} onPress={openAddModal}>
+        <Pressable accessibilityRole="button" style={s.addRow} onPress={openAddModal}>
           <View style={s.addRowIcon} accessible={false} importantForAccessibility="no-hide-descendants"><Ionicons name="add" size={18} color={colors.accent} /></View>
           <Text style={s.addRowLabel}>{t.documents.title}</Text>
         </Pressable>
@@ -91,7 +91,7 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
         <View style={s.card}>
           <View style={s.cardHeader}>
             <Text style={s.cardTitle}>{t.documents.title}</Text>
-            <Pressable style={s.addButton} onPress={openAddModal} accessibilityLabel={t.documents.addTitle}>
+            <Pressable accessibilityRole="button" style={s.addButton} onPress={openAddModal} accessibilityLabel={t.documents.addTitle}>
               <AddButtonLabel />
             </Pressable>
           </View>
@@ -105,7 +105,7 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
                 {doc.issue_date ? <Text style={styles.docDate}>{t.documents.issuedLabel} {doc.issue_date}</Text> : null}
                 {doc.expiry_date ? <Text style={styles.docDate}>{t.documents.expiryLabel} {doc.expiry_date}</Text> : null}
               </View>
-              <Pressable
+              <Pressable accessibilityRole="button" accessibilityLabel={t.contactInfo.phoneActions.copyToClipboard}
                 style={styles.editBtn}
                 onPress={async () => {
                   await copyToClipboard(doc.card_number);
@@ -114,10 +114,10 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
               >
                 <Ionicons name="copy-outline" size={20} color={colors.accent} />
               </Pressable>
-              <Pressable onPress={() => openEditModal(doc)} style={styles.editBtn} accessibilityLabel={t.common.edit}>
+              <Pressable accessibilityRole="button" onPress={() => openEditModal(doc)} style={styles.editBtn} accessibilityLabel={t.common.edit}>
                 <Text style={[styles.editBtnText, { color: colors.accent }]}>{t.common.edit}</Text>
               </Pressable>
-              <Pressable onPress={() => handleRemove(doc)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
+              <Pressable accessibilityRole="button" onPress={() => handleRemove(doc)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
                 <Ionicons name="close" size={20} color={colors.destructive} />
               </Pressable>
             </View>
@@ -139,7 +139,7 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
               />
 
               <Text style={s.fieldLabel}>{docType === t.contactList.docDriversLicense ? t.documents.licenseType : t.documents.number} <Text style={s.required}>{t.common.required}</Text></Text>
-              <TextInput
+              <TextInput accessibilityLabel={docType === t.contactList.docDriversLicense ? t.documents.licenseType : t.documents.number}
                 style={s.input} value={cardNumber} onChangeText={setCardNumber}
                 placeholder={docType === t.contactList.docDriversLicense ? t.documents.licenseType : t.documents.number} placeholderTextColor={colors.placeholder}
                 autoCapitalize="characters"
@@ -148,14 +148,14 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
               {DOCS_WITH_DATES.includes(docType) && (
                 <>
                   <Text style={s.fieldLabel}>{t.documents.issueDate}</Text>
-                  <TextInput
+                  <TextInput accessibilityLabel={t.documents.issueDate}
                     style={s.input} value={issueDate}
                     onChangeText={v => formatDate(v, setIssueDate)}
                     placeholder={t.contacts.birthdatePlaceholder} placeholderTextColor={colors.placeholder}
                     keyboardType="numeric" maxLength={10}
                   />
                   <Text style={s.fieldLabel}>{t.documents.expiryDate}</Text>
-                  <TextInput
+                  <TextInput accessibilityLabel={t.documents.expiryDate}
                     style={s.input} value={expiryDate}
                     onChangeText={v => formatDate(v, setExpiryDate)}
                     placeholder={t.contacts.birthdatePlaceholder} placeholderTextColor={colors.placeholder}
@@ -166,10 +166,10 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
             </ScrollView>
 
               <View style={s.modalActions}>
-                <Pressable style={s.btnCancel} onPress={() => setModalVisible(false)}>
+                <Pressable accessibilityRole="button" style={s.btnCancel} onPress={() => setModalVisible(false)}>
                   <Text style={s.btnCancelText}>{t.common.cancel}</Text>
                 </Pressable>
-                <Pressable style={s.btnSave} onPress={handleSave}>
+                <Pressable accessibilityRole="button" style={s.btnSave} onPress={handleSave}>
                   <Text style={s.btnSaveText}>{t.common.save}</Text>
                 </Pressable>
               </View>

@@ -81,7 +81,7 @@ export default function RelationshipsCard({ contactId, initialRelationships, onN
   return (
     <>
       {relationships.length === 0 ? (
-        <Pressable style={s.addRow} onPress={openModal}>
+        <Pressable accessibilityRole="button" style={s.addRow} onPress={openModal}>
           <View style={s.addRowIcon} accessible={false} importantForAccessibility="no-hide-descendants"><Ionicons name="add" size={18} color={colors.accent} /></View>
           <Text style={s.addRowLabel}>{t.relationships.title}</Text>
         </Pressable>
@@ -89,22 +89,22 @@ export default function RelationshipsCard({ contactId, initialRelationships, onN
       <View style={s.card}>
         <View style={s.cardHeader}>
           <Text style={s.cardTitle}>{t.relationships.title}</Text>
-          <Pressable style={s.addButton} onPress={openModal} accessibilityLabel={t.relationships.title}>
+          <Pressable accessibilityRole="button" style={s.addButton} onPress={openModal} accessibilityLabel={t.relationships.title}>
             <AddButtonLabel />
           </Pressable>
         </View>
         {relationships.map(rel => (
             <View key={rel.id} style={styles.relRow}>
-              <Pressable style={styles.relAvatar} onPress={() => onNavigate(rel.related_contact_id)}>
+              <Pressable accessibilityRole="button" style={styles.relAvatar} onPress={() => onNavigate(rel.related_contact_id)}>
                 <Text style={styles.relAvatarText}>
                   {rel.first_name?.[0]?.toUpperCase()}{rel.surname?.[0]?.toUpperCase()}
                 </Text>
               </Pressable>
-              <Pressable style={styles.relInfo} onPress={() => onNavigate(rel.related_contact_id)}>
+              <Pressable accessibilityRole="button" style={styles.relInfo} onPress={() => onNavigate(rel.related_contact_id)}>
                 <Text style={styles.relName}>{rel.first_name} {rel.surname}</Text>
                 <Text style={[styles.relType, { color: colors.textSecondary }]}>{listLabel('relationship', lang, rel.type_id, rel.label)}</Text>
               </Pressable>
-              <Pressable onPress={() => handleRemove(rel)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
+              <Pressable accessibilityRole="button" onPress={() => handleRemove(rel)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
                 <Ionicons name="close" size={20} color={colors.destructive} />
               </Pressable>
             </View>
@@ -124,7 +124,7 @@ export default function RelationshipsCard({ contactId, initialRelationships, onN
                   data={relationshipTypes}
                   keyExtractor={item => item.type_id}
                   renderItem={({ item }) => (
-                    <Pressable
+                    <Pressable accessibilityRole="button"
                       style={[styles.optionRow, selectedTypeId === item.type_id && [styles.optionRowSelected, { backgroundColor: colors.accentSubtle }]]}
                       onPress={() => setSelectedTypeId(item.type_id)}
                     >
@@ -135,10 +135,10 @@ export default function RelationshipsCard({ contactId, initialRelationships, onN
                   )}
                 />
                 <View style={s.modalActions}>
-                  <Pressable style={s.btnCancel} onPress={() => setModalVisible(false)}>
+                  <Pressable accessibilityRole="button" style={s.btnCancel} onPress={() => setModalVisible(false)}>
                     <Text style={s.btnCancelText}>{t.common.cancel}</Text>
                   </Pressable>
-                  <Pressable
+                  <Pressable accessibilityRole="button"
                     style={[s.btnSave, !selectedTypeId && s.btnDisabled]}
                     onPress={() => selectedTypeId && setStep('contact')}
                   >
@@ -149,7 +149,7 @@ export default function RelationshipsCard({ contactId, initialRelationships, onN
             ) : (
               <>
                 <Text style={s.modalTitle}>{t.relationships.whichContact}</Text>
-                <TextInput
+                <TextInput accessibilityLabel={t.relationships.search}
                   style={[styles.searchInput, { backgroundColor: colors.bg }]}
                   placeholder={t.relationships.search}
                   value={search}
@@ -161,7 +161,7 @@ export default function RelationshipsCard({ contactId, initialRelationships, onN
                   keyExtractor={item => item.contact_id}
                   ListEmptyComponent={<Text style={s.emptyText}>{t.common.noContactsAvailable}</Text>}
                   renderItem={({ item }) => (
-                    <Pressable
+                    <Pressable accessibilityRole="button"
                       style={[styles.optionRow, selectedContactId === item.contact_id && [styles.optionRowSelected, { backgroundColor: colors.accentSubtle }]]}
                       onPress={() => setSelectedContactId(item.contact_id)}
                     >
@@ -177,10 +177,10 @@ export default function RelationshipsCard({ contactId, initialRelationships, onN
                   )}
                 />
                 <View style={s.modalActions}>
-                  <Pressable style={s.btnCancel} onPress={() => setStep('type')}>
+                  <Pressable accessibilityRole="button" style={s.btnCancel} onPress={() => setStep('type')}>
                     <Text style={s.btnCancelText}>{t.common.back}</Text>
                   </Pressable>
-                  <Pressable
+                  <Pressable accessibilityRole="button"
                     style={[s.btnSave, !selectedContactId && s.btnDisabled]}
                     onPress={handleSave}
                   >

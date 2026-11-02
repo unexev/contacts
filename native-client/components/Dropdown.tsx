@@ -73,7 +73,7 @@ export default function Dropdown({
         animationType="fade"
         onRequestClose={() => setOpen(false)}
       >
-        <Pressable style={[styles.overlay, (isDesktop || isTablet) && styles.overlayCentered, { backgroundColor: colors.overlay }]} onPress={() => setOpen(false)}>
+        <Pressable accessible={false} style={[styles.overlay, (isDesktop || isTablet) && styles.overlayCentered, { backgroundColor: colors.overlay }]} onPress={() => setOpen(false)}>
           <View style={[styles.sheet, (isDesktop || isTablet) ? styles.sheetCentered : { paddingBottom: 32 + insets.bottom }, { backgroundColor: colors.surface }]} accessibilityViewIsModal={true}>
             <View style={[styles.handle, { backgroundColor: colors.separator }]} />
 

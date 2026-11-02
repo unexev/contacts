@@ -73,7 +73,7 @@ export function SwipeableNote({ note, onPress, onDelete }: Props) {
           paddingHorizontal: 16,
         }}
       >
-        <Pressable
+        <Pressable accessibilityRole="button"
           onPress={() => {
             onPress();
           }}

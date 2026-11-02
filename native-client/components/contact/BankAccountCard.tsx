@@ -109,7 +109,7 @@ export default function BankAccountCard({ contactId, initialAccounts }: Props) {
   return (
     <>
       {accounts.length === 0 ? (
-        <Pressable style={s.addRow} onPress={openAddModal}>
+        <Pressable accessibilityRole="button" style={s.addRow} onPress={openAddModal}>
           <View style={s.addRowIcon} accessible={false} importantForAccessibility="no-hide-descendants"><Ionicons name="add" size={18} color={colors.accent} /></View>
           <Text style={s.addRowLabel}>{t.bankAccounts.title}</Text>
         </Pressable>
@@ -117,7 +117,7 @@ export default function BankAccountCard({ contactId, initialAccounts }: Props) {
         <View style={s.card}>
           <View style={s.cardHeader}>
             <Text style={s.cardTitle}>{t.bankAccounts.title}</Text>
-            <Pressable style={s.addButton} onPress={openAddModal} accessibilityLabel={t.bankAccounts.addTitle}>
+            <Pressable accessibilityRole="button" style={s.addButton} onPress={openAddModal} accessibilityLabel={t.bankAccounts.addTitle}>
               <AddButtonLabel />
             </Pressable>
           </View>
@@ -129,10 +129,10 @@ export default function BankAccountCard({ contactId, initialAccounts }: Props) {
                 {acc.account_type ? <Text style={styles.meta}>{acc.account_type}</Text> : null}
                 {acc.label ? <Text style={styles.meta}>{acc.label}</Text> : null}
               </View>
-              <Pressable onPress={() => openEditModal(acc)} style={styles.editBtn} accessibilityLabel={t.common.edit}>
+              <Pressable accessibilityRole="button" onPress={() => openEditModal(acc)} style={styles.editBtn} accessibilityLabel={t.common.edit}>
                 <Text style={[styles.editBtnText, { color: colors.accent }]}>{t.common.edit}</Text>
               </Pressable>
-              <Pressable onPress={() => handleRemove(acc)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
+              <Pressable accessibilityRole="button" onPress={() => handleRemove(acc)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
                 <Ionicons name="close" size={20} color={colors.destructive} />
               </Pressable>
             </View>
@@ -148,7 +148,7 @@ export default function BankAccountCard({ contactId, initialAccounts }: Props) {
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
               <Text style={s.fieldLabel}>{t.bankAccounts.bankName}</Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.bankAccounts.bankName}
                 style={s.input} value={bankName} onChangeText={handleBankNameChange}
                 placeholder={t.bankAccounts.bankNamePlaceholder} placeholderTextColor={colors.placeholder}
                 autoCapitalize="characters" autoFocus
@@ -156,7 +156,7 @@ export default function BankAccountCard({ contactId, initialAccounts }: Props) {
               {bankSuggestions.length > 0 && (
                 <View style={[styles.suggestions, { borderColor: colors.inputBorder }]}>
                   {bankSuggestions.map(sg => (
-                    <Pressable key={sg} style={styles.suggestionRow} onPress={() => { setBankName(sg); setBankSuggestions([]); }}>
+                    <Pressable accessibilityRole="button" key={sg} style={styles.suggestionRow} onPress={() => { setBankName(sg); setBankSuggestions([]); }}>
                       <Text style={[styles.suggestionText, { color: colors.accent }]}>{sg}</Text>
                     </Pressable>
                   ))}
@@ -166,21 +166,21 @@ export default function BankAccountCard({ contactId, initialAccounts }: Props) {
               <Text style={s.fieldLabel}>
                 {t.bankAccounts.accountNumber} <Text style={s.required}>{t.common.required}</Text>
               </Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.bankAccounts.accountNumber}
                 style={s.input} value={accountNumber} onChangeText={setAccountNumber}
                 placeholder="0000-0000-0000-0000" placeholderTextColor={colors.placeholder}
                 keyboardType="numeric"
               />
 
               <Text style={s.fieldLabel}>{t.bankAccounts.accountType}</Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.bankAccounts.accountType}
                 style={s.input} value={accountType} onChangeText={handleAccountTypeChange}
                 placeholder={t.bankAccounts.accountTypePlaceholder} placeholderTextColor={colors.placeholder}
               />
               {typeSuggestions.length > 0 && (
                 <View style={[styles.suggestions, { borderColor: colors.inputBorder }]}>
                   {typeSuggestions.map(sg => (
-                    <Pressable key={sg} style={styles.suggestionRow} onPress={() => { setAccountType(sg); setTypeSuggestions([]); }}>
+                    <Pressable accessibilityRole="button" key={sg} style={styles.suggestionRow} onPress={() => { setAccountType(sg); setTypeSuggestions([]); }}>
                       <Text style={[styles.suggestionText, { color: colors.accent }]}>{sg}</Text>
                     </Pressable>
                   ))}
@@ -188,7 +188,7 @@ export default function BankAccountCard({ contactId, initialAccounts }: Props) {
               )}
 
               <Text style={s.fieldLabel}>{t.bankAccounts.label}</Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.bankAccounts.label}
                 style={s.input} value={label} onChangeText={setLabel}
                 placeholder={t.bankAccounts.labelPlaceholder} placeholderTextColor={colors.placeholder}
               />
@@ -196,10 +196,10 @@ export default function BankAccountCard({ contactId, initialAccounts }: Props) {
             </ScrollView>
 
               <View style={s.modalActions}>
-                <Pressable style={s.btnCancel} onPress={() => setModalVisible(false)}>
+                <Pressable accessibilityRole="button" style={s.btnCancel} onPress={() => setModalVisible(false)}>
                   <Text style={s.btnCancelText}>{t.common.cancel}</Text>
                 </Pressable>
-                <Pressable style={s.btnSave} onPress={handleSave}>
+                <Pressable accessibilityRole="button" style={s.btnSave} onPress={handleSave}>
                   <Text style={s.btnSaveText}>{t.common.save}</Text>
                 </Pressable>
               </View>
