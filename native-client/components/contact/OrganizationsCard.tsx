@@ -168,7 +168,7 @@ export default function OrganizationsCard({ contactId, birthdate, initialOrganiz
             </Text>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={s.fieldLabel}>{t.organizations.orgName} <Text style={s.required}>{t.common.required}</Text></Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.organizations.orgName}
                 style={s.input} value={orgName} onChangeText={handleNameChange}
                 placeholder={t.organizations.orgName} placeholderTextColor={colors.placeholder}
               />
@@ -183,7 +183,7 @@ export default function OrganizationsCard({ contactId, birthdate, initialOrganiz
               )}
 
               <Text style={s.fieldLabel}>{t.organizations.achievement}</Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.organizations.achievement}
                 style={s.input} value={achievement} onChangeText={handleAchievementChange}
                 placeholder={t.organizations.achievementPlaceholder} placeholderTextColor={colors.placeholder}
               />
@@ -198,7 +198,7 @@ export default function OrganizationsCard({ contactId, birthdate, initialOrganiz
               )}
 
               <Text style={s.fieldLabel}>{t.organizations.date}</Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.organizations.date}
                 style={s.input} value={date}
                 onChangeText={v => formatDate(v, setDate)}
                 placeholder={t.contacts.birthdatePlaceholder} placeholderTextColor={colors.placeholder}

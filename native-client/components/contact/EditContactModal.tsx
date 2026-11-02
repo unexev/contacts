@@ -81,13 +81,13 @@ export default function EditContactModal({ visible, contact, onClose, onSaved }:
             >
 
               <Text style={s.fieldLabel}>{t.contacts.firstName} <Text style={s.required}>{t.common.required}</Text></Text>
-              <TextInput style={s.input} value={firstName} onChangeText={setFirstName} placeholderTextColor={colors.placeholder} placeholder={t.contacts.firstNamePlaceholder} />
+              <TextInput accessibilityLabel={t.contacts.firstNamePlaceholder} style={s.input} value={firstName} onChangeText={setFirstName} placeholderTextColor={colors.placeholder} placeholder={t.contacts.firstNamePlaceholder} />
 
               <Text style={s.fieldLabel}>{t.contacts.middleName}</Text>
-              <TextInput style={s.input} value={middleName} onChangeText={setMiddleName} placeholderTextColor={colors.placeholder} placeholder={t.contacts.middleNamePlaceholder} />
+              <TextInput accessibilityLabel={t.contacts.middleNamePlaceholder} style={s.input} value={middleName} onChangeText={setMiddleName} placeholderTextColor={colors.placeholder} placeholder={t.contacts.middleNamePlaceholder} />
 
               <Text style={s.fieldLabel}>{t.contacts.surname} <Text style={s.required}>{t.common.required}</Text></Text>
-              <TextInput style={s.input} value={surname} onChangeText={setSurname} placeholderTextColor={colors.placeholder} placeholder={t.contacts.surnamePlaceholder} />
+              <TextInput accessibilityLabel={t.contacts.surnamePlaceholder} style={s.input} value={surname} onChangeText={setSurname} placeholderTextColor={colors.placeholder} placeholder={t.contacts.surnamePlaceholder} />
 
               <Text style={s.fieldLabel}>{t.contacts.gender}</Text>
               <View style={styles.genderRow}>
@@ -105,7 +105,7 @@ export default function EditContactModal({ visible, contact, onClose, onSaved }:
               </View>
 
               <Text style={s.fieldLabel}>{t.contacts.birthdate}</Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.contacts.birthdatePlaceholder}
                 style={s.input} value={birthdate} onChangeText={v => formatDate(v, setBirthdate)}
                 placeholder={t.contacts.birthdatePlaceholder} placeholderTextColor={colors.placeholder}
                 keyboardType={Platform.OS === 'web' ? 'default' : 'numeric'} maxLength={10}

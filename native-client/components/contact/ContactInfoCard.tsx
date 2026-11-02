@@ -346,14 +346,14 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
             <Text style={s.modalTitle}>{editingPhoneId !== null ? t.common.edit : t.contactInfo.addPhone}</Text>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={s.fieldLabel}>{t.contacts.phone} <Text style={s.required}>{t.common.required}</Text></Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.contacts.phonePlaceholder}
                 style={s.input} value={phoneInput} onChangeText={setPhoneInput}
                 placeholder={t.contacts.phonePlaceholder} placeholderTextColor={colors.placeholder}
                 keyboardType="phone-pad" autoFocus
               />
               <Text style={[styles.phoneHint, { color: colors.textSecondary }]}>{t.contactInfo.phoneHint}</Text>
               <Text style={s.fieldLabel}>{t.contactInfo.phoneLabel}</Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.common.placeholderMobile}
                 style={s.input} value={phoneLabelInput} onChangeText={setPhoneLabelInput}
                 placeholder={t.common.placeholderMobile} placeholderTextColor={colors.placeholder}
               />
@@ -379,13 +379,13 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
             <Text style={s.modalTitle}>{editingEmailId !== null ? t.common.edit : t.contactInfo.addEmail}</Text>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={s.fieldLabel}>{t.contacts.email} <Text style={s.required}>{t.common.required}</Text></Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.contacts.emailPlaceholder}
                 style={s.input} value={emailInput} onChangeText={setEmailInput}
                 placeholder={t.contacts.emailPlaceholder} placeholderTextColor={colors.placeholder}
                 keyboardType="email-address" autoCapitalize="none" autoFocus
               />
               <Text style={s.fieldLabel}>{t.contactInfo.emailLabel}</Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.common.placeholderPersonal}
                 style={s.input} value={emailLabelInput} onChangeText={setEmailLabelInput}
                 placeholder={t.common.placeholderPersonal} placeholderTextColor={colors.placeholder}
               />

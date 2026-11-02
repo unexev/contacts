@@ -227,7 +227,7 @@ export default function NotificationsScreen() {
         <View style={styles.timeRow}>
           <View style={styles.timeField}>
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.notificationsScreen.hour}</Text>
-            <TextInput
+            <TextInput accessibilityLabel={t.notificationsScreen.hour}
               style={[styles.timeInput, { borderColor: colors.inputBorder }, { backgroundColor: colors.fill, borderColor: colors.inputBorder, color: colors.text }]}
               value={hourText}
               onChangeText={formatHour}
@@ -240,7 +240,7 @@ export default function NotificationsScreen() {
           <Text style={[styles.timeColon, { color: colors.textSecondary }]}>:</Text>
           <View style={styles.timeField}>
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.notificationsScreen.minute}</Text>
-            <TextInput
+            <TextInput accessibilityLabel={t.notificationsScreen.minute}
               style={[styles.timeInput, { borderColor: colors.inputBorder }, { backgroundColor: colors.fill, borderColor: colors.inputBorder, color: colors.text }]}
               value={minuteText}
               onChangeText={formatMinute}
@@ -257,7 +257,7 @@ export default function NotificationsScreen() {
       <View style={[styles.card, { backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacity }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>{t.notificationsScreen.customMessage}</Text>
         <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t.notificationsScreen.messageHelp}</Text>
-        <TextInput
+        <TextInput accessibilityLabel={t.notificationsScreen.customMessage}
           style={[styles.messageInput, { borderColor: colors.inputBorder }, { backgroundColor: colors.fill, borderColor: colors.inputBorder, color: colors.text }]}
           value={settings.messageTemplate ?? ''}
           onChangeText={text => setSettings(prev => ({ ...prev, messageTemplate: text }))}

@@ -655,7 +655,7 @@ export default function HomeScreen() {
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
               <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.firstName} <Text style={[styles.required, { color: colors.destructive }]}>{t.common.required}</Text></Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.contacts.firstNamePlaceholder}
                 style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
                 placeholder={t.contacts.firstNamePlaceholder}
                 value={firstName}
@@ -664,7 +664,7 @@ export default function HomeScreen() {
               />
 
               <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.middleName}</Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.contacts.middleNamePlaceholder}
                 style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
                 placeholder={t.contacts.middleNamePlaceholder}
                 value={middleName}
@@ -673,7 +673,7 @@ export default function HomeScreen() {
               />
 
               <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.surname} <Text style={[styles.required, { color: colors.destructive }]}>{t.common.required}</Text></Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.contacts.surnamePlaceholder}
                 style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
                 placeholder={t.contacts.surnamePlaceholder}
                 value={surname}
@@ -697,7 +697,7 @@ export default function HomeScreen() {
               </View>
 
               <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.birthdate}</Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.contacts.birthdatePlaceholder}
                 style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
                 placeholder={t.contacts.birthdatePlaceholder}
                 value={birthdate}
@@ -732,7 +732,7 @@ export default function HomeScreen() {
                   />
 
                   <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.docNumber}</Text>
-                  <TextInput
+                  <TextInput accessibilityLabel={t.contacts.docNumberPlaceholder}
                     style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
                     placeholder={t.contacts.docNumberPlaceholder}
                     value={cardNumber}

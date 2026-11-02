@@ -148,7 +148,7 @@ export default function BankAccountCard({ contactId, initialAccounts }: Props) {
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
               <Text style={s.fieldLabel}>{t.bankAccounts.bankName}</Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.bankAccounts.bankName}
                 style={s.input} value={bankName} onChangeText={handleBankNameChange}
                 placeholder={t.bankAccounts.bankNamePlaceholder} placeholderTextColor={colors.placeholder}
                 autoCapitalize="characters" autoFocus
@@ -166,14 +166,14 @@ export default function BankAccountCard({ contactId, initialAccounts }: Props) {
               <Text style={s.fieldLabel}>
                 {t.bankAccounts.accountNumber} <Text style={s.required}>{t.common.required}</Text>
               </Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.bankAccounts.accountNumber}
                 style={s.input} value={accountNumber} onChangeText={setAccountNumber}
                 placeholder="0000-0000-0000-0000" placeholderTextColor={colors.placeholder}
                 keyboardType="numeric"
               />
 
               <Text style={s.fieldLabel}>{t.bankAccounts.accountType}</Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.bankAccounts.accountType}
                 style={s.input} value={accountType} onChangeText={handleAccountTypeChange}
                 placeholder={t.bankAccounts.accountTypePlaceholder} placeholderTextColor={colors.placeholder}
               />
@@ -188,7 +188,7 @@ export default function BankAccountCard({ contactId, initialAccounts }: Props) {
               )}
 
               <Text style={s.fieldLabel}>{t.bankAccounts.label}</Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.bankAccounts.label}
                 style={s.input} value={label} onChangeText={setLabel}
                 placeholder={t.bankAccounts.labelPlaceholder} placeholderTextColor={colors.placeholder}
               />

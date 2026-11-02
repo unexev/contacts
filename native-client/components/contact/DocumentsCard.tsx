@@ -139,7 +139,7 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
               />
 
               <Text style={s.fieldLabel}>{docType === t.contactList.docDriversLicense ? t.documents.licenseType : t.documents.number} <Text style={s.required}>{t.common.required}</Text></Text>
-              <TextInput
+              <TextInput accessibilityLabel={docType === t.contactList.docDriversLicense ? t.documents.licenseType : t.documents.number}
                 style={s.input} value={cardNumber} onChangeText={setCardNumber}
                 placeholder={docType === t.contactList.docDriversLicense ? t.documents.licenseType : t.documents.number} placeholderTextColor={colors.placeholder}
                 autoCapitalize="characters"
@@ -148,14 +148,14 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
               {DOCS_WITH_DATES.includes(docType) && (
                 <>
                   <Text style={s.fieldLabel}>{t.documents.issueDate}</Text>
-                  <TextInput
+                  <TextInput accessibilityLabel={t.documents.issueDate}
                     style={s.input} value={issueDate}
                     onChangeText={v => formatDate(v, setIssueDate)}
                     placeholder={t.contacts.birthdatePlaceholder} placeholderTextColor={colors.placeholder}
                     keyboardType="numeric" maxLength={10}
                   />
                   <Text style={s.fieldLabel}>{t.documents.expiryDate}</Text>
-                  <TextInput
+                  <TextInput accessibilityLabel={t.documents.expiryDate}
                     style={s.input} value={expiryDate}
                     onChangeText={v => formatDate(v, setExpiryDate)}
                     placeholder={t.contacts.birthdatePlaceholder} placeholderTextColor={colors.placeholder}

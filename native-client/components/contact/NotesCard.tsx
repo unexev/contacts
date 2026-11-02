@@ -78,7 +78,7 @@ export default function NotesCard({ contactId, initialNotes }: Props) {
               <Text style={s.fieldLabel}>
                 {t.notes.noteLabel} <Text style={s.required}>{t.common.required}</Text>
               </Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.notes.placeholder}
                 style={[s.input, styles.textArea]}
                 value={input}
                 onChangeText={setInput}

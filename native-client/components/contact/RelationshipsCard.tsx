@@ -149,7 +149,7 @@ export default function RelationshipsCard({ contactId, initialRelationships, onN
             ) : (
               <>
                 <Text style={s.modalTitle}>{t.relationships.whichContact}</Text>
-                <TextInput
+                <TextInput accessibilityLabel={t.relationships.search}
                   style={[styles.searchInput, { backgroundColor: colors.bg }]}
                   placeholder={t.relationships.search}
                   value={search}

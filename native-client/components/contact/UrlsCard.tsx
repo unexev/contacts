@@ -90,7 +90,7 @@ export default function UrlsCard({ contactId, initialUrls }: Props) {
               <Text style={s.fieldLabel}>
                 {t.urls.urlLabel} <Text style={s.required}>{t.common.required}</Text>
               </Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.urls.urlPlaceholder}
                 style={s.input}
                 value={urlInput}
                 onChangeText={setUrlInput}
@@ -102,7 +102,7 @@ export default function UrlsCard({ contactId, initialUrls }: Props) {
               />
 
               <Text style={s.fieldLabel}>{t.urls.labelField}</Text>
-              <TextInput
+              <TextInput accessibilityLabel={t.urls.labelPlaceholder}
                 style={s.input}
                 value={labelInput}
                 onChangeText={setLabelInput}

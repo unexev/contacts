@@ -88,7 +88,7 @@ export default function KeywordsCard({ contactId, initialKeywords }: Props) {
 
         {adding && (
           <View style={[styles.inputChip, { borderColor: colors.accent }, { backgroundColor: colors.bg }]}>
-            <TextInput
+            <TextInput accessibilityLabel={t.keywords.placeholder}
               ref={inputRef}
               style={styles.inputChipText}
               value={input}
