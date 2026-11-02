@@ -21,7 +21,7 @@ const THEME_OPTIONS: { pref: ThemePref; key: 'themeLight' | 'themeSystem' | 'the
 
 export default function Config() {
   const { t, lang, setLang } = useI18n();
-  const { user, isGuest, licensed, signIn, signOutUser } = useAuth();
+  const { user, isGuest, apiSession, licensed, signIn, signOutUser } = useAuth();
   const router = useRouter();
   const { isDesktop } = useResponsive();
   const { colors, preference, setPreference } = useTheme();
@@ -120,11 +120,11 @@ export default function Config() {
       )}
 
       {/* Cuenta */}
-      {user && (
+      {(user || apiSession) && (
         <View style={[styles.card, { marginBottom: 16, backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacity }]}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>{t.config.account}</Text>
           <View style={styles.accountRow}>
-            <Text style={[styles.accountEmail, { color: colors.text }]}>{user.email}</Text>
+            {user && <Text style={[styles.accountEmail, { color: colors.text }]}>{user.email}</Text>}
             <Text style={[styles.accountLicense, { color: colors.textSecondary }]}>
               {licensed ? t.config.activeLicense : t.config.freePlan}
             </Text>
