@@ -53,7 +53,7 @@ export default function UrlsCard({ contactId, initialUrls }: Props) {
   return (
     <>
       {urls.length === 0 ? (
-        <Pressable style={s.addRow} onPress={openAdd}>
+        <Pressable accessibilityRole="button" style={s.addRow} onPress={openAdd}>
           <View style={s.addRowIcon} accessible={false} importantForAccessibility="no-hide-descendants"><Ionicons name="add" size={18} color={colors.accent} /></View>
           <Text style={s.addRowLabel}>{t.urls.title}</Text>
         </Pressable>
@@ -61,7 +61,7 @@ export default function UrlsCard({ contactId, initialUrls }: Props) {
         <View style={s.card}>
           <View style={s.cardHeader}>
             <Text style={s.cardTitle}>{t.urls.title}</Text>
-            <Pressable style={s.addButton} onPress={openAdd} accessibilityLabel={t.urls.addTitle}>
+            <Pressable accessibilityRole="button" style={s.addButton} onPress={openAdd} accessibilityLabel={t.urls.addTitle}>
               <AddButtonLabel />
             </Pressable>
           </View>
@@ -69,11 +69,11 @@ export default function UrlsCard({ contactId, initialUrls }: Props) {
             <View key={item.id} style={[styles.row, i === urls.length - 1 && styles.lastRow]}>
               <View style={styles.info}>
                 {item.label ? <Text style={[styles.label, { color: colors.textSecondary }]}>{item.label}</Text> : null}
-                <Pressable onPress={() => handleOpen(item.url)}>
+                <Pressable accessibilityRole="button" onPress={() => handleOpen(item.url)}>
                   <Text style={[styles.urlText, { color: colors.accent }]} numberOfLines={1}>{item.url}</Text>
                 </Pressable>
               </View>
-              <Pressable onPress={() => handleRemove(item)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
+              <Pressable accessibilityRole="button" onPress={() => handleRemove(item)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
                 <Ionicons name="close" size={20} color={colors.destructive} />
               </Pressable>
             </View>
@@ -111,10 +111,10 @@ export default function UrlsCard({ contactId, initialUrls }: Props) {
               />
 
               <View style={s.modalActions}>
-                <Pressable style={s.btnCancel} onPress={() => setModalVisible(false)}>
+                <Pressable accessibilityRole="button" style={s.btnCancel} onPress={() => setModalVisible(false)}>
                   <Text style={s.btnCancelText}>{t.common.cancel}</Text>
                 </Pressable>
-                <Pressable style={s.btnSave} onPress={handleSave}>
+                <Pressable accessibilityRole="button" style={s.btnSave} onPress={handleSave}>
                   <Text style={s.btnSaveText}>{t.common.save}</Text>
                 </Pressable>
               </View>

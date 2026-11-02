@@ -177,10 +177,10 @@ export default function ContactDetailScreen() {
           <View style={styles.cardHeader}>
             <Text style={[styles.cardTitle, { color: colors.text }]}>{t.detail.details}</Text>
             <View style={styles.cardActions}>
-              <Pressable style={[styles.editButton, { borderColor: colors.accent }]} onPress={() => setEditVisible(true)} accessibilityLabel={t.common.edit}>
+              <Pressable accessibilityRole="button" style={[styles.editButton, { borderColor: colors.accent }]} onPress={() => setEditVisible(true)} accessibilityLabel={t.common.edit}>
                 <Text style={[styles.editButtonText, { color: colors.accent }]}>{t.common.edit}</Text>
               </Pressable>
-              <Pressable style={[styles.deleteButton, { borderColor: colors.destructive }]} onPress={handleDelete} accessibilityLabel={t.common.delete}>
+              <Pressable accessibilityRole="button" style={[styles.deleteButton, { borderColor: colors.destructive }]} onPress={handleDelete} accessibilityLabel={t.common.delete}>
                 <Text style={[styles.deleteButtonText, { color: colors.destructive }]}>{t.common.delete}</Text>
               </Pressable>
             </View>

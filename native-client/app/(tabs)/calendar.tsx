@@ -147,7 +147,7 @@ export default function CalendarScreen() {
               const hasBday = birthdays.length > 0;
               const todayCell = isToday(day);
               return (
-                <Pressable
+                <Pressable accessibilityRole="button" accessibilityLabel={hasBday ? `${day}, ${t.calendar.hasBirthdays(birthdays.length)}` : String(day)}
                   key={ci}
                   style={[
                     styles.cell,
@@ -192,8 +192,8 @@ export default function CalendarScreen() {
         animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
-        <Pressable style={[styles.overlay, (isDesktop || isTablet) && styles.overlayCentered, { backgroundColor: colors.overlay }]} onPress={() => setModalVisible(false)}>
-          <Pressable style={[styles.sheet, (isDesktop || isTablet) ? styles.sheetCentered : { paddingBottom: 32 + insets.bottom }, { backgroundColor: colors.surface }]} onPress={e => e.stopPropagation()}>
+        <Pressable accessible={false} style={[styles.overlay, (isDesktop || isTablet) && styles.overlayCentered, { backgroundColor: colors.overlay }]} onPress={() => setModalVisible(false)}>
+          <Pressable accessible={false} style={[styles.sheet, (isDesktop || isTablet) ? styles.sheetCentered : { paddingBottom: 32 + insets.bottom }, { backgroundColor: colors.surface }]} onPress={e => e.stopPropagation()}>
             <View style={[styles.sheetHandle, { backgroundColor: colors.separator }]} />
             <View style={[styles.sheetHeader, { borderBottomColor: colors.separatorFine }]}>
               <Text style={[styles.sheetTitle, { color: colors.text }]}>
@@ -207,7 +207,7 @@ export default function CalendarScreen() {
               {selectedBirthdays.map(e => {
                 const age = viewYear - e.birthYear;
                 return (
-                  <Pressable
+                  <Pressable accessibilityRole="button"
                     key={e.contact_id}
                     style={[styles.contactRow, { borderBottomColor: colors.separatorFine }]}
                     onPress={() => { setModalVisible(false); router.push(`/contact/${e.contact_id}`); }}

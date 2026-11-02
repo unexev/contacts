@@ -106,7 +106,7 @@ export default function OrganizationsCard({ contactId, birthdate, initialOrganiz
   return (
     <>
       {organizations.length === 0 ? (
-        <Pressable style={s.addRow} onPress={openAddModal}>
+        <Pressable accessibilityRole="button" style={s.addRow} onPress={openAddModal}>
           <View style={s.addRowIcon} accessible={false} importantForAccessibility="no-hide-descendants"><Ionicons name="add" size={18} color={colors.accent} /></View>
           <Text style={s.addRowLabel}>{t.organizations.title}</Text>
         </Pressable>
@@ -114,7 +114,7 @@ export default function OrganizationsCard({ contactId, birthdate, initialOrganiz
       <View style={s.card}>
         <View style={s.cardHeader}>
           <Text style={s.cardTitle}>{t.organizations.title}</Text>
-          <Pressable style={s.addButton} onPress={openAddModal} accessibilityLabel={t.organizations.addTitle}>
+          <Pressable accessibilityRole="button" style={s.addButton} onPress={openAddModal} accessibilityLabel={t.organizations.addTitle}>
             <AddButtonLabel />
           </Pressable>
         </View>
@@ -147,10 +147,10 @@ export default function OrganizationsCard({ contactId, birthdate, initialOrganiz
                   </Text>
                 ) : null}
               </View>
-              <Pressable onPress={() => openEditModal(org)} style={styles.editBtn} accessibilityLabel={t.common.edit}>
+              <Pressable accessibilityRole="button" onPress={() => openEditModal(org)} style={styles.editBtn} accessibilityLabel={t.common.edit}>
                 <Text style={[styles.editBtnText, { color: colors.accent }]}>{t.common.edit}</Text>
               </Pressable>
-              <Pressable onPress={() => handleRemove(org)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
+              <Pressable accessibilityRole="button" onPress={() => handleRemove(org)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
                 <Ionicons name="close" size={20} color={colors.destructive} />
               </Pressable>
             </View>
@@ -175,7 +175,7 @@ export default function OrganizationsCard({ contactId, birthdate, initialOrganiz
               {suggestions.length > 0 && (
                 <View style={[styles.suggestions, { borderColor: colors.inputBorder }]}>
                   {suggestions.map((sg, i) => (
-                    <Pressable key={`${i}-${sg}`} style={styles.suggestionRow} onPress={() => { setOrgName(sg); setSuggestions([]); }}>
+                    <Pressable accessibilityRole="button" key={`${i}-${sg}`} style={styles.suggestionRow} onPress={() => { setOrgName(sg); setSuggestions([]); }}>
                       <Text style={[styles.suggestionText, { color: colors.accent }]}>{sg}</Text>
                     </Pressable>
                   ))}
@@ -190,7 +190,7 @@ export default function OrganizationsCard({ contactId, birthdate, initialOrganiz
               {achievementSuggestions.length > 0 && (
                 <View style={[styles.suggestions, { borderColor: colors.inputBorder }]}>
                   {achievementSuggestions.map((sg, i) => (
-                    <Pressable key={`${i}-${sg}`} style={styles.suggestionRow} onPress={() => { setAchievement(sg); setAchievementSuggestions([]); }}>
+                    <Pressable accessibilityRole="button" key={`${i}-${sg}`} style={styles.suggestionRow} onPress={() => { setAchievement(sg); setAchievementSuggestions([]); }}>
                       <Text style={[styles.suggestionText, { color: colors.accent }]}>{sg}</Text>
                     </Pressable>
                   ))}
@@ -207,10 +207,10 @@ export default function OrganizationsCard({ contactId, birthdate, initialOrganiz
             </ScrollView>
 
             <View style={s.modalActions}>
-                <Pressable style={s.btnCancel} onPress={() => setModalVisible(false)}>
+                <Pressable accessibilityRole="button" style={s.btnCancel} onPress={() => setModalVisible(false)}>
                   <Text style={s.btnCancelText}>{t.common.cancel}</Text>
                 </Pressable>
-                <Pressable style={s.btnSave} onPress={handleSave}>
+                <Pressable accessibilityRole="button" style={s.btnSave} onPress={handleSave}>
                   <Text style={s.btnSaveText}>{t.common.save}</Text>
                 </Pressable>
               </View>

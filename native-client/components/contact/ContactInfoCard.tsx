@@ -222,28 +222,28 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
         <View style={s.cardHeader}>
           <Text style={s.cardTitle}>{t.contactInfo.phones}</Text>
           {phones.length > 0 && (
-            <Pressable style={s.addButton} onPress={openAddPhoneModal} accessibilityLabel={t.contactInfo.addPhone}>
+            <Pressable accessibilityRole="button" style={s.addButton} onPress={openAddPhoneModal} accessibilityLabel={t.contactInfo.addPhone}>
               <AddButtonLabel />
             </Pressable>
           )}
         </View>
 
         {phones.length === 0 ? (
-          <Pressable style={s.addRowInline} onPress={openAddPhoneModal}>
+          <Pressable accessibilityRole="button" style={s.addRowInline} onPress={openAddPhoneModal}>
             <View style={s.addRowIcon} accessible={false} importantForAccessibility="no-hide-descendants"><Ionicons name="add" size={18} color={colors.accent} /></View>
             <Text style={s.addRowLabel}>{t.contactInfo.addPhone}</Text>
           </Pressable>
         ) : (
           phones.map(p => (
             <View key={p.id} style={styles.row}>
-              <Pressable style={styles.info} onPress={() => openPhoneActions(p.phone)}>
+              <Pressable accessibilityRole="button" style={styles.info} onPress={() => openPhoneActions(p.phone)}>
                 {p.label ? <Text style={[styles.label, { color: colors.textSecondary }]}>{p.label}</Text> : null}
                 <Text style={[styles.phoneValue, { color: colors.accent }]}>{p.phone}</Text>
               </Pressable>
-              <Pressable onPress={() => openEditPhoneModal(p)} style={styles.editBtn} accessibilityLabel={t.common.edit}>
+              <Pressable accessibilityRole="button" onPress={() => openEditPhoneModal(p)} style={styles.editBtn} accessibilityLabel={t.common.edit}>
                 <Text style={[styles.editBtnText, { color: colors.accent }]}>{t.common.edit}</Text>
               </Pressable>
-              <Pressable onPress={() => handleRemovePhone(p)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
+              <Pressable accessibilityRole="button" onPress={() => handleRemovePhone(p)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
                 <Ionicons name="close" size={20} color={colors.destructive} />
               </Pressable>
             </View>
@@ -257,25 +257,25 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
         <View style={[s.cardHeader, { marginTop: 8 }]}>
           <Text style={s.cardTitle}>{t.contactInfo.emails}</Text>
           {emails.length > 0 && (
-            <Pressable style={s.addButton} onPress={openAddEmailModal} accessibilityLabel={t.contactInfo.addEmail}>
+            <Pressable accessibilityRole="button" style={s.addButton} onPress={openAddEmailModal} accessibilityLabel={t.contactInfo.addEmail}>
               <AddButtonLabel />
             </Pressable>
           )}
         </View>
 
         {emails.length === 0 ? (
-          <Pressable style={s.addRowInline} onPress={openAddEmailModal}>
+          <Pressable accessibilityRole="button" style={s.addRowInline} onPress={openAddEmailModal}>
             <View style={s.addRowIcon} accessible={false} importantForAccessibility="no-hide-descendants"><Ionicons name="add" size={18} color={colors.accent} /></View>
             <Text style={s.addRowLabel}>{t.contactInfo.addEmail}</Text>
           </Pressable>
         ) : (
           emails.map(e => (
             <View key={e.id} style={styles.row}>
-              <Pressable style={styles.info} onPress={() => Linking.openURL(`mailto:${e.email}`)}>
+              <Pressable accessibilityRole="button" style={styles.info} onPress={() => Linking.openURL(`mailto:${e.email}`)}>
                 {e.label ? <Text style={[styles.label, { color: colors.textSecondary }]}>{e.label}</Text> : null}
                 <Text style={[styles.value, { color: colors.text }]}>{e.email}</Text>
               </Pressable>
-              <Pressable
+              <Pressable accessibilityRole="button"
                 style={styles.editBtn}
                 accessibilityLabel={t.common.copyEmail}
                 onPress={async () => {
@@ -285,10 +285,10 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
               >
                 <Ionicons name="copy-outline" size={20} color={colors.accent} />
               </Pressable>
-              <Pressable onPress={() => openEditEmailModal(e)} style={styles.editBtn} accessibilityLabel={t.common.edit}>
+              <Pressable accessibilityRole="button" onPress={() => openEditEmailModal(e)} style={styles.editBtn} accessibilityLabel={t.common.edit}>
                 <Text style={[styles.editBtnText, { color: colors.accent }]}>{t.common.edit}</Text>
               </Pressable>
-              <Pressable onPress={() => handleRemoveEmail(e)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
+              <Pressable accessibilityRole="button" onPress={() => handleRemoveEmail(e)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
                 <Ionicons name="close" size={20} color={colors.destructive} />
               </Pressable>
             </View>
@@ -298,8 +298,8 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
 
       {/* Phone actions sheet */}
       <Modal visible={!!actionsSheet} animationType="slide" transparent onRequestClose={() => setActionsSheet(null)}>
-        <Pressable style={s.modalOverlay} onPress={() => setActionsSheet(null)}>
-          <Pressable style={[styles.actionsContainer, { backgroundColor: colors.bg, paddingBottom: 8 + insets.bottom }]}>
+        <Pressable accessible={false} style={s.modalOverlay} onPress={() => setActionsSheet(null)}>
+          <Pressable accessible={false} style={[styles.actionsContainer, { backgroundColor: colors.bg, paddingBottom: 8 + insets.bottom }]}>
             <Text style={[styles.actionsTitle, { color: colors.textSecondary }]}>{actionsSheet?.phone}</Text>
             {actionsSheet?.actions.map((action) => (
               <Pressable
@@ -331,7 +331,7 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
               <Text style={[styles.actionLabel, { color: colors.text }]}>{t.contactInfo.phoneActions.copyToClipboard}</Text>
             </Pressable>
             <View style={[styles.actionsDivider, { backgroundColor: colors.bg }]} />
-            <Pressable style={[styles.actionRow, { backgroundColor: colors.surface }]} onPress={() => setActionsSheet(null)}>
+            <Pressable accessibilityRole="button" style={[styles.actionRow, { backgroundColor: colors.surface }]} onPress={() => setActionsSheet(null)}>
               <Text style={[styles.actionCancel, { color: colors.accent }]}>{t.common.cancel}</Text>
             </Pressable>
           </Pressable>
@@ -359,10 +359,10 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
               />
             </ScrollView>
             <View style={s.modalActions}>
-              <Pressable style={s.btnCancel} onPress={() => setPhoneModal(false)}>
+              <Pressable accessibilityRole="button" style={s.btnCancel} onPress={() => setPhoneModal(false)}>
                 <Text style={s.btnCancelText}>{t.common.cancel}</Text>
               </Pressable>
-              <Pressable style={s.btnSave} onPress={handleSavePhone}>
+              <Pressable accessibilityRole="button" style={s.btnSave} onPress={handleSavePhone}>
                 <Text style={s.btnSaveText}>{t.common.save}</Text>
               </Pressable>
             </View>
@@ -391,10 +391,10 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
               />
             </ScrollView>
             <View style={s.modalActions}>
-              <Pressable style={s.btnCancel} onPress={() => setEmailModal(false)}>
+              <Pressable accessibilityRole="button" style={s.btnCancel} onPress={() => setEmailModal(false)}>
                 <Text style={s.btnCancelText}>{t.common.cancel}</Text>
               </Pressable>
-              <Pressable style={s.btnSave} onPress={handleSaveEmail}>
+              <Pressable accessibilityRole="button" style={s.btnSave} onPress={handleSaveEmail}>
                 <Text style={s.btnSaveText}>{t.common.save}</Text>
               </Pressable>
             </View>

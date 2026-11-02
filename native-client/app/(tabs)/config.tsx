@@ -95,7 +95,7 @@ export default function Config() {
         <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t.config.languageDesc}</Text>
         <View style={styles.langRow}>
           {LANGUAGES.map(l => (
-            <Pressable
+            <Pressable accessibilityRole="button"
               key={l.code}
               style={[styles.langBtn, { backgroundColor: colors.fill, borderColor: colors.separator }, lang === l.code && [styles.langBtnActive, { borderColor: colors.accent }, { backgroundColor: colors.accentSubtle }]]}
               onPress={() => setLang(l.code)}
@@ -116,7 +116,7 @@ export default function Config() {
           <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>
             {t.config.accountGuestDesc}
           </Text>
-          <Pressable
+          <Pressable accessibilityRole="button" accessibilityLabel={t.config.signInWithGoogle}
             style={[styles.button, styles.buttonUpgrade, { backgroundColor: colors.accent }, signInBusy && styles.buttonDisabled]}
             onPress={handleGuestSignIn}
             disabled={signInBusy}
@@ -139,7 +139,7 @@ export default function Config() {
               {licensed ? t.config.activeLicense : t.config.freePlan}
             </Text>
           </View>
-          <Pressable style={[styles.button, styles.buttonSignOut, { backgroundColor: colors.destructive }]} onPress={handleSignOut}>
+          <Pressable accessibilityRole="button" style={[styles.button, styles.buttonSignOut, { backgroundColor: colors.destructive }]} onPress={handleSignOut}>
             <Text style={styles.buttonText}>{t.config.signOut}</Text>
           </Pressable>
         </View>
@@ -155,7 +155,7 @@ export default function Config() {
             {t.config.removeAdsDesc}
           </Text>
 
-          <Pressable
+          <Pressable accessibilityRole="button" accessibilityLabel={offering ? `${t.config.buy} — ${offering.product.priceString}` : t.config.loading}
             style={[styles.button, styles.buttonUpgrade, { backgroundColor: colors.accent }, (purchasing || !offering) && styles.buttonDisabled]}
             onPress={handlePurchase}
             disabled={purchasing || !offering}
@@ -169,7 +169,7 @@ export default function Config() {
                 </Text>}
           </Pressable>
 
-          <Pressable
+          <Pressable accessibilityRole="button" accessibilityLabel={t.config.restorePurchase}
             style={[styles.buttonRestore, restoring && styles.buttonDisabled]}
             onPress={handleRestore}
             disabled={restoring}
@@ -192,7 +192,7 @@ export default function Config() {
           {licensed ? (
             <View style={styles.themeRow}>
               {THEME_OPTIONS.map(opt => (
-                <Pressable
+                <Pressable accessibilityRole="button"
                   key={opt.pref}
                   style={[styles.themeBtn, { borderColor: colors.separator, backgroundColor: colors.fill },
                     preference === opt.pref && { borderColor: colors.accent, backgroundColor: colors.accentSubtle }]}

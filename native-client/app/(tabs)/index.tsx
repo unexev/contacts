@@ -311,13 +311,13 @@ export default function HomeScreen() {
         headerShadowVisible: false,
         headerRight: () => (
           <View style={{ flexDirection: 'row', gap: 20, marginRight: 12 }}>
-            <Pressable onPress={handleRefresh} hitSlop={8} accessibilityLabel={t.common.refresh}>
+            <Pressable accessibilityRole="button" onPress={handleRefresh} hitSlop={8} accessibilityLabel={t.common.refresh}>
               <Ionicons name="refresh" size={20} color={colors.accent} />
             </Pressable>
-            <Pressable onPress={() => setFilterModalVisible(true)} hitSlop={8} accessibilityLabel={t.contactList.filters}>
+            <Pressable accessibilityRole="button" onPress={() => setFilterModalVisible(true)} hitSlop={8} accessibilityLabel={t.contactList.filters}>
               <Ionicons name="filter" size={20} color={colors.accent} />
             </Pressable>
-            <Pressable onPress={() => setSortModalVisible(true)} hitSlop={8} accessibilityLabel={t.contactList.sortBy}>
+            <Pressable accessibilityRole="button" onPress={() => setSortModalVisible(true)} hitSlop={8} accessibilityLabel={t.contactList.sortBy}>
               <Ionicons name="swap-vertical" size={20} color={colors.accent} />
             </Pressable>
           </View>
@@ -393,7 +393,7 @@ export default function HomeScreen() {
               <View style={[styles.separator, isTablet && !isDesktop && styles.separatorTablet, isDesktop && styles.separatorDesktop, { backgroundColor: colors.separatorFine }]} />
             )}
             renderItem={({ item }) => (
-              <Pressable
+              <Pressable accessibilityRole="button"
                 style={({ pressed }) => [
                   styles.contactItem,
                   isTablet && !isDesktop && styles.contactItemTablet,
@@ -461,7 +461,7 @@ export default function HomeScreen() {
             contentContainerStyle={[styles.listContent, isDesktop && styles.listContentDesktop]}
           />
 
-          <Pressable style={[styles.fab, isDesktop && styles.fabDesktop, { backgroundColor: colors.accent, shadowColor: colors.accent }]} onPress={handleOpenModal} accessibilityLabel={t.contacts.newContact}>
+          <Pressable accessibilityRole="button" style={[styles.fab, isDesktop && styles.fabDesktop, { backgroundColor: colors.accent, shadowColor: colors.accent }]} onPress={handleOpenModal} accessibilityLabel={t.contacts.newContact}>
             <Ionicons name="add" size={24} color="#FFFFFF" />
           </Pressable>
         </View>
@@ -476,13 +476,13 @@ export default function HomeScreen() {
         visible={sortModalVisible}
         onRequestClose={() => setSortModalVisible(false)}
       >
-        <Pressable style={[styles.modalOverlay, { backgroundColor: colors.overlay }]} onPress={() => setSortModalVisible(false)}>
+        <Pressable accessible={false} style={[styles.modalOverlay, { backgroundColor: colors.overlay }]} onPress={() => setSortModalVisible(false)}>
           <View style={[styles.actionSheet, { backgroundColor: colors.surface }]}>
             <Text style={[styles.actionSheetTitle, { color: colors.textSecondary }]}>{t.contactList.sortBy}</Text>
             {SORT_OPTIONS.map((opt, i) => (
               <React.Fragment key={opt.key}>
                 {i > 0 && <View style={styles.actionSheetSeparator} />}
-                <Pressable
+                <Pressable accessibilityRole="button"
                   style={({ pressed }) => [styles.actionSheetItem, pressed && { backgroundColor: '#F2F2F7' }]}
                   onPress={() => { setSortKey(opt.key); setSortModalVisible(false); }}
                 >
@@ -504,14 +504,14 @@ export default function HomeScreen() {
         visible={filterModalVisible}
         onRequestClose={() => setFilterModalVisible(false)}
       >
-        <Pressable style={[styles.modalOverlay, { backgroundColor: colors.overlay }]} onPress={() => setFilterModalVisible(false)}>
+        <Pressable accessible={false} style={[styles.modalOverlay, { backgroundColor: colors.overlay }]} onPress={() => setFilterModalVisible(false)}>
           <View style={[styles.actionSheet, { backgroundColor: colors.surface }]}>
             <Text style={[styles.actionSheetTitle, { color: colors.textSecondary }]}>{t.contactList.filters}</Text>
 
             <Text style={[styles.filterSectionTitle, { color: colors.textSecondary }]}>{t.contacts.gender}</Text>
             <View style={styles.filterChipRow}>
               {genderFilterOptions.map(option => (
-                <Pressable
+                <Pressable accessibilityRole="button"
                   key={String(option.value)}
                   style={[styles.filterChip, genderFilter === option.value && [styles.filterChipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
                   onPress={() => setGenderFilter(option.value)}
@@ -530,7 +530,7 @@ export default function HomeScreen() {
                 { key: 'with', label: t.contacts.birthdateWith },
                 { key: 'without', label: t.contacts.birthdateWithout },
               ] as const).map(opt => (
-                <Pressable
+                <Pressable accessibilityRole="button"
                   key={opt.key}
                   style={[styles.filterChip, birthdateFilter === opt.key && [styles.filterChipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
                   onPress={() => setBirthdateFilter(opt.key)}
@@ -549,7 +549,7 @@ export default function HomeScreen() {
                 { key: 'with', label: t.contacts.docFilterWith },
                 { key: 'without', label: t.contacts.docFilterWithout },
               ] as const).map(opt => (
-                <Pressable
+                <Pressable accessibilityRole="button"
                   key={opt.key}
                   style={[styles.filterChip, cedulaFilter.mode === opt.key && [styles.filterChipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
                   onPress={() => setCedulaFilter({ mode: opt.key })}
@@ -569,7 +569,7 @@ export default function HomeScreen() {
                 { key: 'without', label: t.contacts.orgFilterWithout },
                 { key: 'specific', label: t.contacts.orgFilterSpecific },
               ] as const).map(opt => (
-                <Pressable
+                <Pressable accessibilityRole="button"
                   key={opt.key}
                   style={[styles.filterChip, organizationFilter.mode === opt.key && [styles.filterChipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
                   onPress={() => setOrganizationFilter(prev => ({
@@ -605,7 +605,7 @@ export default function HomeScreen() {
                 { key: 'without', label: t.contacts.maritalFilterWithout },
                 { key: 'specific', label: t.contacts.maritalFilterSpecific },
               ] as const).map(opt => (
-                <Pressable
+                <Pressable accessibilityRole="button"
                   key={opt.key}
                   style={[styles.filterChip, maritalStatusFilter.mode === opt.key && [styles.filterChipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
                   onPress={() => setMaritalStatusFilter(prev => ({
@@ -684,7 +684,7 @@ export default function HomeScreen() {
               <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.gender}</Text>
               <View style={styles.genderRow}>
                 {(['MALE', 'FEMALE'] as const).map(g => (
-                  <Pressable
+                  <Pressable accessibilityRole="button"
                     key={g}
                     style={[styles.genderChip, gender === g && [styles.genderChipSelected, { backgroundColor: colors.accent }]]}
                     onPress={() => setGender(prev => prev === g ? null : g)}
@@ -715,7 +715,7 @@ export default function HomeScreen() {
                 allowNull
               />
 
-              <Pressable style={styles.docToggle} onPress={() => setHasDoc(v => !v)}>
+              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: hasDoc }} style={styles.docToggle} onPress={() => setHasDoc(v => !v)}>
                 <View style={[styles.docToggleBox, hasDoc && [styles.docToggleBoxActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}>
                   {hasDoc && <Ionicons name="checkmark" size={14} color={colors.surface} />}
                 </View>
@@ -746,10 +746,10 @@ export default function HomeScreen() {
             </ScrollView>
 
             <View style={styles.sheetActions}>
-              <Pressable style={[styles.btn, styles.btnCancel, { backgroundColor: colors.surface }]} onPress={() => setModalVisible(false)}>
+              <Pressable accessibilityRole="button" style={[styles.btn, styles.btnCancel, { backgroundColor: colors.surface }]} onPress={() => setModalVisible(false)}>
                 <Text style={[styles.btnCancelText, { color: colors.text }]}>{t.common.cancel}</Text>
               </Pressable>
-              <Pressable style={[styles.btn, styles.btnSave, { backgroundColor: colors.accent }]} onPress={handleSaveContact}>
+              <Pressable accessibilityRole="button" style={[styles.btn, styles.btnSave, { backgroundColor: colors.accent }]} onPress={handleSaveContact}>
                 <Text style={styles.btnSaveText}>{t.common.save}</Text>
               </Pressable>
             </View>

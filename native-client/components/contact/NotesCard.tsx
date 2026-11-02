@@ -47,7 +47,7 @@ export default function NotesCard({ contactId, initialNotes }: Props) {
   return (
     <>
       {notes.length === 0 ? (
-        <Pressable style={s.addRow} onPress={openAdd}>
+        <Pressable accessibilityRole="button" style={s.addRow} onPress={openAdd}>
           <View style={s.addRowIcon} accessible={false} importantForAccessibility="no-hide-descendants"><Ionicons name="add" size={18} color={colors.accent} /></View>
           <Text style={s.addRowLabel}>{t.notes.title}</Text>
         </Pressable>
@@ -55,14 +55,14 @@ export default function NotesCard({ contactId, initialNotes }: Props) {
         <View style={s.card}>
           <View style={s.cardHeader}>
             <Text style={s.cardTitle}>{t.notes.title}</Text>
-            <Pressable style={s.addButton} onPress={openAdd} accessibilityLabel={t.notes.addTitle}>
+            <Pressable accessibilityRole="button" style={s.addButton} onPress={openAdd} accessibilityLabel={t.notes.addTitle}>
               <AddButtonLabel />
             </Pressable>
           </View>
           {notes.map((note, i) => (
             <View key={note.id} style={[styles.row, i === notes.length - 1 && styles.lastRow]}>
               <Text style={styles.noteText}>{note.note}</Text>
-              <Pressable onPress={() => handleRemove(note)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
+              <Pressable accessibilityRole="button" onPress={() => handleRemove(note)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
                 <Ionicons name="close" size={20} color={colors.destructive} />
               </Pressable>
             </View>
@@ -90,10 +90,10 @@ export default function NotesCard({ contactId, initialNotes }: Props) {
                 textAlignVertical="top"
               />
               <View style={s.modalActions}>
-                <Pressable style={s.btnCancel} onPress={() => setModalVisible(false)}>
+                <Pressable accessibilityRole="button" style={s.btnCancel} onPress={() => setModalVisible(false)}>
                   <Text style={s.btnCancelText}>{t.common.cancel}</Text>
                 </Pressable>
-                <Pressable style={s.btnSave} onPress={handleSave}>
+                <Pressable accessibilityRole="button" style={s.btnSave} onPress={handleSave}>
                   <Text style={s.btnSaveText}>{t.common.save}</Text>
                 </Pressable>
               </View>

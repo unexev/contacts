@@ -92,7 +92,7 @@ export default function EditContactModal({ visible, contact, onClose, onSaved }:
               <Text style={s.fieldLabel}>{t.contacts.gender}</Text>
               <View style={styles.genderRow}>
                 {(['MALE', 'FEMALE'] as const).map(g => (
-                  <Pressable
+                  <Pressable accessibilityRole="button"
                     key={g}
                     style={[styles.genderChip, gender === g && [styles.genderChipSelected, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
                     onPress={() => setGender(prev => prev === g ? null : g)}
@@ -122,10 +122,10 @@ export default function EditContactModal({ visible, contact, onClose, onSaved }:
             </ScrollView>
 
             <View style={[s.modalActions, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-              <Pressable style={s.btnCancel} onPress={onClose}>
+              <Pressable accessibilityRole="button" style={s.btnCancel} onPress={onClose}>
                 <Text style={s.btnCancelText}>{t.common.cancel}</Text>
               </Pressable>
-              <Pressable style={s.btnSave} onPress={handleSave}>
+              <Pressable accessibilityRole="button" style={s.btnSave} onPress={handleSave}>
                 <Text style={s.btnSaveText}>{t.common.save}</Text>
               </Pressable>
             </View>

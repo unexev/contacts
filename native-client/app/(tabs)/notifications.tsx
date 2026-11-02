@@ -207,7 +207,7 @@ export default function NotificationsScreen() {
         <Text style={[styles.cardTitle, { color: colors.text }]}>{t.notificationsScreen.daysBefore}</Text>
         <View style={styles.chipRow}>
           {DAYS_OPTIONS.map(d => (
-            <Pressable
+            <Pressable accessibilityRole="button"
               key={d}
               style={[styles.chip, { backgroundColor: colors.fill, borderColor: colors.separator }, settings.daysBefore === d && [styles.chipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
               onPress={() => setSettings(prev => ({ ...prev, daysBefore: d }))}
@@ -268,7 +268,7 @@ export default function NotificationsScreen() {
       </View>
 
       {/* Acciones */}
-      <Pressable
+      <Pressable accessibilityRole="button" accessibilityLabel={t.notificationsScreen.scheduleBtn}
         style={[styles.button, styles.buttonPrimary, { backgroundColor: colors.accent }, !!loadingOp && styles.buttonDisabled]}
         onPress={handleSaveAndSchedule}
         disabled={!!loadingOp}
@@ -278,7 +278,7 @@ export default function NotificationsScreen() {
           : <Text style={styles.buttonText}>{t.notificationsScreen.scheduleBtn}</Text>}
       </Pressable>
 
-      <Pressable
+      <Pressable accessibilityRole="button" accessibilityLabel={t.notificationsScreen.cancelAllBtn}
         style={[styles.button, styles.buttonDanger, { backgroundColor: colors.destructive }, !!loadingOp && styles.buttonDisabled]}
         onPress={handleCancelAll}
         disabled={!!loadingOp}
