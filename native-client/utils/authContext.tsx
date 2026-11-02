@@ -12,7 +12,10 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import { Platform } from 'react-native';
 import { API_BASE, initApiTokens, setApiTokens } from './apiClient';
 import { type ApiSession, type AuthResult, loginRequest, registerRequest } from './authApi';
+import { resetSyncState } from './apiSync';
+import { db } from './db';
 import { auth, db_firebase } from './firebase';
+import { buildLocalDataResetStatements } from './localDataReset';
 import { rcAddListener, rcConfigure, rcIsLicensed, rcLogOut } from './purchases';
 
 const GUEST_KEY = 'auth_guest_mode';
@@ -247,6 +250,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signOutUser = useCallback(async () => {
+    // Closing an API session: wipe local user data and sync state so the next user
+    // of this device does not see it. Failures must not block the sign-out itself.
+    if (apiSession) {
+      try {
+        await db.execAsync('BEGIN');
+        try {
+          for (const sql of buildLocalDataResetStatements()) await db.execAsync(sql);
+          await db.execAsync('COMMIT');
+        } catch (e) {
+          try { await db.execAsync('ROLLBACK'); } catch { /* ignore */ }
+          throw e;
+        }
+        await resetSyncState();
+      } catch (e) {
+        console.warn('[auth] no se pudieron borrar los datos locales al cerrar sesión:', e);
+      }
+    }
     await signOut(auth);
     await setApiTokens(null, null);
     setApiSession(false);
@@ -259,7 +279,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.setItem(ELECTRON_SIGNED_OUT_KEY, 'true');
     }
     await AsyncStorage.removeItem(GUEST_KEY);
-  }, [persistDriveToken]);
+  }, [persistDriveToken, apiSession]);
 
   const continueAsGuest = useCallback(async () => {
     await AsyncStorage.setItem(GUEST_KEY, 'true');

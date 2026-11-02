@@ -185,6 +185,13 @@ export function ContactsProvider({ children }: { children: ReactNode }) {
         return () => sub.remove();
     }, [apiSession, runApiSync]);
 
+    // Al cerrar una sesión API la DB local se vacía: refrescar la lista en memoria.
+    const prevApiSession = useRef(apiSession);
+    useEffect(() => {
+        if (prevApiSession.current && !apiSession) void fetchContacts();
+        prevApiSession.current = apiSession;
+    }, [apiSession, fetchContacts]);
+
     // Auto-restore: si la DB local está vacía al iniciar sesión, descarga el backup de Drive.
     const hasCheckedRestore = useRef(false);
     useEffect(() => {  // eslint-disable-line react-hooks/exhaustive-deps
