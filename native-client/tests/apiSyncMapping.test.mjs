@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeGender, normalizeStatusId, msToSqliteDatetime, mapContactRow } from '../utils/syncMapping.ts';
+import { normalizeGender, normalizeStatusId, msToSqliteDatetime, mapContactRow, nullStringValue, isoToLocalBirthdate } from '../utils/syncMapping.ts';
 
 test('normalizeGender maps backend variants to the local CHECK values', () => {
   for (const v of ['M', 'm', 'MALE', 'male', ' Male ']) assert.equal(normalizeGender(v), 'MALE', v);
@@ -35,6 +35,32 @@ test('mapContactRow produces the local contact columns', () => {
   });
   assert.deepEqual(row, {
     contact_id: 'c1', first_name: 'Ann', middle_name: null, surname: 'Lee',
-    birthdate: '1990-01-02', gender: 'FEMALE', status_id: null, updated_at: '2023-11-14 22:13:20',
+    birthdate: '02/01/1990', gender: 'FEMALE', status_id: null, updated_at: '2023-11-14 22:13:20',
   });
+});
+
+test('nullStringValue unwraps the backend NullString shape', () => {
+  assert.equal(nullStringValue({ String: 'Work', Valid: true }), 'Work');
+  assert.equal(nullStringValue({ String: '', Valid: false }), null);
+  assert.equal(nullStringValue({ String: 'ignored', Valid: false }), null);
+});
+
+test('nullStringValue accepts plain strings and rejects empty or unusable values', () => {
+  assert.equal(nullStringValue(' Home '), 'Home');
+  for (const v of [null, undefined, '', '   ', 42, {}, { Valid: true }]) assert.equal(nullStringValue(v), null, String(v));
+});
+
+test('isoToLocalBirthdate converts ISO dates to the local DD/MM/YYYY format', () => {
+  assert.equal(isoToLocalBirthdate('1990-03-14'), '14/03/1990');
+  assert.equal(isoToLocalBirthdate('2000-01-09T00:00:00Z'), '09/01/2000');
+});
+
+test('isoToLocalBirthdate keeps values already in local format and drops invalid ones', () => {
+  assert.equal(isoToLocalBirthdate('14/03/1990'), '14/03/1990');
+  for (const v of [null, undefined, '', 'not a date', '1990-13-40', '0000-00-00']) assert.equal(isoToLocalBirthdate(v), null, String(v));
+});
+
+test('mapContactRow stores the birthdate in the local format', () => {
+  const r = mapContactRow({ contact_id: 'c1', first_name: 'ANA', surname: 'GARCIA', birthdate: '1990-03-14' });
+  assert.equal(r.birthdate, '14/03/1990');
 });

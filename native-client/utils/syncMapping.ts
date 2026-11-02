@@ -27,6 +27,35 @@ export function msToSqliteDatetime(ms: number | null | undefined): string | null
   return new Date(ms).toISOString().slice(0, 19).replace('T', ' ');
 }
 
+/**
+ * The backend serializes Go `sql.NullString` columns (such as phone/email labels) as `{ String, Valid }`.
+ * Returns the trimmed text, or null when the value is empty, invalid or not a string-like shape.
+ */
+export function nullStringValue(value: unknown): string | null {
+  let text: unknown = value;
+  if (value && typeof value === 'object') {
+    const ns = value as { String?: unknown; Valid?: unknown };
+    text = ns.Valid === true ? ns.String : null;
+  }
+  if (typeof text !== 'string') return null;
+  const trimmed = text.trim();
+  return trimmed === '' ? null : trimmed;
+}
+
+const LOCAL_BIRTHDATE = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
+
+/** The backend stores birthdates as ISO `YYYY-MM-DD`; the app stores and parses `DD/MM/YYYY`. */
+export function isoToLocalBirthdate(value: string | null | undefined): string | null {
+  const v = (value ?? '').trim();
+  if (LOCAL_BIRTHDATE.test(v)) return v;
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:$|[T ])/.exec(v);
+  if (!m) return null;
+  const [year, month, day] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const real = year >= 1 && date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+  return real ? `${m[3]}/${m[2]}/${m[1]}` : null;
+}
+
 export interface BackendContact {
   contact_id: string;
   first_name: string;
@@ -44,7 +73,7 @@ export function mapContactRow(c: BackendContact) {
     first_name: c.first_name,
     middle_name: c.middle_name || null,
     surname: c.surname,
-    birthdate: c.birthdate || null,
+    birthdate: isoToLocalBirthdate(c.birthdate),
     gender: normalizeGender(c.gender),
     status_id: normalizeStatusId(c.status_id),
     updated_at: msToSqliteDatetime(c.updated_at),
