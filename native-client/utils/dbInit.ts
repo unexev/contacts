@@ -8,7 +8,7 @@
  */
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { createTablesSql, migrationsSql, seedSql } = require('./dbSchema');
+const { createTablesSql, migrationsSql, remoteIdIndexesSql, seedSql } = require('./dbSchema');
 
 interface MinimalDB {
   execAsync(sql: string): Promise<void>;
@@ -32,6 +32,11 @@ export async function initializeDatabase(db: MinimalDB) {
 
   for (const sql of migrationsSql as string[]) {
     try { await db.execAsync(sql); } catch (_) {}
+  }
+
+  // Unique remote-id indexes need the columns added by the migrations above.
+  for (const sql of remoteIdIndexesSql as string[]) {
+    try { await db.execAsync(sql); } catch (e) { logWarn('Remote id index skipped:', e); }
   }
 
   // Migración: normalizar gender a mayúsculas y actualizar CHECK constraint
