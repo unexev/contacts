@@ -10,6 +10,8 @@ import {
 import { doc, getDoc } from 'firebase/firestore';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
+import { API_BASE, initApiTokens, setApiTokens } from './apiClient';
+import { type ApiSession, type AuthResult, loginRequest, registerRequest } from './authApi';
 import { auth, db_firebase } from './firebase';
 import { rcAddListener, rcConfigure, rcIsLicensed, rcLogOut } from './purchases';
 
@@ -23,9 +25,15 @@ const TOKEN_LIFETIME_MS = 55 * 60 * 1000;
 interface AuthState {
   user: User | null;
   isGuest: boolean;
+  /** Backend (email/password) session, restored from secure storage on start. */
+  apiSession: boolean;
+  /** True when any sign-in method (Google, email/password, guest) grants access. */
+  isAuthenticated: boolean;
   licensed: boolean;
   loading: boolean;
   driveToken: string | null;
+  loginWithPassword: (email: string, password: string) => Promise<AuthResult>;
+  registerWithPassword: (email: string, name: string, password: string) => Promise<AuthResult>;
   signIn: () => Promise<void>;
   signOutUser: () => Promise<void>;
   continueAsGuest: () => Promise<void>;
@@ -36,9 +44,13 @@ interface AuthState {
 const AuthContext = createContext<AuthState>({
   user: null,
   isGuest: false,
+  apiSession: false,
+  isAuthenticated: false,
   licensed: false,
   loading: true,
   driveToken: null,
+  loginWithPassword: async () => ({ ok: false, errorKey: 'authGeneric' }),
+  registerWithPassword: async () => ({ ok: false, errorKey: 'authGeneric' }),
   signIn: async () => {},
   signOutUser: async () => {},
   continueAsGuest: async () => {},
@@ -50,8 +62,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isGuest, setIsGuest] = useState(false);
   const [licensed, setLicensed] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [apiSession, setApiSession] = useState(false);
+  const [apiRestored, setApiRestored] = useState(false);
   const [driveToken, setDriveToken] = useState<string | null>(null);
+  // Hold the auth gate until both Firebase and the stored API session have been checked.
+  const loading = authLoading || !apiRestored;
+
+  // Restore a backend session from secure storage. Firebase's null callback on cold start must not clear it.
+  useEffect(() => {
+    let cancelled = false;
+    initApiTokens()
+      .then(({ token }) => {
+        if (!cancelled) setApiSession(!!token);
+      })
+      .finally(() => {
+        if (!cancelled) setApiRestored(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const checkLicense = useCallback(async (uid: string) => {
     try {
@@ -157,7 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       }
-      setLoading(false);
+      setAuthLoading(false);
     });
     return unsub;
   }, [checkLicense, persistDriveToken]);
@@ -193,8 +224,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     throw new Error('USE_EXPO_AUTH');
   }, [buildGoogleOAuthUrl, persistDriveToken]);
 
+  const startApiSession = useCallback(async (result: AuthResult): Promise<AuthResult> => {
+    if (result.ok) {
+      const session: ApiSession = result.session;
+      await setApiTokens(session.token, session.refreshToken);
+      await AsyncStorage.removeItem(GUEST_KEY);
+      setIsGuest(false);
+      setApiSession(true);
+    }
+    return result;
+  }, []);
+
+  const loginWithPassword = useCallback(
+    async (email: string, password: string) => startApiSession(await loginRequest(fetch, API_BASE, email, password)),
+    [startApiSession]
+  );
+
+  const registerWithPassword = useCallback(
+    async (email: string, name: string, password: string) =>
+      startApiSession(await registerRequest(fetch, API_BASE, email, name, password)),
+    [startApiSession]
+  );
+
   const signOutUser = useCallback(async () => {
     await signOut(auth);
+    await setApiTokens(null, null);
+    setApiSession(false);
     setIsGuest(false);
     setLicensed(false);
     await rcLogOut();
@@ -267,7 +322,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [buildGoogleOAuthUrl, persistDriveToken]);
 
   return (
-    <AuthContext.Provider value={{ user, isGuest, licensed, loading, driveToken, signIn, signOutUser, continueAsGuest, setDriveToken, refreshDriveToken }}>
+    <AuthContext.Provider value={{ user, isGuest, apiSession, isAuthenticated: !!user || isGuest || apiSession, licensed, loading, driveToken, loginWithPassword, registerWithPassword, signIn, signOutUser, continueAsGuest, setDriveToken, refreshDriveToken }}>
       {children}
     </AuthContext.Provider>
   );

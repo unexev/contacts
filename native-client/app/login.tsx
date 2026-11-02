@@ -9,15 +9,15 @@ import { useI18n } from '../utils/i18n';
 
 export default function LoginScreen() {
   const { t } = useI18n();
-  const { user, isGuest, loading, signIn, continueAsGuest } = useAuth();
+  const { isAuthenticated, loading, signIn, continueAsGuest } = useAuth();
   const router = useRouter();
   const { colors } = useTheme();
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && (user || isGuest)) router.replace('/');
-  }, [user, isGuest, loading]);
+    if (!loading && isAuthenticated) router.replace('/');
+  }, [isAuthenticated, loading]);
 
   const handleSignIn = async () => {
     setError(null);

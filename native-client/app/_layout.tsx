@@ -12,7 +12,7 @@ import { checkBirthdaysOnStartup, requestNotificationPermissions } from '../util
 import { ThemeProvider, useTheme } from '../utils/theme';
 
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { user, isGuest, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const { t } = useI18n();
   const { colors } = useTheme();
   const router = useRouter();
@@ -21,10 +21,10 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
     const inLogin = segments[0] === 'login';
-    const hasAccess = !!user || isGuest;
+    const hasAccess = isAuthenticated;
     if (!hasAccess && !inLogin) router.replace('/login');
     if (hasAccess && inLogin) router.replace('/');
-  }, [user, isGuest, loading, segments]);
+  }, [isAuthenticated, loading, segments]);
 
   if (loading) {
     return (
