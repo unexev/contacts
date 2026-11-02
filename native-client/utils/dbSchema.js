@@ -23,6 +23,7 @@ const createTablesSql = `
     contact_id TEXT NOT NULL,
     phone TEXT NOT NULL,
     label TEXT,
+    remote_id TEXT,
     updated_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (contact_id) REFERENCES contact(contact_id)
   );
@@ -32,6 +33,7 @@ const createTablesSql = `
     contact_id TEXT NOT NULL,
     email TEXT NOT NULL,
     label TEXT,
+    remote_id TEXT,
     updated_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (contact_id) REFERENCES contact(contact_id)
   );
@@ -92,6 +94,7 @@ const createTablesSql = `
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     contact_id TEXT NOT NULL,
     note TEXT NOT NULL,
+    remote_id TEXT,
     updated_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (contact_id) REFERENCES contact(contact_id)
   );
@@ -159,11 +162,27 @@ const migrationsSql = [
   "ALTER TABLE contact_note ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))",
   "ALTER TABLE contact_url ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))",
   "ALTER TABLE contact_bank_account ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))",
+  // Server ids of synced children, so pulled edits update rows instead of duplicating them
+  "ALTER TABLE contact_phone ADD COLUMN remote_id TEXT",
+  "ALTER TABLE contact_email ADD COLUMN remote_id TEXT",
+  "ALTER TABLE contact_note ADD COLUMN remote_id TEXT",
   // Se eliminó la búsqueda full-text: borrar sus triggers e índice de DBs existentes
   'DROP TRIGGER IF EXISTS contact_ai',
   'DROP TRIGGER IF EXISTS contact_ad',
   'DROP TRIGGER IF EXISTS contact_au',
   'DROP TABLE IF EXISTS contact_fts',
+];
+
+/**
+ * Unique indexes on the server id of synced children. They must run after
+ * `migrationsSql`: legacy databases only get `remote_id` through ALTER TABLE,
+ * so putting them in `createTablesSql` would fail there. NULL remote ids stay
+ * allowed many times (SQLite treats NULLs as distinct in unique indexes).
+ */
+const remoteIdIndexesSql = [
+  'CREATE UNIQUE INDEX IF NOT EXISTS uq_contact_phone_remote ON contact_phone(contact_id, remote_id)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS uq_contact_email_remote ON contact_email(contact_id, remote_id)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS uq_contact_note_remote ON contact_note(contact_id, remote_id)',
 ];
 
 const seedSql = `
@@ -387,6 +406,7 @@ function computeSyncSignature(getFirst) {
 module.exports = {
   createTablesSql,
   migrationsSql,
+  remoteIdIndexesSql,
   seedSql,
   SYNC_TABLES,
   needsGenderMigration,

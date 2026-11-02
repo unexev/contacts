@@ -5,7 +5,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db } from "./db";
 import { requestApi } from "./apiClient";
-import { mapContactRow, msToSqliteDatetime, nullStringValue } from "./syncMapping";
+import { mapContactRow } from "./syncMapping";
+import { applyChildRow, CHILD_TABLES } from "./syncChildren";
 
 const CURSOR_KEY = "contacts_sync_cursor";
 const PENDING_QUEUE_KEY = "contacts_pending_sync_queue";
@@ -93,12 +94,6 @@ export async function pullChanges(): Promise<{
   try {
     await db.execAsync("BEGIN");
     try {
-      const contactExists = async (contactId: string) =>
-        !!(await db.getFirstAsync(
-          "SELECT 1 FROM contact WHERE contact_id = ?",
-          contactId,
-        ));
-
       // 1. Contacts
       for (const c of contacts) {
         if (c.deleted) {
@@ -137,74 +132,12 @@ export async function pullChanges(): Promise<{
         }
       }
 
-      // 2-4. Children. The local tables have no remote id, so rows are keyed by (contact_id, value).
-      // Rows whose parent contact is missing locally are skipped (they would violate the FK).
-      const children = [
-        {
-          table: "contact_phone",
-          column: "phone",
-          rows: phones,
-          hasLabel: true,
-        },
-        {
-          table: "contact_email",
-          column: "email",
-          rows: emails,
-          hasLabel: true,
-        },
-        { table: "contact_note", column: "note", rows: notes, hasLabel: false },
-      ];
-      for (const { table, column, rows, hasLabel } of children) {
-        for (const row of rows) {
-          const value = row[column];
-          if (!value) continue;
-          if (row.deleted) {
-            await db.runAsync(
-              `DELETE FROM ${table} WHERE contact_id = ? AND ${column} = ?`,
-              row.contact_id,
-              value,
-            );
-            continue;
-          }
-          if (!(await contactExists(row.contact_id))) continue;
-          const updatedAt = msToSqliteDatetime(row.updated_at);
-          const label = nullStringValue(row.label);
-          const existing = await db.getFirstAsync<{ id: number }>(
-            `SELECT id FROM ${table} WHERE contact_id = ? AND ${column} = ?`,
-            row.contact_id,
-            value,
-          );
-          if (existing) {
-            if (hasLabel) {
-              await db.runAsync(
-                `UPDATE ${table} SET label = ?, updated_at = COALESCE(?, datetime('now')) WHERE id = ?`,
-                label,
-                updatedAt,
-                existing.id,
-              );
-            } else {
-              await db.runAsync(
-                `UPDATE ${table} SET updated_at = COALESCE(?, datetime('now')) WHERE id = ?`,
-                updatedAt,
-                existing.id,
-              );
-            }
-          } else if (hasLabel) {
-            await db.runAsync(
-              `INSERT INTO ${table} (contact_id, ${column}, label, updated_at) VALUES (?, ?, ?, COALESCE(?, datetime('now')))`,
-              row.contact_id,
-              value,
-              label,
-              updatedAt,
-            );
-          } else {
-            await db.runAsync(
-              `INSERT INTO ${table} (contact_id, ${column}, updated_at) VALUES (?, ?, COALESCE(?, datetime('now')))`,
-              row.contact_id,
-              value,
-              updatedAt,
-            );
-          }
+      // 2-4. Children, keyed by their server id (remote_id). Rows whose parent contact is
+      // missing locally are skipped by applyChildRow (they would violate the FK).
+      const pulled = { contact_phone: phones, contact_email: emails, contact_note: notes };
+      for (const t of CHILD_TABLES) {
+        for (const row of pulled[t.table as keyof typeof pulled]) {
+          await applyChildRow(db, t, row);
         }
       }
       await db.execAsync("COMMIT");
