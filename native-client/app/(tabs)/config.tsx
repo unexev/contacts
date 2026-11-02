@@ -25,6 +25,16 @@ export default function Config() {
   const router = useRouter();
   const { isDesktop } = useResponsive();
   const { colors, preference, setPreference } = useTheme();
+  const handleSignOut = () => {
+    if (!apiSession) {
+      void signOutUser();
+      return;
+    }
+    Alert.alert(t.config.signOutConfirmTitle, t.config.signOutConfirmMessage, [
+      { text: t.config.cancel, style: 'cancel' },
+      { text: t.config.signOut, style: 'destructive', onPress: () => void signOutUser() },
+    ]);
+  };
   const [signInBusy, setSignInBusy] = useState(false);
   const [signInError, setSignInError] = useState<string | null>(null);
 
@@ -129,7 +139,7 @@ export default function Config() {
               {licensed ? t.config.activeLicense : t.config.freePlan}
             </Text>
           </View>
-          <Pressable style={[styles.button, styles.buttonSignOut, { backgroundColor: colors.destructive }]} onPress={signOutUser}>
+          <Pressable style={[styles.button, styles.buttonSignOut, { backgroundColor: colors.destructive }]} onPress={handleSignOut}>
             <Text style={styles.buttonText}>{t.config.signOut}</Text>
           </Pressable>
         </View>

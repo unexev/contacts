@@ -10,6 +10,11 @@ import { mapContactRow, msToSqliteDatetime } from "./syncMapping";
 const CURSOR_KEY = "contacts_sync_cursor";
 const PENDING_QUEUE_KEY = "contacts_pending_sync_queue";
 
+/** Forget the sync cursor and any queued offline changes (used when signing out). */
+export async function resetSyncState(): Promise<void> {
+  await AsyncStorage.multiRemove([CURSOR_KEY, PENDING_QUEUE_KEY]);
+}
+
 export interface SyncPushItem {
   entity: string;
   op: "upsert" | "delete";
