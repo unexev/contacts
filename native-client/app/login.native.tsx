@@ -4,7 +4,17 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { auth } from '../utils/firebase';
 import { useAuth } from '../utils/authContext';
 import { useTheme } from '../utils/theme';
@@ -19,15 +29,39 @@ GoogleSignin.configure({
 
 export default function LoginScreen() {
   const { t } = useI18n();
-  const { user, isGuest, loading, continueAsGuest, setDriveToken } = useAuth();
+  const { isAuthenticated, loading, continueAsGuest, setDriveToken, loginWithPassword, registerWithPassword } = useAuth();
   const router = useRouter();
   const { colors } = useTheme();
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [registerMode, setRegisterMode] = React.useState(false);
+  const [email, setEmail] = React.useState('');
+  const [name, setName] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [emailBusy, setEmailBusy] = React.useState(false);
 
   useEffect(() => {
-    if (!loading && (user || isGuest)) router.replace('/');
-  }, [user, isGuest, loading]);
+    if (!loading && isAuthenticated) router.replace('/');
+  }, [isAuthenticated, loading]);
+
+  const handleEmailSubmit = async () => {
+    if (emailBusy) return;
+    setError(null);
+    setEmailBusy(true);
+    try {
+      const result = registerMode
+        ? await registerWithPassword(email, name, password)
+        : await loginWithPassword(email, password);
+      if (!result.ok) setError(t.login[result.errorKey]);
+    } finally {
+      setEmailBusy(false);
+    }
+  };
+
+  const toggleMode = () => {
+    setError(null);
+    setRegisterMode((m) => !m);
+  };
 
   const handleSignIn = async () => {
     setError(null);
@@ -65,13 +99,79 @@ export default function LoginScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.accent }]}>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: colors.accent }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={[styles.card, { backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacityMedium }]}>
         <View style={[styles.iconPlaceholder, { backgroundColor: colors.accentSubtle }]}>
           <Ionicons name="people" size={44} color="#0066D6" />
         </View>
         <Text style={[styles.title, { color: colors.text }]}>{t.login.title}</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t.login.subtitle}</Text>
+        {registerMode && (
+          <TextInput
+            style={[styles.input, { color: colors.text, borderColor: colors.textSecondary, backgroundColor: colors.bg }]}
+            value={name}
+            onChangeText={setName}
+            placeholder={t.login.nameLabel}
+            placeholderTextColor={colors.textSecondary}
+            accessibilityLabel={t.login.nameLabel}
+            autoCapitalize="words"
+            autoComplete="name"
+            editable={!emailBusy}
+          />
+        )}
+        <TextInput
+          style={[styles.input, { color: colors.text, borderColor: colors.textSecondary, backgroundColor: colors.bg }]}
+          value={email}
+          onChangeText={setEmail}
+          placeholder={t.login.emailLabel}
+          placeholderTextColor={colors.textSecondary}
+          accessibilityLabel={t.login.emailLabel}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          keyboardType="email-address"
+          editable={!emailBusy}
+        />
+        <TextInput
+          style={[styles.input, { color: colors.text, borderColor: colors.textSecondary, backgroundColor: colors.bg }]}
+          value={password}
+          onChangeText={setPassword}
+          placeholder={t.login.passwordLabel}
+          placeholderTextColor={colors.textSecondary}
+          accessibilityLabel={t.login.passwordLabel}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete={registerMode ? 'new-password' : 'current-password'}
+          secureTextEntry
+          editable={!emailBusy}
+          onSubmitEditing={handleEmailSubmit}
+          returnKeyType="go"
+        />
+        <Pressable
+          style={[styles.googleBtn, { backgroundColor: colors.accent }, emailBusy && styles.btnDisabled]}
+          onPress={handleEmailSubmit}
+          disabled={emailBusy}
+          accessibilityRole="button"
+          accessibilityLabel={registerMode ? t.login.createAccount : t.login.signInWithEmail}
+          accessibilityState={{ disabled: emailBusy, busy: emailBusy }}
+        >
+          {emailBusy
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={styles.googleBtnText}>{registerMode ? t.login.createAccount : t.login.signInWithEmail}</Text>}
+        </Pressable>
+        <Pressable style={styles.toggleBtn} onPress={toggleMode} disabled={emailBusy} accessibilityRole="button">
+          <Text style={[styles.guestBtnText, { color: colors.accent }]}>
+            {registerMode ? t.login.switchToSignIn : t.login.switchToRegister}
+          </Text>
+        </Pressable>
+        <Text style={[styles.googleHint, { color: colors.textSecondary }]}>{t.login.orDivider}</Text>
         <Pressable style={[styles.googleBtn, { backgroundColor: colors.accent }, busy && styles.btnDisabled]} onPress={handleSignIn} disabled={busy}>
           {busy
             ? <ActivityIndicator color="#fff" />
@@ -84,12 +184,15 @@ export default function LoginScreen() {
         {error && <Text style={styles.error}>{error}</Text>}
         <Text style={[styles.disclaimer, { color: colors.textSecondary }]}>{t.login.disclaimer}</Text>
       </View>
-    </View>
+    </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0066D6', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  container: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  input: { width: '100%', borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, fontSize: 16, marginBottom: 10 },
+  toggleBtn: { width: '100%', alignItems: 'center', paddingVertical: 10, minHeight: 44, justifyContent: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   card: {
     backgroundColor: '#fff', borderRadius: 24, padding: 32,
@@ -99,7 +202,7 @@ const styles = StyleSheet.create({
   },
   iconPlaceholder: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#E5F0FF', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   title: { fontSize: 28, fontWeight: '700', color: '#000', marginBottom: 8 },
-  subtitle: { fontSize: 15, color: '#6C6C70', textAlign: 'center', marginBottom: 32 },
+  subtitle: { fontSize: 15, color: '#6C6C70', textAlign: 'center', marginBottom: 20 },
   googleBtn: { backgroundColor: '#0066D6', borderRadius: 12, paddingVertical: 14, paddingHorizontal: 24, width: '100%', alignItems: 'center', marginBottom: 6 },
   btnDisabled: { opacity: 0.6 },
   googleBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },

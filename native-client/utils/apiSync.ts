@@ -2,16 +2,17 @@
  * Sincronización HTTP bidireccional contra el backend de Contacts (Go).
  * Reemplaza driveSync.ts usando /api/sync (pull delta) y /api/sync/push (push en lote).
  */
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { db } from './db';
-import { requestApi } from './apiClient';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { db } from "./db";
+import { requestApi } from "./apiClient";
+import { mapContactRow, msToSqliteDatetime } from "./syncMapping";
 
-const CURSOR_KEY = 'contacts_sync_cursor';
-const PENDING_QUEUE_KEY = 'contacts_pending_sync_queue';
+const CURSOR_KEY = "contacts_sync_cursor";
+const PENDING_QUEUE_KEY = "contacts_pending_sync_queue";
 
 export interface SyncPushItem {
   entity: string;
-  op: 'upsert' | 'delete';
+  op: "upsert" | "delete";
   id: string;
   contact_id?: string;
   data?: any;
@@ -25,7 +26,7 @@ export async function enqueueChange(item: SyncPushItem): Promise<void> {
     queue.push(item);
     await AsyncStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(queue));
   } catch (e) {
-    console.warn('[apiSync] Error enqueuing change:', e);
+    console.warn("[apiSync] Error enqueuing change:", e);
   }
 }
 
@@ -38,8 +39,8 @@ export async function pushPendingChanges(): Promise<boolean> {
 
   // Enviar de hasta 100 en 100
   const batch = queue.slice(0, 100);
-  const res = await requestApi('/api/sync/push', {
-    method: 'POST',
+  const res = await requestApi("/api/sync/push", {
+    method: "POST",
     body: JSON.stringify({ changes: batch }),
   });
 
@@ -53,13 +54,16 @@ export async function pushPendingChanges(): Promise<boolean> {
 }
 
 /** Trae cambios del backend desde el último cursor guardado */
-export async function pullChanges(): Promise<{ changed: boolean; error?: string }> {
+export async function pullChanges(): Promise<{
+  changed: boolean;
+  error?: string;
+}> {
   const cursorStr = await AsyncStorage.getItem(CURSOR_KEY);
   const since = cursorStr ? parseInt(cursorStr, 10) : 0;
 
   const res = await requestApi(`/api/sync?since=${since}`);
   if (res.status !== 200 || !res.data) {
-    return { changed: false, error: res.error || 'Failed to pull changes' };
+    return { changed: false, error: res.error || "Failed to pull changes" };
   }
 
   const {
@@ -79,69 +83,145 @@ export async function pullChanges(): Promise<{ changed: boolean; error?: string 
     nationalities = [],
   } = res.data;
 
-  // Aplicar cambios a la base local SQLite
+  // Aplicar cambios a la base local SQLite en una sola transacción: si algo falla se revierte
+  // todo y el cursor no avanza, así el próximo pull reintenta el mismo rango (las escrituras son idempotentes).
   try {
-    // 1. Contacts
-    for (const c of contacts) {
-      if (c.deleted) {
-        await db.runAsync('DELETE FROM contact WHERE contact_id = ?', c.contact_id);
-      } else {
-        await db.runAsync(
-          `INSERT OR REPLACE INTO contact (contact_id, first_name, middle_name, surname, birthdate, gender, status_id, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          c.contact_id, c.first_name, c.middle_name || null, c.surname, c.birthdate || null, c.gender || null, c.status_id || null, c.updated_at
-        );
+    await db.execAsync("BEGIN");
+    try {
+      const contactExists = async (contactId: string) =>
+        !!(await db.getFirstAsync(
+          "SELECT 1 FROM contact WHERE contact_id = ?",
+          contactId,
+        ));
+
+      // 1. Contacts
+      for (const c of contacts) {
+        if (c.deleted) {
+          for (const table of [
+            "contact_phone",
+            "contact_email",
+            "contact_note",
+          ]) {
+            await db.runAsync(
+              `DELETE FROM ${table} WHERE contact_id = ?`,
+              c.contact_id,
+            );
+          }
+          await db.runAsync(
+            "DELETE FROM contact WHERE contact_id = ?",
+            c.contact_id,
+          );
+        } else {
+          const r = mapContactRow(c);
+          await db.runAsync(
+            `INSERT INTO contact (contact_id, first_name, middle_name, surname, birthdate, gender, status_id, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
+             ON CONFLICT(contact_id) DO UPDATE SET
+               first_name = excluded.first_name, middle_name = excluded.middle_name, surname = excluded.surname,
+               birthdate = excluded.birthdate, gender = excluded.gender, status_id = excluded.status_id,
+               updated_at = excluded.updated_at`,
+            r.contact_id,
+            r.first_name,
+            r.middle_name,
+            r.surname,
+            r.birthdate,
+            r.gender,
+            r.status_id,
+            r.updated_at,
+          );
+        }
       }
+
+      // 2-4. Children. The local tables have no remote id, so rows are keyed by (contact_id, value).
+      // Rows whose parent contact is missing locally are skipped (they would violate the FK).
+      const children = [
+        {
+          table: "contact_phone",
+          column: "phone",
+          rows: phones,
+          hasLabel: true,
+        },
+        {
+          table: "contact_email",
+          column: "email",
+          rows: emails,
+          hasLabel: true,
+        },
+        { table: "contact_note", column: "note", rows: notes, hasLabel: false },
+      ];
+      for (const { table, column, rows, hasLabel } of children) {
+        for (const row of rows) {
+          const value = row[column];
+          if (!value) continue;
+          if (row.deleted) {
+            await db.runAsync(
+              `DELETE FROM ${table} WHERE contact_id = ? AND ${column} = ?`,
+              row.contact_id,
+              value,
+            );
+            continue;
+          }
+          if (!(await contactExists(row.contact_id))) continue;
+          const updatedAt = msToSqliteDatetime(row.updated_at);
+          const existing = await db.getFirstAsync<{ id: number }>(
+            `SELECT id FROM ${table} WHERE contact_id = ? AND ${column} = ?`,
+            row.contact_id,
+            value,
+          );
+          if (existing) {
+            if (hasLabel) {
+              await db.runAsync(
+                `UPDATE ${table} SET label = ?, updated_at = COALESCE(?, datetime('now')) WHERE id = ?`,
+                row.label || null,
+                updatedAt,
+                existing.id,
+              );
+            } else {
+              await db.runAsync(
+                `UPDATE ${table} SET updated_at = COALESCE(?, datetime('now')) WHERE id = ?`,
+                updatedAt,
+                existing.id,
+              );
+            }
+          } else if (hasLabel) {
+            await db.runAsync(
+              `INSERT INTO ${table} (contact_id, ${column}, label, updated_at) VALUES (?, ?, ?, COALESCE(?, datetime('now')))`,
+              row.contact_id,
+              value,
+              row.label || null,
+              updatedAt,
+            );
+          } else {
+            await db.runAsync(
+              `INSERT INTO ${table} (contact_id, ${column}, updated_at) VALUES (?, ?, COALESCE(?, datetime('now')))`,
+              row.contact_id,
+              value,
+              updatedAt,
+            );
+          }
+        }
+      }
+      await db.execAsync("COMMIT");
+    } catch (e) {
+      try {
+        await db.execAsync("ROLLBACK");
+      } catch (_) {}
+      throw e;
     }
 
-    // 2. Phones
-    for (const p of phones) {
-      if (p.deleted) {
-        await db.runAsync('DELETE FROM contact_phone WHERE contact_id = ? AND phone = ?', p.contact_id, p.phone);
-      } else {
-        await db.runAsync(
-          `INSERT INTO contact_phone (contact_id, phone, label, updated_at)
-           VALUES (?, ?, ?, ?)`,
-          p.contact_id, p.phone, p.label || null, p.updated_at
-        );
-      }
-    }
-
-    // 3. Emails
-    for (const e of emails) {
-      if (e.deleted) {
-        await db.runAsync('DELETE FROM contact_email WHERE contact_id = ? AND email = ?', e.contact_id, e.email);
-      } else {
-        await db.runAsync(
-          `INSERT INTO contact_email (contact_id, email, label, updated_at)
-           VALUES (?, ?, ?, ?)`,
-          e.contact_id, e.email, e.label || null, e.updated_at
-        );
-      }
-    }
-
-    // 4. Notes
-    for (const n of notes) {
-      if (n.deleted) {
-        await db.runAsync('DELETE FROM contact_notes WHERE note_id = ?', n.note_id);
-      } else {
-        await db.runAsync(
-          `INSERT OR REPLACE INTO contact_notes (contact_id, note_id, note, updated_at)
-           VALUES (?, ?, ?, ?)`,
-          n.contact_id, n.note_id, n.note, n.updated_at
-        );
-      }
-    }
-
-    // Guardar nuevo cursor
+    // Guardar nuevo cursor solo si todo se aplicó
     if (cursor) {
       await AsyncStorage.setItem(CURSOR_KEY, String(cursor));
     }
 
-    const hasChanges = contacts.length > 0 || phones.length > 0 || emails.length > 0 || notes.length > 0;
+    const hasChanges =
+      contacts.length > 0 ||
+      phones.length > 0 ||
+      emails.length > 0 ||
+      notes.length > 0;
     return { changed: hasChanges };
   } catch (err: any) {
-    console.warn('[apiSync] Error applying changes locally:', err);
+    console.warn("[apiSync] Error applying changes locally:", err);
     return { changed: false, error: err.message };
   }
 }
