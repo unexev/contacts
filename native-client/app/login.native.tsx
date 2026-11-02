@@ -155,7 +155,7 @@ export default function LoginScreen() {
           returnKeyType="go"
         />
         <Pressable
-          style={[styles.googleBtn, { backgroundColor: colors.accent }, emailBusy && styles.btnDisabled]}
+          style={[styles.primaryBtn, { backgroundColor: colors.accentFill }, emailBusy && styles.btnDisabled]}
           onPress={handleEmailSubmit}
           disabled={emailBusy}
           accessibilityRole="button"
@@ -164,7 +164,7 @@ export default function LoginScreen() {
         >
           {emailBusy
             ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.googleBtnText}>{registerMode ? t.login.createAccount : t.login.signInWithEmail}</Text>}
+            : <Text style={styles.primaryBtnText}>{registerMode ? t.login.createAccount : t.login.signInWithEmail}</Text>}
         </Pressable>
         <Pressable style={styles.toggleBtn} onPress={toggleMode} disabled={emailBusy} accessibilityRole="button">
           <Text style={[styles.guestBtnText, { color: colors.accent }]}>
@@ -172,16 +172,23 @@ export default function LoginScreen() {
           </Text>
         </Pressable>
         <Text style={[styles.googleHint, { color: colors.textSecondary }]}>{t.login.orDivider}</Text>
-        <Pressable style={[styles.googleBtn, { backgroundColor: colors.accent }, busy && styles.btnDisabled]} onPress={handleSignIn} disabled={busy}>
+        <Pressable
+          style={[styles.secondaryBtn, { backgroundColor: colors.fill, borderColor: colors.separator }, busy && styles.btnDisabled]}
+          onPress={handleSignIn}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel={t.login.continueWithGoogle}
+          accessibilityState={{ disabled: busy, busy }}
+        >
           {busy
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.googleBtnText}>{t.login.continueWithGoogle}</Text>}
+            ? <ActivityIndicator color={colors.text} />
+            : <Text style={[styles.secondaryBtnText, { color: colors.text }]}>{t.login.continueWithGoogle}</Text>}
         </Pressable>
         <Text style={[styles.googleHint, { color: colors.textSecondary }]}>{t.login.enableBackup}</Text>
         <Pressable style={styles.guestBtn} onPress={handleGuest}>
           <Text style={[styles.guestBtnText, { color: colors.accent }]}>{t.login.continueAsGuest}</Text>
         </Pressable>
-        {error && <Text style={styles.error}>{error}</Text>}
+        {error && <Text style={[styles.error, { color: colors.destructiveText }]}>{error}</Text>}
         <Text style={[styles.disclaimer, { color: colors.textSecondary }]}>{t.login.disclaimer}</Text>
       </View>
     </ScrollView>
@@ -203,9 +210,11 @@ const styles = StyleSheet.create({
   iconPlaceholder: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#E5F0FF', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   title: { fontSize: 28, fontWeight: '700', color: '#000', marginBottom: 8 },
   subtitle: { fontSize: 15, color: '#6C6C70', textAlign: 'center', marginBottom: 20 },
-  googleBtn: { backgroundColor: '#0066D6', borderRadius: 12, paddingVertical: 14, paddingHorizontal: 24, width: '100%', alignItems: 'center', marginBottom: 6 },
+  primaryBtn: { borderRadius: 12, paddingVertical: 14, paddingHorizontal: 24, width: '100%', alignItems: 'center', marginBottom: 6 },
+  secondaryBtn: { borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, paddingVertical: 14, paddingHorizontal: 24, width: '100%', alignItems: 'center', marginBottom: 6 },
   btnDisabled: { opacity: 0.6 },
-  googleBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  secondaryBtnText: { fontSize: 16, fontWeight: '600' },
   googleHint: { fontSize: 12, color: '#6C6C70', textAlign: 'center', marginBottom: 16 },
   guestBtn: { width: '100%', alignItems: 'center', paddingVertical: 16, marginBottom: 8, minHeight: 48, justifyContent: 'center' },
   guestBtnText: { color: '#0066D6', fontSize: 15, fontWeight: '500' },
