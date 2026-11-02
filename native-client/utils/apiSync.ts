@@ -5,7 +5,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db } from "./db";
 import { requestApi } from "./apiClient";
-import { mapContactRow, msToSqliteDatetime } from "./syncMapping";
+import { mapContactRow, msToSqliteDatetime, nullStringValue } from "./syncMapping";
 
 const CURSOR_KEY = "contacts_sync_cursor";
 const PENDING_QUEUE_KEY = "contacts_pending_sync_queue";
@@ -168,6 +168,7 @@ export async function pullChanges(): Promise<{
           }
           if (!(await contactExists(row.contact_id))) continue;
           const updatedAt = msToSqliteDatetime(row.updated_at);
+          const label = nullStringValue(row.label);
           const existing = await db.getFirstAsync<{ id: number }>(
             `SELECT id FROM ${table} WHERE contact_id = ? AND ${column} = ?`,
             row.contact_id,
@@ -177,7 +178,7 @@ export async function pullChanges(): Promise<{
             if (hasLabel) {
               await db.runAsync(
                 `UPDATE ${table} SET label = ?, updated_at = COALESCE(?, datetime('now')) WHERE id = ?`,
-                row.label || null,
+                label,
                 updatedAt,
                 existing.id,
               );
@@ -193,7 +194,7 @@ export async function pullChanges(): Promise<{
               `INSERT INTO ${table} (contact_id, ${column}, label, updated_at) VALUES (?, ?, ?, COALESCE(?, datetime('now')))`,
               row.contact_id,
               value,
-              row.label || null,
+              label,
               updatedAt,
             );
           } else {
