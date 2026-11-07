@@ -1,5 +1,6 @@
 <script>
-  import { locale, t, setLocale } from '$lib/i18n.svelte.js';
+  import { t } from '$lib/i18n.svelte.js';
+  import LangSwitch from '$lib/components/LangSwitch.svelte';
   import {
     Info,
     HardDrive,
@@ -30,9 +31,6 @@
     { key: 'linux', icon: Terminal, name: 'Linux', detail: '.AppImage', url: null }
   ];
 
-  function toggleLang() {
-    setLocale(locale.value === 'es' ? 'en' : 'es');
-  }
 </script>
 
 <svelte:head>
@@ -42,14 +40,14 @@
 
 <div class="landing">
   <nav class="landing-nav">
-    <a href="/offline" class="brand">
-      <span class="brand-mark">C</span>
+    <a href="/offline" class="brand" aria-label={t('offlineAppName')}>
+      <img src="/logo.png" class="brand-mark" alt="" width="32" height="32" />
       <span class="brand-name">{t('offlineAppName')}</span>
     </a>
     <div class="nav-actions">
       <a href="#features" class="nav-link">{t('landingNavFeatures')}</a>
       <a href="#downloads" class="nav-link">{t('offlineDownloadsTitle')}</a>
-      <button class="nav-lang" onclick={toggleLang}>{locale.value.toUpperCase()}</button>
+      <LangSwitch />
       <a href="/" class="btn btn-outline nav-web">{t('offlineNavWebLabel')}</a>
     </div>
   </nav>
@@ -142,14 +140,7 @@
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: var(--accent-text);
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    flex-shrink: 0;
   }
 
   .brand-name {
@@ -171,18 +162,6 @@
     color: var(--text2);
   }
 
-  .nav-lang {
-    min-width: 44px;
-    min-height: 44px;
-    padding: 0 10px;
-    border-radius: 8px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text2);
-    background: transparent;
-    border: 1px solid var(--border);
-    cursor: pointer;
-  }
 
   .nav-web {
     min-height: 44px;

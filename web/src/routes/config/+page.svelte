@@ -1,6 +1,7 @@
 <script>
   import { A, setToken } from '$lib/api.svelte.js';
-  import { locale, t, setLocale } from '$lib/i18n.svelte.js';
+  import { t } from '$lib/i18n.svelte.js';
+  import LangSwitch from '$lib/components/LangSwitch.svelte';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { Sun, Moon, Monitor } from '@lucide/svelte';
@@ -16,9 +17,6 @@
     goto('/');
   }
 
-  function setLang(lang) {
-    setLocale(lang);
-  }
 </script>
 
 <div class="config-page animate-in">
@@ -30,26 +28,7 @@
         <span class="section-card-title">{t('configLanguage')}</span>
       </div>
       <div class="section-card-body">
-        <div class="lang-options">
-          <button
-            class="lang-btn"
-            class:active={locale.value === 'es'}
-            aria-pressed={locale.value === 'es'}
-            lang="es"
-            onclick={() => setLang('es')}
-          >
-            <span>Español</span>
-          </button>
-          <button
-            class="lang-btn"
-            class:active={locale.value === 'en'}
-            aria-pressed={locale.value === 'en'}
-            lang="en"
-            onclick={() => setLang('en')}
-          >
-            <span>English</span>
-          </button>
-        </div>
+        <LangSwitch />
       </div>
     </div>
 
@@ -116,10 +95,6 @@
     gap: 16px;
   }
 
-  .lang-options {
-    display: flex;
-    gap: 10px;
-  }
 
   .theme-switcher {
     display: grid;
@@ -153,33 +128,8 @@
     box-shadow: 0 1px 4px rgba(0, 0, 0, .16);
   }
 
-  .lang-btn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 14px;
-    background: var(--surface2);
-    border: 2px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-size: 0.9375rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-    font-family: inherit;
-  }
 
-  .lang-btn:hover {
-    border-color: var(--text2);
-  }
 
-  .lang-btn.active {
-    border-color: var(--accent);
-    background: rgba(10, 132, 255, 0.12);
-    color: var(--accent-text);
-  }
 
   .logout-btn {
     margin-top: 8px;
