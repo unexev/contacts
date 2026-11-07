@@ -23,7 +23,7 @@
 
   const plans = [
     { name: 'Free', price: '$0', period: 'landingPlanFreePeriod', features: 'landingPlanFreeFeatures', cta: 'landingPlanFreeCta', primary: false },
-    { name: 'Pro', price: '$9.99', period: 'landingPlanProPeriod', features: 'landingPlanProFeatures', cta: 'landingPlanProCta', primary: true }
+    { name: 'Pro', price: '$29', period: 'landingPlanProPeriod', features: 'landingPlanProFeatures', cta: 'landingPlanProCta', primary: true }
   ];
 
 </script>
