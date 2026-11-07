@@ -1,6 +1,7 @@
 <script>
   import { A } from '$lib/api.svelte.js';
-  import { locale, t, setLocale } from '$lib/i18n.svelte.js';
+  import { t } from '$lib/i18n.svelte.js';
+  import LangSwitch from '$lib/components/LangSwitch.svelte';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { Contact, IdCard, CalendarDays, Users, Globe, Check } from '@lucide/svelte';
@@ -22,12 +23,9 @@
 
   const plans = [
     { name: 'Free', price: '$0', period: 'landingPlanFreePeriod', features: 'landingPlanFreeFeatures', cta: 'landingPlanFreeCta', primary: false },
-    { name: 'Pro', price: '$9.99', period: 'landingPlanProPeriod', features: 'landingPlanProFeatures', cta: 'landingPlanProCta', primary: true }
+    { name: 'Pro', price: '$29', period: 'landingPlanProPeriod', features: 'landingPlanProFeatures', cta: 'landingPlanProCta', primary: true }
   ];
 
-  function toggleLang() {
-    setLocale(locale.value === 'es' ? 'en' : 'es');
-  }
 </script>
 
 <svelte:head>
@@ -38,15 +36,15 @@
 {#if ready}
   <div class="landing">
     <nav class="landing-nav">
-      <a href="/" class="brand">
-        <span class="brand-mark">C</span>
+      <a href="/" class="brand" aria-label={t('appName')}>
+        <img src="/logo.png" class="brand-mark" alt="" width="32" height="32" />
         <span class="brand-name">{t('appName')}</span>
       </a>
       <div class="nav-actions">
         <a href="#features" class="nav-link">{t('landingNavFeatures')}</a>
         <a href="#pricing" class="nav-link">{t('landingNavPricing')}</a>
         <a href="/offline" class="nav-link">{t('offlineNavLinkLabel')}</a>
-        <button class="nav-lang" onclick={toggleLang}>{locale.value.toUpperCase()}</button>
+        <LangSwitch />
         <a href="/login" class="btn btn-primary nav-login">{t('loginTitle')}</a>
       </div>
     </nav>
@@ -153,14 +151,7 @@
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: var(--accent-text);
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    flex-shrink: 0;
   }
 
   .brand-name {
@@ -182,18 +173,6 @@
     color: var(--text2);
   }
 
-  .nav-lang {
-    min-width: 44px;
-    min-height: 44px;
-    padding: 0 10px;
-    border-radius: 8px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text2);
-    background: transparent;
-    border: 1px solid var(--border);
-    cursor: pointer;
-  }
 
   .nav-login {
     min-height: 44px;

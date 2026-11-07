@@ -1,6 +1,7 @@
 <script>
   import { A, api, setToken } from '$lib/api.svelte.js';
   import { t } from '$lib/i18n.svelte.js';
+  import LangSwitch from '$lib/components/LangSwitch.svelte';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { friendlyError } from '$lib/errors.js';
   import { goto } from '$app/navigation';
@@ -38,6 +39,7 @@
 </script>
 
 <div class="register-page">
+  <div class="lang-corner"><LangSwitch /></div>
   <div class="register-card animate-in">
     <h1 class="register-title">{t('registerTitle')}</h1>
 
@@ -86,7 +88,14 @@
 </div>
 
 <style>
+  .lang-corner {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+
   .register-page {
+    position: relative;
     min-height: 100vh;
     display: flex;
     align-items: center;
