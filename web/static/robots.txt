@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://contacts-9m7.pages.dev/sitemap.xml
