@@ -22,7 +22,7 @@ pnpm run sqlite:seed
 
 # Desktop (Tauri 2; needs Rust + `cargo install tauri-cli`)
 pnpm tauri:dev              # start in dev mode
-pnpm tauri:build            # export web build to dist/ and bundle installers
+pnpm tauri:build            # export web build to dist/ (web:export) and bundle installers
 
 # EAS production builds
 pnpm run build:prod         # Android (requires Expo account)
@@ -42,7 +42,7 @@ The DB layer uses Metro's platform resolution to swap implementations:
 
 - `utils/db.native.ts` — Android/iOS: uses `expo-sqlite` (sync API wrapped in Promises). DB initializes at module load time.
 - `utils/db.ts` — Web/desktop, with two runtime branches selected by `isTauri()`:
-  - **Tauri**: runs SQL through `@tauri-apps/plugin-sql` against a native SQLite file in the app data dir.
+  - **Tauri**: runs SQL through `@tauri-apps/plugin-sql` against `contacts.db` in the app config dir (`appConfigDir()`, e.g. `~/.config/com.luserv.c0ntacts/`). Backups, Drive restore and sync merge read/write that file with `@tauri-apps/plugin-fs` (snapshot via `VACUUM INTO`; replace = close pool, overwrite, reopen); merges run in sql.js. File dialogs use `@tauri-apps/plugin-dialog`, birthday notifications `@tauri-apps/plugin-notification` (permissions in `src-tauri/capabilities/default.json`).
   - **Browser**: runs `sql.js` (SQLite compiled to WASM) entirely in-memory, persisting the serialized DB to IndexedDB. The WASM binary is loaded from `public/sql-wasm.wasm`, which the `postinstall` script copies out of `node_modules/sql.js`. The `public/` dir is gitignored, so `pnpm install` must run before a web/desktop build.
 - `utils/dbInit.ts` — shared schema bootstrap (`initializeDatabase`) used by every adapter; pulls `createTablesSql` / `migrationsSql` / `seedSql` from `dbSchema.js`.
 

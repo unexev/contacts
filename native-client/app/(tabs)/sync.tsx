@@ -7,6 +7,7 @@ import { checkBackupExists, downloadDB, uploadDB } from '../../utils/driveSync';
 import {
   exportDatabaseToFile,
   importDatabaseFromFile,
+  isTauri,
   readDatabaseAsBase64,
   writeDatabaseFromBase64,
 } from '../../utils/db';
@@ -16,6 +17,26 @@ import { useI18n } from '../../utils/i18n';
 import { useResponsive } from '../../utils/responsive';
 import { useTheme } from '../../utils/theme';
 import { useRouter } from 'expo-router';
+
+const isWeb = Platform.OS === 'web';
+const DB_FILTERS = [{ name: 'SQLite', extensions: ['db', 'sqlite'] }];
+
+function backupFileName(): string {
+  return `contacts_backup_${Date.now()}.db`;
+}
+
+/** Desktop open dialog for a single file; null when cancelled. */
+async function pickDesktopFile(filters: { name: string; extensions: string[] }[]): Promise<string | null> {
+  const { open } = await import('@tauri-apps/plugin-dialog');
+  const picked = await open({ multiple: false, directory: false, filters });
+  return typeof picked === 'string' ? picked : null;
+}
+
+/** Browser/Android document picker; returns the first asset or null when cancelled. */
+async function pickDocument() {
+  const picked = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
+  return picked.canceled ? null : picked.assets[0];
+}
 
 export default function SyncScreen() {
   const [status, setStatus] = useState<string | null>(null);
@@ -29,7 +50,7 @@ export default function SyncScreen() {
   const { isDesktop } = useResponsive();
   const { colors } = useTheme();
   const router = useRouter();
-  const isElectron = typeof window !== 'undefined' && !!(window as any).electronFS;
+  const isDesktopApp = isTauri();
 
   useEffect(() => {
     if (!driveToken) { setHasBackup(null); return; }
@@ -47,10 +68,17 @@ export default function SyncScreen() {
       setLoadingOp('export');
       setStatus(null);
 
-      if (typeof window !== 'undefined' && (window as any).electronFS) {
-        const result = await (window as any).electronFS.exportDB();
-        if (result.canceled) return;
-        if (result.error) { setStatus(t.config.exportErrorPrefix + result.error); return; }
+      if (isDesktopApp) {
+        const { save } = await import('@tauri-apps/plugin-dialog');
+        const path = await save({ defaultPath: backupFileName(), filters: DB_FILTERS });
+        if (!path) return;
+        await exportDatabaseToFile(path);
+        setStatus(t.config.exportSuccess);
+        return;
+      }
+
+      if (isWeb) {
+        await exportDatabaseToFile(backupFileName());
         setStatus(t.config.exportSuccess);
         return;
       }
@@ -88,15 +116,17 @@ export default function SyncScreen() {
       setStatus(null);
       let content: string | null = null;
 
-      if (typeof window !== 'undefined' && (window as any).electronFS) {
-        const result = await (window as any).electronFS.readVcf();
-        if (result.canceled) return;
-        if (result.error) { setStatus(t.sync.errorPrefix + result.error); return; }
-        content = result.content;
+      if (isDesktopApp) {
+        const path = await pickDesktopFile([{ name: 'vCard', extensions: ['vcf', 'vcard'] }]);
+        if (!path) return;
+        const { readTextFile } = await import('@tauri-apps/plugin-fs');
+        content = await readTextFile(path);
       } else {
-        const picked = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
-        if (picked.canceled) return;
-        content = await FileSystem.readAsStringAsync(picked.assets[0].uri);
+        const asset = await pickDocument();
+        if (!asset) return;
+        content = isWeb
+          ? await (asset.file ? asset.file.text() : (await fetch(asset.uri)).text())
+          : await FileSystem.readAsStringAsync(asset.uri);
       }
 
       if (!content) return;
@@ -110,16 +140,22 @@ export default function SyncScreen() {
   };
 
   const handleImport = async () => {
-    if (typeof window !== 'undefined' && (window as any).electronFS) {
+    if (isWeb) {
       if (!confirm(t.config.importConfirm)) return;
       try {
         setLoadingOp('import');
         setStatus(null);
-        const result = await (window as any).electronFS.importDB();
-        if (result.canceled) return;
-        if (result.error) { setStatus(t.config.importErrorPrefix + result.error); return; }
-        setStatus(t.config.importSuccess);
+        let source: string | null;
+        if (isDesktopApp) {
+          source = await pickDesktopFile(DB_FILTERS);
+        } else {
+          const asset = await pickDocument();
+          source = asset?.uri ?? null;
+        }
+        if (!source) return;
+        await importDatabaseFromFile(source);
         await fetchContacts();
+        setStatus(t.config.importSuccess);
       } catch (e) {
         setStatus(t.config.importErrorPrefix + (e instanceof Error ? e.message : String(e)));
       } finally {
@@ -201,7 +237,7 @@ export default function SyncScreen() {
       }
     };
 
-    if (Platform.OS === 'web') {
+    if (isWeb) {
       if (confirm(msg)) doSignIn();
     } else {
       Alert.alert(title, msg, [
@@ -220,12 +256,7 @@ export default function SyncScreen() {
     try {
       setLoadingOp('upload');
       setDriveStatus(null);
-      let base64: string;
-      if (typeof window !== 'undefined' && (window as any).electronDrive) {
-        base64 = await (window as any).electronDrive.readDBAsBase64();
-      } else {
-        base64 = await readDatabaseAsBase64();
-      }
+      const base64 = await readDatabaseAsBase64();
       await uploadDB(token, base64);
       setDriveStatus(t.drive.uploadSuccess);
       setHasBackup(true);
@@ -234,12 +265,7 @@ export default function SyncScreen() {
         const newToken = await refreshDriveToken();
         if (newToken) {
           try {
-            let base64: string;
-            if (typeof window !== 'undefined' && (window as any).electronDrive) {
-              base64 = await (window as any).electronDrive.readDBAsBase64();
-            } else {
-              base64 = await readDatabaseAsBase64();
-            }
+            const base64 = await readDatabaseAsBase64();
             await uploadDB(newToken, base64);
             setDriveStatus(t.drive.uploadSuccess);
             setHasBackup(true);
@@ -267,12 +293,7 @@ export default function SyncScreen() {
         setLoadingOp('restore');
         setDriveStatus(null);
         const base64 = await downloadDB(token);
-        if (typeof window !== 'undefined' && (window as any).electronDrive) {
-          const result = await (window as any).electronDrive.writeDBFromBase64(base64);
-          if (result?.error) throw new Error(result.error);
-        } else {
-          await writeDatabaseFromBase64(base64);
-        }
+        await writeDatabaseFromBase64(base64);
         await fetchContacts();
         setDriveStatus(t.drive.restoreSuccess);
       } catch (e: any) {
@@ -291,7 +312,7 @@ export default function SyncScreen() {
       }
     };
 
-    if (Platform.OS === 'web') {
+    if (isWeb) {
       if (confirm(t.config.importConfirm)) doRestore();
     } else {
       Alert.alert(t.config.importTitle, t.config.importConfirm, [

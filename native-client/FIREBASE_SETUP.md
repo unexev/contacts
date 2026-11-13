@@ -85,7 +85,6 @@ Completar las variables con los valores de tu proyecto Firebase:
 | `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase Console > Project Settings > Cloud Messaging > Sender ID |
 | `EXPO_PUBLIC_FIREBASE_APP_ID` | Firebase Console > Project Settings > General > App ID (Web) |
 | `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | Firebase Console > Authentication > Sign-in method > Google > Web client ID |
-| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_SECRET` | Google Cloud Console > APIs & Services > Credentials > Web client secret |
 | `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | Firebase Console > Authentication > Sign-in method > Google > Android client ID |
 
 ## 8. (Opcional) Proyecto Preview
