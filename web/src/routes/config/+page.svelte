@@ -1,5 +1,5 @@
 <script>
-  import { A, setToken } from '$lib/api.svelte.js';
+  import { A, api, setToken } from '$lib/api.svelte.js';
   import { t } from '$lib/i18n.svelte.js';
   import LangSwitch from '$lib/components/LangSwitch.svelte';
   import { goto } from '$app/navigation';
@@ -7,8 +7,16 @@
   import { Sun, Moon, Monitor } from '@lucide/svelte';
   import { userPrefersMode, setMode, resetMode } from 'mode-watcher';
 
-  onMount(() => {
-    if (!A.token) goto('/login');
+  onMount(async () => {
+    if (!A.token) { goto('/login'); return; }
+    // The user is only kept in memory, so a page reload has to fetch it again.
+    if (!A.user) {
+      try {
+        A.user = await api('/api/auth/me');
+      } catch {
+        // Leave the placeholders; an expired session is already handled by api().
+      }
+    }
   });
 
   function handleLogout() {
@@ -54,20 +62,14 @@
         <span class="section-card-title">{t('configUser')}</span>
       </div>
       <div class="section-card-body">
-        {#if A.user}
-          <div class="field-row">
-            <span class="field-label">Name</span>
-            <span class="field-value">{A.user.name || '--'}</span>
-          </div>
-          <div class="field-row">
-            <span class="field-label">Email</span>
-            <span class="field-value">{A.user.email || '--'}</span>
-          </div>
-        {:else}
-          <div class="field-row">
-            <span class="field-value" style="color: var(--text2)">Token active</span>
-          </div>
-        {/if}
+        <div class="field-row">
+          <span class="field-label">{t('configName')}</span>
+          <span class="field-value">{A.user?.name || '--'}</span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">{t('configEmail')}</span>
+          <span class="field-value">{A.user?.email || '--'}</span>
+        </div>
       </div>
     </div>
 
