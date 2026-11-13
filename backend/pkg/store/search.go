@@ -13,8 +13,9 @@ type searchTerm struct {
 	WholeWord bool
 }
 
-// parseSearchTerms splits the raw query into terms. Every term except a last
-// one still being typed (no space after it) is a whole word.
+// parseSearchTerms splits the raw query into terms. Only the last term, when
+// followed by a space, is a whole word; earlier terms stay partial matches so
+// "mar andr" still finds "María Andrade".
 func parseSearchTerms(search string) []searchTerm {
 	fields := strings.Fields(search)
 	if len(fields) == 0 {
@@ -24,7 +25,7 @@ func parseSearchTerms(search string) []searchTerm {
 	terms := make([]searchTerm, len(fields))
 	for i, f := range fields {
 		last := i == len(fields)-1
-		terms[i] = searchTerm{Text: f, WholeWord: !last || endsWithSpace}
+		terms[i] = searchTerm{Text: f, WholeWord: last && endsWithSpace}
 	}
 	return terms
 }
