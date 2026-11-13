@@ -8,7 +8,7 @@ import {
 
 const isWeb = Platform.OS === 'web';
 
-// ─── Web / Electron ──────────────────────────────────────────────────────────
+// ─── Web / desktop ───────────────────────────────────────────────────────────
 
 async function webRequestPermission(): Promise<boolean> {
     if (!('Notification' in window)) return false;
@@ -306,7 +306,7 @@ export async function getScheduledBirthdayCount(): Promise<number> {
     }
 }
 
-// Verificar cumpleaños al arrancar la app (Electron)
+// Verificar cumpleaños al arrancar la app (desktop)
 export async function checkBirthdaysOnStartup(): Promise<void> {
     if (!isWeb) return;
     const granted = await webRequestPermission();

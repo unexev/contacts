@@ -14,7 +14,7 @@ import {
 
 export const DB_NAME = 'contacts.db';
 
-// No-op: la inicialización ocurre en db.native.ts (Android/iOS) y electron/main.js (desktop)
+// No-op: la inicialización ocurre en db.native.ts (Android/iOS) y db.ts (web/desktop)
 export async function initializeDatabase() {}
 
 export type {

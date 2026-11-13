@@ -18,10 +18,10 @@
 6. **Descarga el archivo `google-services.json`** generado
 7. Colócalo en la **raíz del proyecto** junto a `package.json`
 
-## 3. Registrar aplicación Web (para Electron)
+## 3. Registrar aplicación Web
 
 1. Ve a **Project Overview > Agregar app > Web**
-2. Ingresa un nickname (ej: "Contacts App Electron")
+2. Ingresa un nickname (ej: "Contacts App Web")
 3. Activa **Firebase Hosting** (opcional, pero necesario para obtener las configuraciones)
 4. Copia el objeto `firebaseConfig` que se muestra (necesitarás estos valores para el `.env`)
 
@@ -32,8 +32,7 @@
 3. Actívalo (toggle)
 4. **Importante:** En **Public-facing name for project**, pon un nombre visible (ej: "Contacts App")
 5. Copia los **Client ID** generados:
-   - **Web client ID**: Se usa para Electron (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`)
-   - **Web client secret**: Se usa para el intercambio OAuth en Electron (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_SECRET`)
+   - **Web client ID**: Se usa como `webClientId` de Google Sign-In en Android (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`)
    - **Android client ID**: Se usa para Android nativo (`EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`)
 
 > El **Web client ID** se genera automáticamente al habilitar Google Sign-In. Si necesitas regenerarlo, ve a **APIs & Services > Credentials** en Google Cloud Console.
@@ -117,8 +116,8 @@ npm run start
 ```
 Firebase Auth (Google Sign-In)
   ├─ Android: @react-native-google-signin (obtiene access_token nativo)
-  ├─ Web: signInWithRedirect + getRedirectResult (Firebase SDK)
-  └─ Electron: OAuth2 con BrowserWindow + intercambio code→token
+  ├─ Web: signInWithPopup (Firebase SDK)
+  └─ Escritorio (Tauri): sin Google; solo email y contraseña
 
 Google Drive API (drive.file scope)
   └─ Backups en: contacts/db/backup-{timestamp}.db
@@ -128,8 +127,7 @@ Google Drive API (drive.file scope)
 
 Token management:
   ├─ Android: GoogleSignin.getTokens() (refresh automático)
-  ├─ Web: Token en AsyncStorage con expiración de 55 min
-  └─ Electron: Refresh token en google_refresh_token.json + silent re-auth
+  └─ Web: Token en AsyncStorage con expiración de 55 min
 ```
 
 ## Notas importantes
@@ -137,5 +135,4 @@ Token management:
 - El scope de Drive es `drive.file` — la app solo ve/administra sus propios archivos
 - Los tokens de acceso de Google duran 1 hora; la app usa un margen de 55 minutos
 - En Android el refresh del token es automático (SDK nativo)
-- En Electron el refresh token se persiste en disco para re-autenticación silenciosa
 - Si la API de Drive no está habilitada, las llamadas fallarán con error 403

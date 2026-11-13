@@ -12,9 +12,9 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
+import EmailLoginForm from '../components/EmailLoginForm';
 import { auth } from '../utils/firebase';
 import { useAuth } from '../utils/authContext';
 import { useTheme } from '../utils/theme';
@@ -29,39 +29,15 @@ GoogleSignin.configure({
 
 export default function LoginScreen() {
   const { t } = useI18n();
-  const { isAuthenticated, loading, continueAsGuest, setDriveToken, loginWithPassword, registerWithPassword } = useAuth();
+  const { isAuthenticated, loading, continueAsGuest, setDriveToken } = useAuth();
   const router = useRouter();
   const { colors } = useTheme();
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [registerMode, setRegisterMode] = React.useState(false);
-  const [email, setEmail] = React.useState('');
-  const [name, setName] = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const [emailBusy, setEmailBusy] = React.useState(false);
 
   useEffect(() => {
     if (!loading && isAuthenticated) router.replace('/');
   }, [isAuthenticated, loading]);
-
-  const handleEmailSubmit = async () => {
-    if (emailBusy) return;
-    setError(null);
-    setEmailBusy(true);
-    try {
-      const result = registerMode
-        ? await registerWithPassword(email, name, password)
-        : await loginWithPassword(email, password);
-      if (!result.ok) setError(t.login[result.errorKey]);
-    } finally {
-      setEmailBusy(false);
-    }
-  };
-
-  const toggleMode = () => {
-    setError(null);
-    setRegisterMode((m) => !m);
-  };
 
   const handleSignIn = async () => {
     setError(null);
@@ -113,64 +89,7 @@ export default function LoginScreen() {
         </View>
         <Text style={[styles.title, { color: colors.text }]}>{t.login.title}</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t.login.subtitle}</Text>
-        {registerMode && (
-          <TextInput
-            style={[styles.input, { color: colors.text, borderColor: colors.textSecondary, backgroundColor: colors.bg }]}
-            value={name}
-            onChangeText={setName}
-            placeholder={t.login.nameLabel}
-            placeholderTextColor={colors.textSecondary}
-            accessibilityLabel={t.login.nameLabel}
-            autoCapitalize="words"
-            autoComplete="name"
-            editable={!emailBusy}
-          />
-        )}
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.textSecondary, backgroundColor: colors.bg }]}
-          value={email}
-          onChangeText={setEmail}
-          placeholder={t.login.emailLabel}
-          placeholderTextColor={colors.textSecondary}
-          accessibilityLabel={t.login.emailLabel}
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete="email"
-          keyboardType="email-address"
-          editable={!emailBusy}
-        />
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.textSecondary, backgroundColor: colors.bg }]}
-          value={password}
-          onChangeText={setPassword}
-          placeholder={t.login.passwordLabel}
-          placeholderTextColor={colors.textSecondary}
-          accessibilityLabel={t.login.passwordLabel}
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete={registerMode ? 'new-password' : 'current-password'}
-          secureTextEntry
-          editable={!emailBusy}
-          onSubmitEditing={handleEmailSubmit}
-          returnKeyType="go"
-        />
-        <Pressable
-          style={[styles.primaryBtn, { backgroundColor: colors.accentFill }, emailBusy && styles.btnDisabled]}
-          onPress={handleEmailSubmit}
-          disabled={emailBusy}
-          accessibilityRole="button"
-          accessibilityLabel={registerMode ? t.login.createAccount : t.login.signInWithEmail}
-          accessibilityState={{ disabled: emailBusy, busy: emailBusy }}
-        >
-          {emailBusy
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.primaryBtnText}>{registerMode ? t.login.createAccount : t.login.signInWithEmail}</Text>}
-        </Pressable>
-        <Pressable style={styles.toggleBtn} onPress={toggleMode} disabled={emailBusy} accessibilityRole="button">
-          <Text style={[styles.guestBtnText, { color: colors.accent }]}>
-            {registerMode ? t.login.switchToSignIn : t.login.switchToRegister}
-          </Text>
-        </Pressable>
+        <EmailLoginForm onError={setError} />
         <Text style={[styles.googleHint, { color: colors.textSecondary }]}>{t.login.orDivider}</Text>
         <Pressable
           style={[styles.secondaryBtn, { backgroundColor: colors.fill, borderColor: colors.separator }, busy && styles.btnDisabled]}
@@ -198,8 +117,6 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  input: { width: '100%', borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, fontSize: 16, marginBottom: 10 },
-  toggleBtn: { width: '100%', alignItems: 'center', paddingVertical: 10, minHeight: 44, justifyContent: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   card: {
     backgroundColor: '#fff', borderRadius: 24, padding: 32,
@@ -210,10 +127,8 @@ const styles = StyleSheet.create({
   iconPlaceholder: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#E5F0FF', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   title: { fontSize: 28, fontWeight: '700', color: '#000', marginBottom: 8 },
   subtitle: { fontSize: 15, color: '#6C6C70', textAlign: 'center', marginBottom: 20 },
-  primaryBtn: { borderRadius: 12, paddingVertical: 14, paddingHorizontal: 24, width: '100%', alignItems: 'center', marginBottom: 6 },
   secondaryBtn: { borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, paddingVertical: 14, paddingHorizontal: 24, width: '100%', alignItems: 'center', marginBottom: 6 },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   secondaryBtnText: { fontSize: 16, fontWeight: '600' },
   googleHint: { fontSize: 12, color: '#6C6C70', textAlign: 'center', marginBottom: 16 },
   guestBtn: { width: '100%', alignItems: 'center', paddingVertical: 16, marginBottom: 8, minHeight: 48, justifyContent: 'center' },

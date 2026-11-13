@@ -204,7 +204,7 @@ const seedSql = `
 
 /**
  * Tables that take part in cross-device sync (content signature).
- * Single source of truth for db.ts, db.native.ts and electron/database.js.
+ * Single source of truth for db.ts and db.native.ts.
  */
 const SYNC_TABLES = [
   'contact', 'contact_phone', 'contact_email', 'contact_note',
@@ -227,8 +227,8 @@ function needsGenderMigration(contactTableSql) {
 
 /**
  * Statements that rebuild `contact` with uppercase gender values.
- * Electron historically rebuilt the table without `updated_at`; it now keeps it,
- * like utils/dbInit.ts. `keepUpdatedAt: true` requires the column to exist.
+ * The legacy desktop adapter rebuilt the table without `updated_at`; every adapter
+ * now keeps it, like utils/dbInit.ts. `keepUpdatedAt: true` requires the column to exist.
  * @param {{ keepUpdatedAt: boolean }} options
  * @returns {string[]}
  */
@@ -257,8 +257,8 @@ function genderMigrationStatements({ keepUpdatedAt }) {
 
 // ── Drive merge rules ────────────────────────────────────────────────────────
 // Single source of truth for the updated_at merge used by every adapter:
-// sql.js (utils/dbMerge.ts), expo-sqlite (utils/db.native.ts) and
-// better-sqlite3 (electron/database.js). Adapters only provide engine access.
+// sql.js (utils/dbMerge.ts) and expo-sqlite (utils/db.native.ts).
+// Adapters only provide engine access.
 
 /**
  * Tables merged on Drive pull, in merge order.
