@@ -1,6 +1,6 @@
 # Contacts App
 
-App de gestión de contactos **100% offline** con base de datos SQLite local. Disponible para Android, Web y escritorio (Electron/Windows/Mac/Linux).
+App de gestión de contactos **100% offline** con base de datos SQLite local. Disponible para Android, Web y escritorio (Tauri: Windows/Mac/Linux).
 
 ---
 
@@ -21,7 +21,7 @@ App de gestión de contactos **100% offline** con base de datos SQLite local. Di
 - **Backup en Google Drive** — solo archivos creados por la app (`drive.file` scope)
 - **Notificaciones de cumpleaños** — programadas automáticamente
 - **Internacionalización** — Español e Inglés
-- **Autenticación con Google** — opcional; desbloquea sincronización con Drive
+- **Autenticación** — opcional; email y contraseña en todas las plataformas, Google en Android y web (desbloquea sincronización con Drive)
 - **Anuncios AdMob** — opcional (Android)
 - **100% local y offline** — los datos nunca salen del dispositivo sin acción explícita del usuario
 
@@ -37,8 +37,10 @@ Para correr en **Android** (emulador o dispositivo físico):
 - **Android Studio** con un emulador configurado, o un dispositivo Android con USB debugging activado
 - **Java JDK 17** (requerido por Android Studio)
 
-Para correr en **escritorio (Electron)**:
-- Solo Windows/Mac/Linux, no se necesita nada extra más allá de Node
+Para correr en **escritorio (Tauri)**:
+- **Rust** (toolchain estable) — [rustup.rs](https://rustup.rs)
+- **Tauri CLI** — `cargo install tauri-cli --version "^2"`
+- Dependencias de sistema de Tauri para tu OS — [v2.tauri.app/start/prerequisites](https://v2.tauri.app/start/prerequisites/)
 
 ---
 
@@ -157,29 +159,24 @@ Esto aplica tanto a EAS Build como a compilación local con Gradle. Las arquitec
 
 ---
 
-## Correr en escritorio (Electron)
+## Correr en escritorio (Tauri)
 
-Electron usa SQLite nativo (`better-sqlite3`). Hay que reconstruir el binario antes de la primera ejecución:
+La app de escritorio es un shell de Tauri 2 (`src-tauri/`) que carga el build web de Expo. La base de datos es SQLite vía `@tauri-apps/plugin-sql`.
 
 ```bash
-# Solo la primera vez (o tras cambiar versión de Node/Electron)
-npm run electron:rebuild
-
 # Iniciar en modo desarrollo
-npm run electron:dev
+pnpm tauri:dev
 ```
 
-> En escritorio no se usa `google-services.json` ni las variables de AdMob.
+> En escritorio el inicio de sesión es solo con email y contraseña (o modo invitado). No se usa `google-services.json` ni las variables de AdMob.
 
 ### Generar instalador
 
 ```bash
-npm run electron:win    # Windows (.exe NSIS)
-npm run electron:mac    # macOS (.dmg)
-npm run electron:linux  # Linux (.AppImage)
+pnpm tauri:build
 ```
 
-El instalador queda en la carpeta `release/`.
+Exporta el build web a `dist/` y genera los instaladores del sistema operativo actual en `src-tauri/target/release/bundle/`.
 
 ---
 
@@ -192,13 +189,9 @@ El instalador queda en la carpeta `release/`.
 | `npm run lint` | Corre el linter |
 | `npm run sqlite:init` | Inicializa la base de datos SQLite local |
 | `npm run sqlite:seed` | Puebla la base de datos local con datos de prueba |
-| `npm run generate:ico` | Genera el ícono `.ico` para Electron desde el PNG |
-| `npm run electron:rebuild` | Recompila `better-sqlite3` para Electron |
-| `npm run electron:dev` | Inicia la app de escritorio en modo desarrollo |
-| `npm run electron:build` | Genera el instalador para el sistema operativo actual |
-| `npm run electron:win` | Genera instalador para Windows |
-| `npm run electron:mac` | Genera instalador para macOS |
-| `npm run electron:linux` | Genera instalador para Linux |
+| `npm run generate:ico` | Genera el ícono `.ico` de escritorio desde el PNG |
+| `pnpm tauri:dev` | Inicia la app de escritorio (Tauri) en modo desarrollo |
+| `pnpm tauri:build` | Genera el instalador de escritorio para el sistema operativo actual |
 
 ---
 
@@ -206,8 +199,9 @@ El instalador queda en la carpeta `release/`.
 
 - **Expo & React Native** — UI multiplataforma (Android, Web, escritorio)
 - **Expo Router** — navegación basada en sistema de archivos
-- **Expo SQLite** — base de datos local en mobile/web
-- **better-sqlite3** — base de datos local en Electron (escritorio)
+- **Expo SQLite** — base de datos local en Android
+- **sql.js** — SQLite (WASM) en el navegador, persistido en IndexedDB
+- **Tauri 2 + @tauri-apps/plugin-sql** — app de escritorio con SQLite nativo
 - **Context API** — gestión de estado sin fetches externos
 - **Firebase Auth** — autenticación con Google (opcional)
 - **Google Drive API** — backup/restore de la base de datos (scope `drive.file`)

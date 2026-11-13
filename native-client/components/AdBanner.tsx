@@ -18,7 +18,7 @@ const isAdMobAvailable = !!NativeModules.RNGoogleMobileAdsModule;
 export default function AdBanner() {
   const { licensed } = useAuth();
 
-  // No mostrar si tiene licencia o si es web/Electron o si no hay módulo nativo
+  // No mostrar si tiene licencia o si es web/desktop o si no hay módulo nativo
   if (licensed || Platform.OS === 'web' || !isAdMobAvailable || !BANNER_ID) return null;
 
   const { BannerAd, BannerAdSize } = require('react-native-google-mobile-ads');

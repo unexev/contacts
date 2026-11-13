@@ -1,10 +1,10 @@
 /**
  * Inicialización del esquema de base de datos.
  * Acepta cualquier objeto que implemente la interfaz mínima de DB
- * para que funcione tanto con expo-sqlite (native) como con el
- * adaptador IPC de Electron.
+ * para que funcione con expo-sqlite (native), sql.js (browser) y
+ * @tauri-apps/plugin-sql (desktop).
  *
- * El SQL vive en dbSchema.js (fuente única de verdad compartida con Electron main).
+ * El SQL vive en dbSchema.js (fuente única de verdad compartida por todos los adaptadores).
  */
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports

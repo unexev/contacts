@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 /**
  * Copia texto al portapapeles en todas las plataformas.
  * - Native (Android): expo-clipboard
- * - Web/Electron: navigator.clipboard con fallback a execCommand
+ * - Web/desktop (Tauri): navigator.clipboard con fallback a execCommand
  */
 export async function copyToClipboard(text: string): Promise<void> {
   if (Platform.OS !== 'web') {
@@ -12,7 +12,7 @@ export async function copyToClipboard(text: string): Promise<void> {
     return;
   }
 
-  // Web / Electron
+  // Web / desktop (Tauri)
   if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
     try {
       await navigator.clipboard.writeText(text);
@@ -20,7 +20,7 @@ export async function copyToClipboard(text: string): Promise<void> {
     } catch {}
   }
 
-  // Fallback: execCommand (deprecated pero funciona en Electron)
+  // Fallback: execCommand (deprecated pero funciona en webviews)
   const el = document.createElement('textarea');
   el.value = text;
   el.style.position = 'fixed';

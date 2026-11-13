@@ -1,4 +1,6 @@
 import { Platform } from 'react-native';
+import { birthdaysTomorrow } from './birthdays';
+import { db, isTauri, waitForDbReady } from './db';
 import { getTranslations } from './i18n';
 import {
     BirthdayNotificationSettings,
@@ -8,28 +10,43 @@ import {
 
 const isWeb = Platform.OS === 'web';
 
-// ─── Web / Electron ──────────────────────────────────────────────────────────
+// ─── Web / desktop ───────────────────────────────────────────────────────────
+// Desktop (Tauri) uses tauri-plugin-notification; the browser uses the Web Notification API.
 
 async function webRequestPermission(): Promise<boolean> {
+    if (isTauri()) {
+        try {
+            const { isPermissionGranted, requestPermission } = await import('@tauri-apps/plugin-notification');
+            if (await isPermissionGranted()) return true;
+            return (await requestPermission()) === 'granted';
+        } catch (_) {
+            return false;
+        }
+    }
     if (!('Notification' in window)) return false;
     if (Notification.permission === 'granted') return true;
     const result = await Notification.requestPermission();
     return result === 'granted';
 }
 
-function showWebNotification(title: string, body: string) {
+async function showWebNotification(title: string, body: string) {
+    if (isTauri()) {
+        const { sendNotification } = await import('@tauri-apps/plugin-notification');
+        sendNotification({ title, body });
+        return;
+    }
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     new Notification(title, { body });
 }
 
+/** Shows one notification per contact whose birthday is tomorrow, read from the local DB. */
 async function checkAndShowBirthdayNotifications() {
-    const electronNotif = (window as any).electronNotif;
-    if (!electronNotif) return;
-    const contacts: { first_name: string; surname: string; birthdate: string }[] =
-        await electronNotif.checkBirthdays();
+    const contacts = await db.getAllAsync<{ contact_id: string; first_name: string; surname: string; birthdate: string }>(
+        "SELECT contact_id, first_name, surname, birthdate FROM contact WHERE birthdate IS NOT NULL AND birthdate != ''"
+    );
     const tn = (await getTranslations()).birthdayNotif;
-    for (const c of contacts) {
-        showWebNotification(tn.webTitleTomorrow, tn.webBodyTomorrow(`${c.first_name} ${c.surname}`));
+    for (const c of birthdaysTomorrow(contacts)) {
+        await showWebNotification(tn.webTitleTomorrow, tn.webBodyTomorrow(`${c.first_name} ${c.surname}`));
     }
 }
 
@@ -56,7 +73,7 @@ if (!isWeb) {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 export const notificationsAvailable = isWeb
-    ? (typeof window !== 'undefined' && 'Notification' in window)
+    ? (isTauri() || (typeof window !== 'undefined' && 'Notification' in window))
     : N !== null;
 
 export async function requestNotificationPermissions(): Promise<boolean> {
@@ -306,9 +323,12 @@ export async function getScheduledBirthdayCount(): Promise<number> {
     }
 }
 
-// Verificar cumpleaños al arrancar la app (Electron)
+// Verificar cumpleaños al arrancar la app (desktop y navegador)
 export async function checkBirthdaysOnStartup(): Promise<void> {
     if (!isWeb) return;
+    const settings = await loadNotificationSettings();
+    if (!settings.enabled) return;
+    await waitForDbReady();
     const granted = await webRequestPermission();
     if (!granted) return;
     await checkAndShowBirthdayNotifications();

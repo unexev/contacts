@@ -14,7 +14,7 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { exportDatabaseToBase64, getDatabaseSignature, mergeDatabaseFromBase64 } from './db';
+import { exportDatabaseToBase64, getDatabaseSignature, isTauri, mergeDatabaseFromBase64 } from './db';
 import { downloadSyncFile, getSyncMeta, uploadSyncDB } from './driveSync';
 
 const DEVICE_ID_KEY = 'sync_device_id';
@@ -23,11 +23,11 @@ const AUTO_SYNC_KEY = 'sync_auto_enabled';
 const LAST_SYNC_KEY = 'sync_last_at';
 const SIG_KEY = 'sync_last_pushed_sig';
 
-export type ClientKind = 'android' | 'electron' | 'web';
+export type ClientKind = 'android' | 'desktop' | 'web';
 
 export function platformTag(): ClientKind {
   if (Platform.OS === 'android') return 'android';
-  if (typeof window !== 'undefined' && (window as any).electronFS) return 'electron';
+  if (isTauri()) return 'desktop';
   return 'web';
 }
 

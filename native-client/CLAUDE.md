@@ -20,31 +20,31 @@ pnpm lint
 # Seed local DB with test data
 pnpm run sqlite:seed
 
-# Electron (desktop)
-pnpm run electron:rebuild   # first time only, or after Node/Electron version change
-pnpm run electron:dev       # start in dev mode
+# Desktop (Tauri 2; needs Rust + `cargo install tauri-cli`)
+pnpm tauri:dev              # start in dev mode
+pnpm tauri:build            # export web build to dist/ (web:export) and bundle installers
 
 # EAS production builds
 pnpm run build:prod         # Android (requires Expo account)
-pnpm run electron:linux     # Linux .AppImage
-```
 
-There is no test suite.
+# Tests (pure logic, node --test) and typecheck
+pnpm test
+pnpm typecheck
+```
 
 ## Architecture
 
-**Multi-target Expo app**: Android, Web, and Electron (desktop). All three targets share the same React Native codebase via `react-native-web` and `expo-router`.
+**Multi-target Expo app**: Android, Web, and desktop (Tauri 2, `src-tauri/`). All three targets share the same React Native codebase via `react-native-web` and `expo-router`.
 
 ### Platform-specific SQLite adapters
 
 The DB layer uses Metro's platform resolution to swap implementations:
 
 - `utils/db.native.ts` — Android/iOS: uses `expo-sqlite` (sync API wrapped in Promises). DB initializes at module load time.
-- `utils/db.ts` — Web/Electron, with two runtime branches:
-  - **Electron**: delegates all SQL to the main process via `window.electronDB` (exposed by `electron/preload.js` through `contextBridge`).
-  - **Browser**: runs `sql.js` (SQLite compiled to WASM) entirely in-memory, persisting the serialized DB to IndexedDB. The WASM binary is loaded from `public/sql-wasm.wasm`, which the `postinstall` script copies out of `node_modules/sql.js`. The `public/` dir is gitignored, so `pnpm install` must run before a web/Electron build.
+- `utils/db.ts` — Web/desktop, with two runtime branches selected by `isTauri()`:
+  - **Tauri**: runs SQL through `@tauri-apps/plugin-sql` against `contacts.db` in the app config dir (`appConfigDir()`, e.g. `~/.config/com.luserv.c0ntacts/`). Backups, Drive restore and sync merge read/write that file with `@tauri-apps/plugin-fs` (snapshot via `VACUUM INTO`; replace = close pool, overwrite, reopen); merges run in sql.js. File dialogs use `@tauri-apps/plugin-dialog`, birthday notifications `@tauri-apps/plugin-notification` (permissions in `src-tauri/capabilities/default.json`).
+  - **Browser**: runs `sql.js` (SQLite compiled to WASM) entirely in-memory, persisting the serialized DB to IndexedDB. The WASM binary is loaded from `public/sql-wasm.wasm`, which the `postinstall` script copies out of `node_modules/sql.js`. The `public/` dir is gitignored, so `pnpm install` must run before a web/desktop build.
 - `utils/dbInit.ts` — shared schema bootstrap (`initializeDatabase`) used by every adapter; pulls `createTablesSql` / `migrationsSql` / `seedSql` from `dbSchema.js`.
-- `electron/main.js` — opens `better-sqlite3` in the main process, handles IPC from the renderer, stores DB at `app.getPath('userData')/contacts.db`.
 
 All adapters expose the same interface: `db.getAllAsync`, `db.getFirstAsync`, `db.runAsync`, `db.execAsync`.
 
@@ -53,7 +53,7 @@ All adapters expose the same interface: `db.getAllAsync`, `db.getFirstAsync`, `d
 Three React Context providers wrap the app in `app/_layout.tsx`:
 
 1. `I18nProvider` (`utils/i18n.tsx`) — ES/EN translations, persisted in SecureStore (native) or localStorage (web).
-2. `AuthProvider` (`utils/authContext.tsx`) — Firebase Google Auth (optional). Supports guest mode; guards routes via `AuthGate` in `_layout.tsx`. Manages Drive OAuth tokens.
+2. `AuthProvider` (`utils/authContext.tsx`) — optional auth: backend email/password session (all platforms) and Firebase Google Auth (Android and browser only). Supports guest mode; guards routes via `AuthGate` in `_layout.tsx`. Manages Drive OAuth tokens.
 3. `ContactsProvider` (`utils/context.tsx`) — holds `contacts[]` state; exposes all CRUD actions via `useContacts()`.
 
 ### Contacts actions
@@ -94,7 +94,7 @@ app/
 
 ### Database schema
 
-Defined in `utils/dbSchema.js` (shared by mobile init and Electron main process). Migrations are additive `ALTER TABLE` statements in `migrationsSql[]` — they must be idempotent (silent-fail if already applied).
+Defined in `utils/dbSchema.js` (shared by every DB adapter). Migrations are additive `ALTER TABLE` statements in `migrationsSql[]` — they must be idempotent (silent-fail if already applied).
 
 ### Components
 
@@ -106,7 +106,7 @@ Copy `.env.example` to `.env`. Google OAuth and AdMob keys are optional — the 
 
 ### Login
 
-On Android, `login.native.tsx` is resolved (Metro `.native` suffix). On web/Electron, `login.tsx` is used. Both authenticate via Firebase; guest mode skips auth entirely.
+On Android, `login.native.tsx` is resolved (Metro `.native` suffix). On web and desktop, `login.tsx` is used. Both share `components/EmailLoginForm.tsx` (backend email/password). Android and the browser also offer Google via Firebase; the Tauri desktop app offers email/password only (`signIn()` throws there). Guest mode skips auth entirely.
 
 ## Product / design constraints
 

@@ -43,7 +43,7 @@ test('gender migration uppercases values and keeps updated_at when asked', () =>
   assert.equal(schema.needsGenderMigration(tableSql), false);
 });
 
-test('gender migration without updated_at reproduces the Electron rebuild', () => {
+test('gender migration without updated_at reproduces the legacy desktop rebuild', () => {
   const db = makeLegacyDb();
   for (const sql of schema.genderMigrationStatements({ keepUpdatedAt: false })) db.exec(sql);
 

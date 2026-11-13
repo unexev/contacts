@@ -2,7 +2,7 @@
  * sql.js adapter for the shared Drive merge (rules live in dbSchema.js):
  * copies rows from a remote database into the local one when the remote
  * `updated_at` is newer (or the row is missing locally).
- * Kept free of browser/IndexedDB/Electron imports so it can be tested in Node.
+ * Kept free of browser/IndexedDB/Tauri imports so it can be tested in Node.
  */
 import type { Database, Statement } from 'sql.js';
 import dbSchema from './dbSchema.js';

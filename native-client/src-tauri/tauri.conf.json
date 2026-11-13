@@ -1,18 +1,18 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "contacts",
+  "productName": "amichi",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.luserv.c0ntacts",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:8081",
-    "beforeDevCommand": "pnpm dev",
-    "beforeBuildCommand": "pnpm build"
+    "beforeDevCommand": "pnpm web:dev",
+    "beforeBuildCommand": "pnpm web:export"
   },
   "app": {
     "windows": [
       {
-        "title": "Contacts",
+        "title": "amichi",
         "width": 800,
         "height": 600,
         "resizable": true,

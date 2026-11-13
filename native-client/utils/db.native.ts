@@ -1,7 +1,7 @@
 /**
  * Adaptador SQLite para Android / iOS (Metro resuelve .native.ts automáticamente).
  * Usa la API síncrona de expo-sqlite v16 envuelta en Promises para mantener
- * la misma interfaz que el adaptador de Electron.
+ * la misma interfaz que el adaptador web/desktop (db.ts).
  */
 import * as SQLite from 'expo-sqlite';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -9,6 +9,11 @@ import { initializeDatabase } from './dbInit';
 import dbSchema from './dbSchema.js';
 
 const { mergeRemoteRows, computeSyncSignature } = dbSchema;
+
+/** Mirrors db.ts so shared code can import it on every platform; native is never Tauri. */
+export function isTauri(): boolean {
+  return false;
+}
 
 const EncodingType = (FileSystem as any).EncodingType || { Base64: 'base64' };
 

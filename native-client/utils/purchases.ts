@@ -1,6 +1,6 @@
 /**
  * RevenueCat integration.
- * Solo activo en Android — en web/Electron se usa el sistema de licencias de Firebase.
+ * Solo activo en Android — en web/desktop se usa el sistema de licencias de Firebase.
  */
 import { Platform } from 'react-native';
 
