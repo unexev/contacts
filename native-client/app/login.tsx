@@ -1,9 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
 // Web and desktop (Tauri). The browser also offers Google via Firebase signInWithPopup;
 // the desktop app signs in with email + password only.
 import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import EmailLoginForm from '../components/EmailLoginForm';
 import { useAuth } from '../utils/authContext';
 import { isTauri } from '../utils/db';
@@ -50,9 +49,8 @@ export default function LoginScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={[styles.card, { backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacityMedium }]}>
-        <View style={[styles.iconPlaceholder, { backgroundColor: colors.accentSubtle }]}>
-          <Ionicons name="people" size={44} color="#0066D6" />
-        </View>
+        <Image source={require('../assets/images/icon.png')} style={styles.brandIcon} accessibilityIgnoresInvertColors />
+
         <Text style={[styles.title, { color: colors.text }]}>{t.login.title}</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t.login.subtitle}</Text>
         <EmailLoginForm onError={setError} />
@@ -93,7 +91,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15, shadowRadius: 12, elevation: 8,
   },
-  iconPlaceholder: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#E5F0FF', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  brandIcon: { width: 88, height: 88, borderRadius: 20, marginBottom: 16 },
   title: { fontSize: 28, fontWeight: '700', color: '#000', marginBottom: 8 },
   subtitle: { fontSize: 15, color: '#6C6C70', textAlign: 'center', marginBottom: 20 },
   secondaryBtn: { borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, paddingVertical: 14, paddingHorizontal: 24, width: '100%', alignItems: 'center', marginBottom: 6, minHeight: 44, justifyContent: 'center' },
