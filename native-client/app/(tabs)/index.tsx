@@ -114,8 +114,9 @@ export default function HomeScreen() {
   const [birthdate, setBirthdate] = useState('');
   const [gender, setGender] = useState<'MALE' | 'FEMALE' | null>(null);
   const [selectedStatusId, setSelectedStatusId] = useState<string | null>(null);
-  const [relationshipStatus, setRelationshipStatus] = useState<RelationshipStatus | null>(null);
-  const [childrenCount, setChildrenCount] = useState('');
+  // New contacts start as single with no children; the user changes it when known.
+  const [relationshipStatus, setRelationshipStatus] = useState<RelationshipStatus | null>('SINGLE');
+  const [childrenCount, setChildrenCount] = useState('0');
   const [maritalStatuses, setMaritalStatuses] = useState<MaritalStatus[]>([]);
 
   const [hasDoc, setHasDoc] = useState(false);
@@ -287,8 +288,8 @@ export default function HomeScreen() {
     setBirthdate('');
     setGender(null);
     setSelectedStatusId(null);
-    setRelationshipStatus(null);
-    setChildrenCount('');
+    setRelationshipStatus('SINGLE');
+    setChildrenCount('0');
     setHasDoc(false);
     setDocType(DOC_TYPES[0]);
     setCardNumber('');
