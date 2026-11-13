@@ -26,11 +26,13 @@
   let filterOrganization = $state(saved.filterOrganization);
   let filterMaritalStatus = $state(saved.filterMaritalStatus);
   let filterPhone = $state(saved.filterPhone);
+  let filterRelationship = $state(saved.filterRelationship);
+  let filterChildren = $state(saved.filterChildren);
 
   let sortBy = $state(saved.sortBy);
 
   function persistView() {
-    saveView({ sortBy, filterGender, filterBirthday, filterIDCard, filterOrganization, filterMaritalStatus, filterPhone });
+    saveView({ sortBy, filterGender, filterBirthday, filterIDCard, filterOrganization, filterMaritalStatus, filterPhone, filterRelationship, filterChildren });
   }
   let loadError = $state(false);
   let syncing = $state(false);
@@ -67,6 +69,9 @@
     if (filterMaritalStatus === 'no') params.push('has_marital_status=false');
     if (filterPhone === 'yes') params.push('has_phone=true');
     if (filterPhone === 'no') params.push('has_phone=false');
+    if (filterRelationship) params.push(`relationship_status=${encodeURIComponent(filterRelationship)}`);
+    if (filterChildren === 'yes') params.push('has_children=true');
+    if (filterChildren === 'no') params.push('has_children=false');
     return params.join('&');
   }
 
@@ -213,7 +218,9 @@
     { name: 'filterIDCard', label: 'filterIdCard', value: filterIDCard, options: TRI },
     { name: 'filterPhone', label: 'filterPhone', value: filterPhone, options: TRI },
     { name: 'filterOrganization', label: 'filterOrganization', value: filterOrganization, options: TRI },
-    { name: 'filterMaritalStatus', label: 'filterMaritalStatus', value: filterMaritalStatus, options: TRI }
+    { name: 'filterMaritalStatus', label: 'filterMaritalStatus', value: filterMaritalStatus, options: TRI },
+    { name: 'filterRelationship', label: 'filterRelationship', value: filterRelationship, options: [['', 'filterAllRelationship'], ['SINGLE', 'contactRelationshipSingle'], ['PARTNERED', 'contactRelationshipPartnered'], ['COHABITING', 'contactRelationshipCohabiting'], ['NONE', 'filterUnspecified']] },
+    { name: 'filterChildren', label: 'filterChildren', value: filterChildren, options: [['', 'filterAll'], ['yes', 'filterWithChildren'], ['no', 'filterWithoutChildren']] }
   ]);
   let resultsLabel = $derived(contacts.value.length === 1 ? t('filtersResultsOne') : t('filtersResultsMany').replace('{count}', contacts.value.length));
 
@@ -225,6 +232,8 @@
     else if (name === 'filterOrganization') filterOrganization = value;
     else if (name === 'filterMaritalStatus') filterMaritalStatus = value;
     else if (name === 'filterPhone') filterPhone = value;
+    else if (name === 'filterRelationship') filterRelationship = value;
+    else if (name === 'filterChildren') filterChildren = value;
     persistView();
     loadContacts();
   }
@@ -236,6 +245,8 @@
     filterOrganization = '';
     filterMaritalStatus = '';
     filterPhone = '';
+    filterRelationship = '';
+    filterChildren = '';
     persistView();
     loadContacts();
   }
@@ -272,7 +283,9 @@
     (filterIDCard ? 1 : 0) +
     (filterOrganization ? 1 : 0) +
     (filterMaritalStatus ? 1 : 0) +
-    (filterPhone ? 1 : 0)
+    (filterPhone ? 1 : 0) +
+    (filterRelationship ? 1 : 0) +
+    (filterChildren ? 1 : 0)
   );
 </script>
 
