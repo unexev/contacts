@@ -14,8 +14,9 @@
   let gender = $state('');
    let marital_status = $state('');
    let deceased = $state(false);
-  let relationship_status = $state('');
-  let children_count = $state('');
+  // New contacts start as single with no children; the user changes it when known.
+  let relationship_status = $state('SINGLE');
+  let children_count = $state('0');
   let maritalStatuses = $state([]);
   let error = $state('');
   let saving = $state(false);
