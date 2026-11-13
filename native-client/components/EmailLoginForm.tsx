@@ -29,6 +29,9 @@ export default function EmailLoginForm({ onError }: EmailLoginFormProps) {
         ? await registerWithPassword(email, name, password)
         : await loginWithPassword(email, password);
       if (!result.ok) onError(t.login[result.errorKey]);
+    } catch {
+      // Storing the session can still throw after a successful request.
+      onError(t.login.authGeneric);
     } finally {
       setBusy(false);
     }
