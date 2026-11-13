@@ -4,7 +4,7 @@
   import { t } from '$lib/i18n.svelte.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { Search, RefreshCw, ArrowUpDown, Filter, X, Check, Ellipsis } from '@lucide/svelte';
+  import { Search, RefreshCw, ArrowUpDown, Filter, X, Check, Ellipsis, ChevronDown } from '@lucide/svelte';
   import { hasActions, primaryPhone, primaryEmail } from '$lib/contactActions.js';
   import ContactActionsMenu from '$lib/components/ContactActionsMenu.svelte';
   import Avatar from '$lib/components/Avatar.svelte';
@@ -77,9 +77,8 @@
     if (filterIDCard === 'no') params.push('has_id_card=false');
     if (filterOrganization === 'yes') params.push('has_organization=true');
     if (filterOrganization === 'no') params.push('has_organization=false');
-    if (filterMaritalStatus === 'yes') params.push('has_marital_status=true');
     if (filterMaritalStatus === 'no') params.push('has_marital_status=false');
-    else if (filterMaritalStatus && filterMaritalStatus !== 'yes') params.push(`status_id=${encodeURIComponent(filterMaritalStatus)}`);
+    else if (filterMaritalStatus) params.push(`status_id=${encodeURIComponent(filterMaritalStatus)}`);
     if (filterPhone === 'yes') params.push('has_phone=true');
     if (filterPhone === 'no') params.push('has_phone=false');
     if (filterRelationship) params.push(`relationship_status=${encodeURIComponent(filterRelationship)}`);
@@ -225,16 +224,45 @@
   }
 
   const TRI = [['', 'filterAll'], ['yes', 'filterWith'], ['no', 'filterWithout']];
-  let filterGroups = $derived([
-    { name: 'filterGender', label: 'filterGender', value: filterGender, options: [['', 'filterAll'], ['MALE', 'filterMale'], ['FEMALE', 'filterFemale'], ['NONE', 'filterNoGender']] },
-    { name: 'filterBirthday', label: 'filterBirthday', value: filterBirthday, options: TRI },
-    { name: 'filterIDCard', label: 'filterIdCard', value: filterIDCard, options: TRI },
-    { name: 'filterPhone', label: 'filterPhone', value: filterPhone, options: TRI },
-    { name: 'filterOrganization', label: 'filterOrganization', value: filterOrganization, options: TRI },
-    { name: 'filterMaritalStatus', label: 'filterMaritalStatus', value: filterMaritalStatus, options: [...TRI, ...maritalStatuses.map(s => [s.status_id, s.marital_status])] },
-    { name: 'filterRelationship', label: 'filterRelationship', value: filterRelationship, options: [['', 'filterAllRelationship'], ['SINGLE', 'contactRelationshipSingle'], ['PARTNERED', 'contactRelationshipPartnered'], ['COHABITING', 'contactRelationshipCohabiting'], ['NONE', 'filterUnspecified']] },
-    { name: 'filterChildren', label: 'filterChildren', value: filterChildren, options: [['', 'filterAll'], ['yes', 'filterWithChildren'], ['no', 'filterWithoutChildren']] }
+  // Filters grouped by what they describe; the person's situation comes first
+  // because it is what people filter by most.
+  let filterSections = $derived([
+    {
+      label: 'filterSectionPerson',
+      groups: [
+        { name: 'filterMaritalStatus', label: 'filterMaritalStatus', value: filterMaritalStatus, options: [['', 'filterAll'], ...maritalStatuses.map(s => [s.status_id, s.marital_status]), ['no', 'filterUnspecified']] },
+        { name: 'filterRelationship', label: 'filterRelationship', value: filterRelationship, options: [['', 'filterAllRelationship'], ['SINGLE', 'contactRelationshipSingle'], ['PARTNERED', 'contactRelationshipPartnered'], ['COHABITING', 'contactRelationshipCohabiting'], ['NONE', 'filterUnspecified']] },
+        { name: 'filterChildren', label: 'filterChildren', value: filterChildren, options: [['', 'filterAll'], ['yes', 'filterWithChildren'], ['no', 'filterWithoutChildren']] },
+        { name: 'filterGender', label: 'filterGender', value: filterGender, options: [['', 'filterAll'], ['MALE', 'filterMale'], ['FEMALE', 'filterFemale'], ['NONE', 'filterNoGender']] }
+      ]
+    },
+    {
+      label: 'filterSectionData',
+      groups: [
+        { name: 'filterPhone', label: 'filterPhone', value: filterPhone, options: TRI },
+        { name: 'filterIDCard', label: 'filterIdCard', value: filterIDCard, options: TRI },
+        { name: 'filterBirthday', label: 'filterBirthday', value: filterBirthday, options: TRI },
+        { name: 'filterOrganization', label: 'filterOrganization', value: filterOrganization, options: TRI }
+      ]
+    }
   ]);
+
+  // The option shown as a group's current value (falls back to "all").
+  function currentLabel(group) {
+    return group.options.find(([value]) => value === group.value)?.[1] ?? 'filterAll';
+  }
+
+  // Applied filters, shown as removable chips while the panel is closed.
+  let activeChips = $derived(
+    filterSections.flatMap(section => section.groups)
+      .filter(group => group.value !== '')
+      .map(group => ({ name: group.name, text: `${t(group.label)}: ${t(currentLabel(group))}` }))
+  );
+
+  let openGroup = $state(null);
+  function toggleGroup(name) {
+    openGroup = openGroup === name ? null : name;
+  }
   let resultsLabel = $derived(contacts.value.length === 1 ? t('filtersResultsOne') : t('filtersResultsMany').replace('{count}', contacts.value.length));
 
   // Filters apply as soon as one changes, like the search box.
@@ -341,26 +369,58 @@
         <button class="filter-clear" onclick={clearFilters} disabled={activeFilters === 0}>{t('filtersClear')}</button>
       </div>
 
-      {#each filterGroups as group (group.name)}
-        <fieldset class="filter-group">
-          <legend class="filter-label">{t(group.label)}</legend>
-          <div class="segmented">
-            {#each group.options as [value, label]}
-              <label class:selected={group.value === value}>
-                <input
-                  type="radio"
-                  name={group.name}
-                  {value}
-                  checked={group.value === value}
-                  onchange={() => setFilter(group.name, value)}
-                />
-                <span>{t(label)}</span>
-              </label>
+      {#each filterSections as section (section.label)}
+        <section class="filter-section">
+          <h3 class="filter-section-title">{t(section.label)}</h3>
+          <div class="filter-list">
+            {#each section.groups as group (group.name)}
+              {@const isOpen = openGroup === group.name}
+              <div class="filter-row" class:open={isOpen}>
+                <button
+                  class="filter-row-head"
+                  aria-expanded={isOpen}
+                  aria-controls="filter-options-{group.name}"
+                  onclick={() => toggleGroup(group.name)}
+                >
+                  <span class="filter-row-label">{t(group.label)}</span>
+                  <span class="filter-row-value" class:applied={group.value !== ''}>{t(currentLabel(group))}</span>
+                  <ChevronDown size={16} class="filter-row-chevron" aria-hidden="true" />
+                </button>
+                {#if isOpen}
+                  <fieldset class="filter-options" id="filter-options-{group.name}">
+                    <legend class="sr-only">{t(group.label)}</legend>
+                    {#each group.options as [value, label]}
+                      <label class="filter-option" class:selected={group.value === value}>
+                        <input
+                          type="radio"
+                          name={group.name}
+                          {value}
+                          checked={group.value === value}
+                          onchange={() => setFilter(group.name, value)}
+                        />
+                        <span>{t(label)}</span>
+                        {#if group.value === value}<Check size={18} class="filter-check" aria-hidden="true" />{/if}
+                      </label>
+                    {/each}
+                  </fieldset>
+                {/if}
+              </div>
             {/each}
           </div>
-        </fieldset>
+        </section>
       {/each}
     </div>
+  {:else if activeChips.length > 0}
+    <ul class="active-filters" aria-label={t('filtersTitle')}>
+      {#each activeChips as chip (chip.name)}
+        <li>
+          <button class="active-chip" onclick={() => setFilter(chip.name, '')} aria-label="{t('filterRemove')}: {chip.text}">
+            <span>{chip.text}</span>
+            <X size={14} aria-hidden="true" />
+          </button>
+        </li>
+      {/each}
+    </ul>
   {/if}
 
   {#if showSort}
@@ -564,53 +624,104 @@
     cursor: default;
   }
 
-  .filter-group {
-    border: 0;
-    margin: 0 0 12px;
-    padding: 0;
-    min-width: 0;
-  }
+  .filter-section + .filter-section { margin-top: 16px; }
 
-  .filter-label {
-    padding: 0;
+  .filter-section-title {
+    margin: 0 0 6px;
     font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
     color: var(--text2);
-    margin-bottom: 6px;
   }
 
-  /* Native radios under the labels: group semantics and arrow keys for free. */
-  .segmented {
-    display: flex;
+  /* Ruled list: each filter is one row, its options open beneath it. */
+  .filter-list {
     border: 1px solid var(--border);
     border-radius: 10px;
     overflow: hidden;
   }
 
-  .segmented label {
-    position: relative;
-    flex: 1;
+  .filter-row + .filter-row { border-top: 1px solid var(--border); }
+
+  .filter-row-head {
+    width: 100%;
     min-height: 44px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 0 6px;
-    font-size: 0.875rem;
+    gap: 8px;
+    padding: 0 12px;
+    background: none;
+    border: 0;
     color: var(--text);
-    background: transparent;
+    font: inherit;
+    text-align: left;
     cursor: pointer;
-    text-align: center;
   }
 
-  .segmented label + label { border-left: 1px solid var(--border); }
-  .segmented label:hover { background: var(--surface2); }
+  .filter-row-head:hover { background: var(--surface2); }
 
-  .segmented label.selected {
-    background: var(--accent-strong);
-    color: white;
+  .filter-row-head:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    outline-offset: -3px;
+  }
+
+  .filter-row-label {
+    flex: 1;
+    font-size: 0.9375rem;
+  }
+
+  .filter-row-value {
+    font-size: 0.9375rem;
+    color: var(--text2);
+    text-align: right;
+  }
+
+  .filter-row-value.applied {
+    color: var(--accent-text);
     font-weight: 600;
   }
 
-  .segmented input {
+  .filter-row :global(.filter-row-chevron) {
+    flex-shrink: 0;
+    color: var(--text2);
+    transition: transform 180ms cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  .filter-row.open :global(.filter-row-chevron) { transform: rotate(180deg); }
+
+  .filter-options {
+    margin: 0;
+    padding: 0 0 4px;
+    border: 0;
+    min-width: 0;
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+  }
+
+  .filter-option {
+    position: relative;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px 0 24px;
+    font-size: 0.9375rem;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .filter-option span { flex: 1; }
+  .filter-option:hover { background: color-mix(in srgb, var(--accent) 8%, var(--surface2)); }
+
+  .filter-option.selected {
+    color: var(--accent-text);
+    font-weight: 600;
+  }
+
+  .filter-option :global(.filter-check) { color: var(--accent-text); flex-shrink: 0; }
+
+  .filter-option input {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -620,9 +731,45 @@
     cursor: pointer;
   }
 
-  .segmented label:has(input:focus-visible) {
+  .filter-option:has(input:focus-visible) {
     outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
     outline-offset: -3px;
+  }
+
+  .active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .active-chip {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--surface);
+    color: var(--accent-text);
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .active-chip:hover { background: var(--surface2); }
+
+  .active-chip:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .filter-row :global(.filter-row-chevron) { transition: none; }
   }
 
   .sort-panel {
