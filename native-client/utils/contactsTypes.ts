@@ -1,9 +1,15 @@
+import type { RelationshipStatus } from './syncMapping';
+
+export type { RelationshipStatus };
+
 export interface Contact {
     contact_id: string;
     first_name: string;
     middle_name?: string;
     surname: string;
     status_id?: string;
+    relationship_status?: RelationshipStatus | null;
+    children_count?: number | null;
     [key: string]: any;
 }
 
@@ -93,6 +99,10 @@ export interface ContactInput {
     birthdate?: string;
     gender?: 'MALE' | 'FEMALE';
     status_id?: string;
+    /** Real-life situation, independent of the legal `status_id`; null = unknown. */
+    relationship_status?: RelationshipStatus | null;
+    /** null = unknown; 0 means "no children". */
+    children_count?: number | null;
 }
 
 export interface ContactsContextType {

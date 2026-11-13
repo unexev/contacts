@@ -21,8 +21,9 @@ export function createContactsCoreActions({
         try {
             const id = generateId();
             await db.runAsync(
-                'INSERT INTO contact (contact_id, first_name, middle_name, surname, birthdate, gender, status_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                id, toUpper(data.first_name), toUpper(data.middle_name), toUpper(data.surname), data.birthdate ?? null, data.gender ?? null, data.status_id ?? null
+                'INSERT INTO contact (contact_id, first_name, middle_name, surname, birthdate, gender, status_id, relationship_status, children_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                id, toUpper(data.first_name), toUpper(data.middle_name), toUpper(data.surname), data.birthdate ?? null, data.gender ?? null, data.status_id ?? null,
+                data.relationship_status ?? null, data.children_count ?? null
             );
             return { contact_id: id, ...data };
         } catch (e) {
@@ -66,8 +67,10 @@ export function createContactsCoreActions({
     const updateContact = async (id: string, data: ContactInput): Promise<boolean> => {
         try {
             await db.runAsync(
-                "UPDATE contact SET first_name = ?, middle_name = ?, surname = ?, birthdate = ?, gender = ?, status_id = ?, updated_at = datetime('now') WHERE contact_id = ?",
-                toUpper(data.first_name), toUpper(data.middle_name), toUpper(data.surname), data.birthdate ?? null, data.gender ?? null, data.status_id ?? null, id
+                `UPDATE contact SET first_name = ?, middle_name = ?, surname = ?, birthdate = ?, gender = ?, status_id = ?,
+                    relationship_status = ?, children_count = ?, updated_at = datetime('now') WHERE contact_id = ?`,
+                toUpper(data.first_name), toUpper(data.middle_name), toUpper(data.surname), data.birthdate ?? null, data.gender ?? null, data.status_id ?? null,
+                data.relationship_status ?? null, data.children_count ?? null, id
             );
             return true;
         } catch (e) {

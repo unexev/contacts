@@ -25,10 +25,14 @@ import {
   DOC_TYPES,
   DOC_TYPES_KEYS,
   filterContactsByCedula,
+  filterContactsByChildren,
   filterContactsByGender,
   filterContactsByMaritalStatus,
   filterContactsByOrganization,
   filterContactsByPhone,
+  filterContactsByRelationshipStatus,
+  ChildrenFilter,
+  RelationshipStatusFilter,
   GenderFilter,
   getGenderFilterOptions,
   getSearchChips,
@@ -42,6 +46,7 @@ import {
 } from '../../utils/contactList';
 import { getContactIdsWithCedula } from '../../utils/cedulaFilter';
 import { getContactIdsWithPhone } from '../../utils/phoneFilter';
+import { normalizeChildrenCount, RELATIONSHIP_STATUSES, type RelationshipStatus } from '../../utils/syncMapping';
 import {
   getAllOrganizations,
   getContactIdsByOrganization,
@@ -100,6 +105,8 @@ export default function HomeScreen() {
   const [specificOrgIds, setSpecificOrgIds] = useState<Set<string>>(new Set());
   const [organizations, setOrganizations] = useState<{ organization_id: string; name: string }[]>([]);
   const [maritalStatusFilter, setMaritalStatusFilter] = useState<MaritalStatusFilter>({ mode: 'all' });
+  const [relationshipFilter, setRelationshipFilter] = useState<RelationshipStatusFilter>(null);
+  const [childrenFilter, setChildrenFilter] = useState<ChildrenFilter>({ mode: 'all' });
 
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
@@ -107,6 +114,8 @@ export default function HomeScreen() {
   const [birthdate, setBirthdate] = useState('');
   const [gender, setGender] = useState<'MALE' | 'FEMALE' | null>(null);
   const [selectedStatusId, setSelectedStatusId] = useState<string | null>(null);
+  const [relationshipStatus, setRelationshipStatus] = useState<RelationshipStatus | null>(null);
+  const [childrenCount, setChildrenCount] = useState('');
   const [maritalStatuses, setMaritalStatuses] = useState<MaritalStatus[]>([]);
 
   const [hasDoc, setHasDoc] = useState(false);
@@ -241,7 +250,9 @@ export default function HomeScreen() {
   const phoneFiltered = filterContactsByPhone(cedulaFiltered, phoneFilter, phoneIds);
   const organizationFiltered = filterContactsByOrganization(phoneFiltered, organizationFilter, orgIds, specificOrgIds);
   const maritalFiltered = filterContactsByMaritalStatus(organizationFiltered, maritalStatusFilter);
-  const filteredContacts = sortContacts(maritalFiltered, sortKey);
+  const relationshipFiltered = filterContactsByRelationshipStatus(maritalFiltered, relationshipFilter);
+  const childrenFiltered = filterContactsByChildren(relationshipFiltered, childrenFilter);
+  const filteredContacts = sortContacts(childrenFiltered, sortKey);
 
   const sections = React.useMemo(() => {
     if (filteredContacts.length === 0) return [];
@@ -276,6 +287,8 @@ export default function HomeScreen() {
     setBirthdate('');
     setGender(null);
     setSelectedStatusId(null);
+    setRelationshipStatus(null);
+    setChildrenCount('');
     setHasDoc(false);
     setDocType(DOC_TYPES[0]);
     setCardNumber('');
@@ -287,6 +300,11 @@ export default function HomeScreen() {
       alert(t.contacts.nameRequired);
       return;
     }
+    const children = normalizeChildrenCount(childrenCount);
+    if (childrenCount.trim() && children === null) {
+      alert(t.contacts.childrenInvalid);
+      return;
+    }
 
     try {
       const newContact = await createContact({
@@ -296,6 +314,8 @@ export default function HomeScreen() {
         birthdate: birthdate.trim() || undefined,
         gender: gender ?? undefined,
         status_id: selectedStatusId ?? undefined,
+        relationship_status: relationshipStatus,
+        children_count: children,
       });
 
       if (newContact) {
@@ -663,6 +683,50 @@ export default function HomeScreen() {
                 />
               </View>
             )}
+
+            <Text style={[styles.filterSectionTitle, { color: colors.textSecondary }, { marginTop: 12 }]}>{t.contacts.relationshipStatus}</Text>
+            <View style={styles.filterChipRow}>
+              {([
+                { key: null, label: t.contacts.all },
+                { key: 'SINGLE', label: t.contacts.relationshipSingle },
+                { key: 'PARTNERED', label: t.contacts.relationshipPartnered },
+                { key: 'COHABITING', label: t.contacts.relationshipFilterCohabiting },
+                { key: 'UNSPECIFIED', label: t.common.unspecified },
+              ] as const).map(opt => (
+                <Pressable accessibilityRole="button"
+                  accessibilityState={{ selected: relationshipFilter === opt.key }}
+                  key={opt.key ?? 'all'}
+                  hitSlop={{ top: 7, bottom: 7 }}
+                  style={[styles.filterChip, relationshipFilter === opt.key && [styles.filterChipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
+                  onPress={() => setRelationshipFilter(opt.key)}
+                >
+                  <Text style={[styles.filterChipText, relationshipFilter === opt.key && styles.filterChipTextActive]}>
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={[styles.filterSectionTitle, { color: colors.textSecondary }, { marginTop: 12 }]}>{t.contacts.children}</Text>
+            <View style={styles.filterChipRow}>
+              {([
+                { key: 'all', label: t.contacts.all },
+                { key: 'with', label: t.contacts.childrenFilterWith },
+                { key: 'without', label: t.contacts.childrenFilterWithout },
+              ] as const).map(opt => (
+                <Pressable accessibilityRole="button"
+                  accessibilityState={{ selected: childrenFilter.mode === opt.key }}
+                  key={opt.key}
+                  hitSlop={{ top: 7, bottom: 7 }}
+                  style={[styles.filterChip, childrenFilter.mode === opt.key && [styles.filterChipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
+                  onPress={() => setChildrenFilter({ mode: opt.key })}
+                >
+                  <Text style={[styles.filterChipText, childrenFilter.mode === opt.key && styles.filterChipTextActive]}>
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
         </Pressable>
       </Modal>
@@ -744,6 +808,33 @@ export default function HomeScreen() {
                 value={selectedStatusId}
                 onSelect={setSelectedStatusId}
                 allowNull
+              />
+
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.relationshipStatus}</Text>
+              <View style={styles.genderRow}>
+                {RELATIONSHIP_STATUSES.map(rs => (
+                  <Pressable accessibilityRole="button"
+                    accessibilityState={{ selected: relationshipStatus === rs }}
+                    key={rs}
+                    style={[styles.genderChip, styles.relationshipChip, relationshipStatus === rs && [styles.genderChipSelected, { backgroundColor: colors.accent }]]}
+                    onPress={() => setRelationshipStatus(prev => prev === rs ? null : rs)}
+                  >
+                    <Text numberOfLines={2} style={[styles.genderChipText, styles.relationshipChipText, relationshipStatus === rs && styles.genderChipTextSelected]}>
+                      {rs === 'SINGLE' ? t.contacts.relationshipSingle : rs === 'PARTNERED' ? t.contacts.relationshipPartnered : t.contacts.relationshipCohabiting}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.children}</Text>
+              <TextInput accessibilityLabel={t.contacts.children}
+                style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
+                placeholder={t.contacts.childrenPlaceholder}
+                value={childrenCount}
+                onChangeText={v => setChildrenCount(v.replace(/\D/g, '').slice(0, 2))}
+                placeholderTextColor={colors.placeholder}
+                keyboardType="number-pad"
+                maxLength={2}
               />
 
               <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: hasDoc }} style={styles.docToggle} onPress={() => setHasDoc(v => !v)}>
@@ -1065,6 +1156,8 @@ const styles = StyleSheet.create({
   genderChipSelected: { backgroundColor: '#0066D6' },
   genderChipText: { fontSize: 15, color: '#333' },
   genderChipTextSelected: { color: '#fff', fontWeight: '600' },
+  relationshipChip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 6 },
+  relationshipChipText: { fontSize: 14, textAlign: 'center' },
 
   sheetActions: { flexDirection: 'row', gap: 10, marginTop: 24 },
   btn: { flex: 1, paddingVertical: 14, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },

@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeGender, normalizeStatusId, msToSqliteDatetime, mapContactRow, nullStringValue, isoToLocalBirthdate } from '../utils/syncMapping.ts';
+import {
+  normalizeGender, normalizeStatusId, msToSqliteDatetime, mapContactRow, nullStringValue, isoToLocalBirthdate,
+  normalizeRelationshipStatus, normalizeChildrenCount, contactPushNullFields,
+} from '../utils/syncMapping.ts';
 
 test('normalizeGender maps backend variants to the local CHECK values', () => {
   for (const v of ['M', 'm', 'MALE', 'male', ' Male ']) assert.equal(normalizeGender(v), 'MALE', v);
@@ -35,7 +38,8 @@ test('mapContactRow produces the local contact columns', () => {
   });
   assert.deepEqual(row, {
     contact_id: 'c1', first_name: 'Ann', middle_name: null, surname: 'Lee',
-    birthdate: '02/01/1990', gender: 'FEMALE', status_id: null, updated_at: '2023-11-14 22:13:20',
+    birthdate: '02/01/1990', gender: 'FEMALE', status_id: null,
+    relationship_status: null, children_count: null, updated_at: '2023-11-14 22:13:20',
   });
 });
 
@@ -63,4 +67,44 @@ test('isoToLocalBirthdate keeps values already in local format and drops invalid
 test('mapContactRow stores the birthdate in the local format', () => {
   const r = mapContactRow({ contact_id: 'c1', first_name: 'ANA', surname: 'GARCIA', birthdate: '1990-03-14' });
   assert.equal(r.birthdate, '14/03/1990');
+});
+
+test('normalizeRelationshipStatus keeps only the known values', () => {
+  assert.equal(normalizeRelationshipStatus('SINGLE'), 'SINGLE');
+  assert.equal(normalizeRelationshipStatus(' partnered '), 'PARTNERED');
+  assert.equal(normalizeRelationshipStatus('COHABITING'), 'COHABITING');
+  for (const v of [null, undefined, '', 'MARRIED']) assert.equal(normalizeRelationshipStatus(v), null, String(v));
+});
+
+test('normalizeChildrenCount accepts integers from 0 to 50', () => {
+  assert.equal(normalizeChildrenCount(0), 0);
+  assert.equal(normalizeChildrenCount(3), 3);
+  assert.equal(normalizeChildrenCount('12'), 12);
+  assert.equal(normalizeChildrenCount(50), 50);
+  for (const v of [null, undefined, '', ' ', -1, 51, 2.5, '1a', 'abc', NaN]) assert.equal(normalizeChildrenCount(v), null, String(v));
+});
+
+test('mapContactRow keeps the relationship status and children count', () => {
+  const r = mapContactRow({ contact_id: 'c1', first_name: 'A', surname: 'B', relationship_status: 'COHABITING', children_count: 0 });
+  assert.equal(r.relationship_status, 'COHABITING');
+  assert.equal(r.children_count, 0);
+  const u = mapContactRow({ contact_id: 'c1', first_name: 'A', surname: 'B', relationship_status: 'X', children_count: -2 });
+  assert.equal(u.relationship_status, null);
+  assert.equal(u.children_count, null);
+});
+
+test('contactPushNullFields encodes values in the Go sql.Null shapes', () => {
+  assert.deepEqual(contactPushNullFields({ gender: 'MALE', status_id: 'soltero', relationship_status: 'SINGLE', children_count: 2 }), {
+    gender: { String: 'MALE', Valid: true },
+    status_id: { String: 'soltero', Valid: true },
+    relationship_status: { String: 'SINGLE', Valid: true },
+    children_count: { Int64: 2, Valid: true },
+  });
+  assert.deepEqual(contactPushNullFields({ children_count: 0 }), {
+    gender: { String: '', Valid: false },
+    status_id: { String: '', Valid: false },
+    relationship_status: { String: '', Valid: false },
+    children_count: { Int64: 0, Valid: true },
+  });
+  assert.deepEqual(contactPushNullFields({ relationship_status: null, children_count: null }).children_count, { Int64: 0, Valid: false });
 });

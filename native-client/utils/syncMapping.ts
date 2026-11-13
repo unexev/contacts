@@ -16,6 +16,35 @@ export function normalizeGender(value: string | null | undefined): LocalGender |
   return null;
 }
 
+/** Real-life relationship situation, independent of the legal marital status. */
+export const RELATIONSHIP_STATUSES = ['SINGLE', 'PARTNERED', 'COHABITING'] as const;
+export type RelationshipStatus = (typeof RELATIONSHIP_STATUSES)[number];
+
+/** Upper bound accepted for `children_count` (the DB only enforces >= 0). */
+export const MAX_CHILDREN_COUNT = 50;
+
+/** Returns the known relationship status, or null (= unknown) for anything else. */
+export function normalizeRelationshipStatus(value: string | null | undefined): RelationshipStatus | null {
+  const v = (value ?? '').trim().toUpperCase();
+  return (RELATIONSHIP_STATUSES as readonly string[]).includes(v) ? (v as RelationshipStatus) : null;
+}
+
+/**
+ * Returns an integer children count in 0..MAX_CHILDREN_COUNT, or null (= unknown) for empty or invalid input.
+ * Accepts numbers and digit-only strings (form input).
+ */
+export function normalizeChildrenCount(value: unknown): number | null {
+  let n: number;
+  if (typeof value === 'number') {
+    n = value;
+  } else if (typeof value === 'string' && /^\d+$/.test(value.trim())) {
+    n = Number(value.trim());
+  } else {
+    return null;
+  }
+  return Number.isInteger(n) && n >= 0 && n <= MAX_CHILDREN_COUNT ? n : null;
+}
+
 export function normalizeStatusId(value: string | null | undefined): string | null {
   const v = (value ?? '').trim().toLowerCase();
   return KNOWN_STATUS_IDS.has(v) ? v : null;
@@ -64,6 +93,8 @@ export interface BackendContact {
   birthdate?: string | null;
   gender?: string | null;
   status_id?: string | null;
+  relationship_status?: string | null;
+  children_count?: number | null;
   updated_at?: number;
 }
 
@@ -76,6 +107,39 @@ export function mapContactRow(c: BackendContact) {
     birthdate: isoToLocalBirthdate(c.birthdate),
     gender: normalizeGender(c.gender),
     status_id: normalizeStatusId(c.status_id),
+    relationship_status: normalizeRelationshipStatus(c.relationship_status),
+    children_count: normalizeChildrenCount(c.children_count),
     updated_at: msToSqliteDatetime(c.updated_at),
+  };
+}
+
+/** Go `sql.NullString` JSON shape expected by the backend on /api/sync/push. */
+export interface NullString { String: string; Valid: boolean }
+/** Go `sql.NullInt64` JSON shape expected by the backend on /api/sync/push. */
+export interface NullInt64 { Int64: number; Valid: boolean }
+
+export function toNullString(value: string | null | undefined): NullString {
+  return value ? { String: value, Valid: true } : { String: '', Valid: false };
+}
+
+export function toNullInt64(value: number | null | undefined): NullInt64 {
+  return typeof value === 'number' && Number.isFinite(value) ? { Int64: value, Valid: true } : { Int64: 0, Valid: false };
+}
+
+/**
+ * Nullable contact columns encoded for a sync push payload: the backend decodes pushed contacts
+ * straight into Go `sql.Null*` fields, so plain values or null would be rejected.
+ */
+export function contactPushNullFields(c: {
+  gender?: string | null;
+  status_id?: string | null;
+  relationship_status?: string | null;
+  children_count?: number | null;
+}) {
+  return {
+    gender: toNullString(c.gender),
+    status_id: toNullString(c.status_id),
+    relationship_status: toNullString(normalizeRelationshipStatus(c.relationship_status)),
+    children_count: toNullInt64(normalizeChildrenCount(c.children_count)),
   };
 }

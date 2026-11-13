@@ -14,6 +14,8 @@ const createTablesSql = `
     birthdate TEXT,
     gender TEXT CHECK(gender IN ('MALE', 'FEMALE')),
     status_id TEXT,
+    relationship_status TEXT CHECK(relationship_status IN ('SINGLE', 'PARTNERED', 'COHABITING')),
+    children_count INTEGER CHECK(children_count >= 0),
     updated_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (status_id) REFERENCES marital_status (status_id)
   );
@@ -166,6 +168,9 @@ const migrationsSql = [
   "ALTER TABLE contact_phone ADD COLUMN remote_id TEXT",
   "ALTER TABLE contact_email ADD COLUMN remote_id TEXT",
   "ALTER TABLE contact_note ADD COLUMN remote_id TEXT",
+  // Real-life situation, independent of the legal status_id; NULL means unknown
+  "ALTER TABLE contact ADD COLUMN relationship_status TEXT CHECK(relationship_status IN ('SINGLE', 'PARTNERED', 'COHABITING'))",
+  'ALTER TABLE contact ADD COLUMN children_count INTEGER CHECK(children_count >= 0)',
   // Se eliminó la búsqueda full-text: borrar sus triggers e índice de DBs existentes
   'DROP TRIGGER IF EXISTS contact_ai',
   'DROP TRIGGER IF EXISTS contact_ad',

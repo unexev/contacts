@@ -8,6 +8,7 @@ import { ContactDetail, formatDate } from '../../utils/contactUtils';
 import { useSharedStyles } from './contactStyles';
 import { listLabel } from '../../utils/listLabels';
 import { useTheme } from '../../utils/theme';
+import { normalizeChildrenCount, normalizeRelationshipStatus, RELATIONSHIP_STATUSES, type RelationshipStatus } from '../../utils/syncMapping';
 
 interface Props {
   visible: boolean;
@@ -29,6 +30,8 @@ export default function EditContactModal({ visible, contact, onClose, onSaved }:
   const [birthdate, setBirthdate] = useState('');
   const [gender, setGender] = useState<'MALE' | 'FEMALE' | null>(null);
   const [statusId, setStatusId] = useState<string | null>(null);
+  const [relationshipStatus, setRelationshipStatus] = useState<RelationshipStatus | null>(null);
+  const [childrenCount, setChildrenCount] = useState('');
   const [maritalStatuses, setMaritalStatuses] = useState<MaritalStatus[]>([]);
 
   useEffect(() => {
@@ -40,12 +43,19 @@ export default function EditContactModal({ visible, contact, onClose, onSaved }:
       setBirthdate(contact.birthdate ?? '');
       setGender((contact.gender as 'MALE' | 'FEMALE') ?? null);
       setStatusId(contact.status_id ?? null);
+      setRelationshipStatus(normalizeRelationshipStatus(contact.relationship_status));
+      setChildrenCount(contact.children_count == null ? '' : String(contact.children_count));
     }
   }, [visible, contact]);
 
   const handleSave = async () => {
     if (!firstName.trim() || !surname.trim()) {
       Alert.alert(t.common.error, t.contacts.nameRequired);
+      return;
+    }
+    const children = normalizeChildrenCount(childrenCount);
+    if (childrenCount.trim() && children === null) {
+      Alert.alert(t.common.error, t.contacts.childrenInvalid);
       return;
     }
     const ok = await updateContact(contact!.contact_id, {
@@ -55,6 +65,8 @@ export default function EditContactModal({ visible, contact, onClose, onSaved }:
       birthdate: birthdate.trim() || undefined,
       gender: gender ?? undefined,
       status_id: statusId ?? undefined,
+      relationship_status: relationshipStatus,
+      children_count: children,
     });
     if (ok) {
       const updated = await getContact(contact!.contact_id);
@@ -119,6 +131,30 @@ export default function EditContactModal({ visible, contact, onClose, onSaved }:
                 allowNull
               />
 
+              <Text style={s.fieldLabel}>{t.contacts.relationshipStatus}</Text>
+              <View style={styles.genderRow}>
+                {RELATIONSHIP_STATUSES.map(rs => (
+                  <Pressable accessibilityRole="button"
+                    accessibilityState={{ selected: relationshipStatus === rs }}
+                    key={rs}
+                    style={[styles.genderChip, styles.relationshipChip, relationshipStatus === rs && [styles.genderChipSelected, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
+                    onPress={() => setRelationshipStatus(prev => prev === rs ? null : rs)}
+                  >
+                    <Text numberOfLines={2} style={[styles.genderChipText, styles.relationshipChipText, relationshipStatus === rs && styles.genderChipTextSelected]}>
+                      {rs === 'SINGLE' ? t.contacts.relationshipSingle : rs === 'PARTNERED' ? t.contacts.relationshipPartnered : t.contacts.relationshipCohabiting}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={s.fieldLabel}>{t.contacts.children}</Text>
+              <TextInput accessibilityLabel={t.contacts.children}
+                style={s.input} value={childrenCount}
+                onChangeText={v => setChildrenCount(v.replace(/\D/g, '').slice(0, 2))}
+                placeholder={t.contacts.childrenPlaceholder} placeholderTextColor={colors.placeholder}
+                keyboardType="number-pad" maxLength={2}
+              />
+
             </ScrollView>
 
             <View style={[s.modalActions, { paddingBottom: Math.max(insets.bottom, 12) }]}>
@@ -145,4 +181,6 @@ const styles = StyleSheet.create({
   genderChipSelected: { backgroundColor: '#0066D6', borderColor: '#0066D6' },
   genderChipText: { fontSize: 15, color: '#333' },
   genderChipTextSelected: { color: '#fff', fontWeight: '600' },
+  relationshipChip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 6 },
+  relationshipChipText: { fontSize: 14, textAlign: 'center' },
 });

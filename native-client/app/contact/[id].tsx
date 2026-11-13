@@ -143,6 +143,18 @@ export default function ContactDetailScreen() {
       label: t.detail.maritalLabel,
       value: listLabel('marital', lang, contact.status_id, maritalLabels[contact.status_id] ?? contact.status_id),
     } : null,
+    contact.relationship_status === 'SINGLE' || contact.relationship_status === 'PARTNERED' || contact.relationship_status === 'COHABITING' ? {
+      key: 'relationshipStatus',
+      label: t.contacts.relationshipStatus,
+      value: contact.relationship_status === 'SINGLE'
+        ? t.contacts.relationshipSingle
+        : contact.relationship_status === 'PARTNERED' ? t.contacts.relationshipPartnered : t.contacts.relationshipCohabiting,
+    } : null,
+    contact.children_count !== null && contact.children_count !== undefined ? {
+      key: 'children',
+      label: t.contacts.children,
+      value: String(contact.children_count),
+    } : null,
   ].filter(Boolean) as { key: string; label: string; value: string; helperText?: string | null }[];
 
   return (
