@@ -11,7 +11,7 @@ export default {
     splash: {
       image: "./assets/images/splash-icon.png",
       resizeMode: "contain",
-      backgroundColor: "#007AFF"
+      backgroundColor: "#1E2B49"
     },
     android: {
       package: "com.luserv.c0ntacts",
