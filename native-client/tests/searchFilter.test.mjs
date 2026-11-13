@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseSearchFilter, getSearchChips } from '../utils/contactList.ts';
+import { parseSearchFilter, getSearchChips, filterContactsByPhone } from '../utils/contactList.ts';
 
 test('parseSearchFilter reads the age keyword in English and Spanish', () => {
   assert.deepEqual(parseSearchFilter('age:23'), { type: 'age', op: 'eq', value: 23 });
@@ -28,4 +28,16 @@ test('getSearchChips defaults to the English label', () => {
 test('getSearchChips ignores empty queries and empty parts', () => {
   assert.deepEqual(getSearchChips('   '), []);
   assert.deepEqual(getSearchChips('ana & & luis'), ['ana', 'luis']);
+});
+
+test('filterContactsByPhone keeps contacts by phone presence', () => {
+  const list = [
+    { contact_id: 'a', first_name: 'Ana', surname: 'Diaz' },
+    { contact_id: 'b', first_name: 'Beto', surname: 'Paz' },
+  ];
+  const phoneIds = new Set(['a']);
+
+  assert.deepEqual(filterContactsByPhone(list, { mode: 'all' }, phoneIds), list);
+  assert.deepEqual(filterContactsByPhone(list, { mode: 'with' }, phoneIds).map(c => c.contact_id), ['a']);
+  assert.deepEqual(filterContactsByPhone(list, { mode: 'without' }, phoneIds).map(c => c.contact_id), ['b']);
 });

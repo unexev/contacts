@@ -12,6 +12,7 @@ export type SortKey = 'first_name' | 'surname' | 'age_asc' | 'age_desc' | 'inser
 export type GenderFilter = 'MALE' | 'FEMALE' | 'UNSPECIFIED' | null;
 export type CedulaFilterMode = 'all' | 'with' | 'without';
 export type CedulaFilter = { mode: CedulaFilterMode };
+export type PhoneFilter = { mode: 'all' | 'with' | 'without' };
 
 // Backward-compat alias
 export type DocumentFilterMode = CedulaFilterMode;
@@ -200,6 +201,20 @@ export function filterContactsByCedula(
 
 // Backward-compat export
 export const filterContactsByDocument = filterContactsByCedula;
+
+/**
+ * Filters contacts by whether they have at least one phone number.
+ * `phoneIds` is the set of contact_id with at least one row in contact_phone.
+ */
+export function filterContactsByPhone(
+  list: ContactListItem[],
+  filter: PhoneFilter,
+  phoneIds: Set<string>
+): ContactListItem[] {
+  if (!filter || filter.mode === 'all') return list;
+  const wantsPhone = filter.mode === 'with';
+  return list.filter(c => phoneIds.has(c.contact_id) === wantsPhone);
+}
 
 /**
  * Filtra la lista de contactos según su vinculación con organizaciones.

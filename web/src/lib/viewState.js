@@ -9,7 +9,8 @@ export const DEFAULT_VIEW = {
   filterBirthday: '',
   filterIDCard: '',
   filterOrganization: '',
-  filterMaritalStatus: ''
+  filterMaritalStatus: '',
+  filterPhone: ''
 };
 
 const VALID = {
@@ -18,7 +19,8 @@ const VALID = {
   filterBirthday: (v) => TRI.includes(v),
   filterIDCard: (v) => TRI.includes(v),
   filterOrganization: (v) => TRI.includes(v),
-  filterMaritalStatus: (v) => TRI.includes(v)
+  filterMaritalStatus: (v) => TRI.includes(v),
+  filterPhone: (v) => TRI.includes(v)
 };
 
 // Only known keys with known values survive; anything else falls back to defaults.

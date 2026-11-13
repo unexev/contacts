@@ -28,17 +28,20 @@ import {
   filterContactsByGender,
   filterContactsByMaritalStatus,
   filterContactsByOrganization,
+  filterContactsByPhone,
   GenderFilter,
   getGenderFilterOptions,
   getSearchChips,
   MaritalStatusFilter,
   OrganizationFilter,
   parseSearchFilter,
+  PhoneFilter,
   sortContacts,
   SortKey,
   SORT_OPTIONS,
 } from '../../utils/contactList';
 import { getContactIdsWithCedula } from '../../utils/cedulaFilter';
+import { getContactIdsWithPhone } from '../../utils/phoneFilter';
 import {
   getAllOrganizations,
   getContactIdsByOrganization,
@@ -90,6 +93,8 @@ export default function HomeScreen() {
   const [birthdateFilter, setBirthdateFilter] = useState<'all' | 'with' | 'without'>('all');
   const [cedulaFilter, setCedulaFilter] = useState<CedulaFilter>({ mode: 'all' });
   const [cedulaIds, setCedulaIds] = useState<Set<string>>(new Set());
+  const [phoneFilter, setPhoneFilter] = useState<PhoneFilter>({ mode: 'all' });
+  const [phoneIds, setPhoneIds] = useState<Set<string>>(new Set());
   const [organizationFilter, setOrganizationFilter] = useState<OrganizationFilter>({ mode: 'all' });
   const [orgIds, setOrgIds] = useState<Set<string>>(new Set());
   const [specificOrgIds, setSpecificOrgIds] = useState<Set<string>>(new Set());
@@ -131,6 +136,10 @@ export default function HomeScreen() {
     setCedulaIds(ids);
   }, []);
 
+  const refreshPhoneIds = React.useCallback(async () => {
+    setPhoneIds(await getContactIdsWithPhone());
+  }, []);
+
   const refreshOrganizationData = React.useCallback(async () => {
     const [ids, orgs] = await Promise.all([
       getContactIdsWithOrganization(),
@@ -146,8 +155,9 @@ export default function HomeScreen() {
 
   React.useEffect(() => {
     refreshCedulaIds();
+    refreshPhoneIds();
     refreshOrganizationData();
-  }, [refreshCedulaIds, refreshOrganizationData, contacts]);
+  }, [refreshCedulaIds, refreshPhoneIds, refreshOrganizationData, contacts]);
 
   React.useEffect(() => {
     if (organizationFilter.mode !== 'specific' || !organizationFilter.organizationId) {
@@ -209,8 +219,9 @@ export default function HomeScreen() {
   const handleRefresh = React.useCallback(async () => {
     await fetchContacts();
     await refreshCedulaIds();
+    await refreshPhoneIds();
     await refreshOrganizationData();
-  }, [fetchContacts, refreshCedulaIds, refreshOrganizationData]);
+  }, [fetchContacts, refreshCedulaIds, refreshPhoneIds, refreshOrganizationData]);
 
   useFocusEffect(useCallback(() => {
     fetchContacts();
@@ -227,7 +238,8 @@ export default function HomeScreen() {
       return birthdateFilter === 'with' ? hasBirthdate : !hasBirthdate;
     });
   const cedulaFiltered = filterContactsByCedula(birthdateFiltered, cedulaFilter, cedulaIds);
-  const organizationFiltered = filterContactsByOrganization(cedulaFiltered, organizationFilter, orgIds, specificOrgIds);
+  const phoneFiltered = filterContactsByPhone(cedulaFiltered, phoneFilter, phoneIds);
+  const organizationFiltered = filterContactsByOrganization(phoneFiltered, organizationFilter, orgIds, specificOrgIds);
   const maritalFiltered = filterContactsByMaritalStatus(organizationFiltered, maritalStatusFilter);
   const filteredContacts = sortContacts(maritalFiltered, sortKey);
 
@@ -555,6 +567,25 @@ export default function HomeScreen() {
                   onPress={() => setCedulaFilter({ mode: opt.key })}
                 >
                   <Text style={[styles.filterChipText, cedulaFilter.mode === opt.key && styles.filterChipTextActive]}>
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={[styles.filterSectionTitle, { color: colors.textSecondary }, { marginTop: 12 }]}>{t.contacts.phoneFilter}</Text>
+            <View style={styles.filterChipRow}>
+              {([
+                { key: 'all', label: t.contacts.all },
+                { key: 'with', label: t.contacts.phoneFilterWith },
+                { key: 'without', label: t.contacts.phoneFilterWithout },
+              ] as const).map(opt => (
+                <Pressable accessibilityRole="button"
+                  key={opt.key}
+                  style={[styles.filterChip, phoneFilter.mode === opt.key && [styles.filterChipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
+                  onPress={() => setPhoneFilter({ mode: opt.key })}
+                >
+                  <Text style={[styles.filterChipText, phoneFilter.mode === opt.key && styles.filterChipTextActive]}>
                     {opt.label}
                   </Text>
                 </Pressable>
