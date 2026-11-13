@@ -114,11 +114,13 @@ export async function pullChanges(): Promise<{
         } else {
           const r = mapContactRow(c);
           await db.runAsync(
-            `INSERT INTO contact (contact_id, first_name, middle_name, surname, birthdate, gender, status_id, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
+            `INSERT INTO contact (contact_id, first_name, middle_name, surname, birthdate, gender, status_id,
+               relationship_status, children_count, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
              ON CONFLICT(contact_id) DO UPDATE SET
                first_name = excluded.first_name, middle_name = excluded.middle_name, surname = excluded.surname,
                birthdate = excluded.birthdate, gender = excluded.gender, status_id = excluded.status_id,
+               relationship_status = excluded.relationship_status, children_count = excluded.children_count,
                updated_at = excluded.updated_at`,
             r.contact_id,
             r.first_name,
@@ -127,6 +129,8 @@ export async function pullChanges(): Promise<{
             r.birthdate,
             r.gender,
             r.status_id,
+            r.relationship_status,
+            r.children_count,
             r.updated_at,
           );
         }

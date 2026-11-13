@@ -14,6 +14,8 @@
   let gender = $state('');
    let marital_status = $state('');
    let deceased = $state(false);
+  let relationship_status = $state('');
+  let children_count = $state('');
   let maritalStatuses = $state([]);
   let error = $state('');
   let saving = $state(false);
@@ -26,6 +28,13 @@
     } catch {}
   });
 
+  // Empty input means "unknown" (null); otherwise a whole number from 0 to 50, or undefined if invalid.
+  function parseChildrenCount(value) {
+    if (value === '' || value === null || value === undefined) return null;
+    const n = Number(value);
+    return Number.isInteger(n) && n >= 0 && n <= 50 ? n : undefined;
+  }
+
   async function handleSave(e) {
     e.preventDefault();
     error = '';
@@ -33,6 +42,8 @@
     if (!surname.trim()) { error = t('contactSurnameRequired'); return; }
     if (first_name.length > 255) { error = t('contactNameTooLong'); return; }
     if (surname.length > 255) { error = t('contactNameTooLong'); return; }
+    const children = parseChildrenCount(children_count);
+    if (children === undefined) { error = t('contactChildrenInvalid'); return; }
     saving = true;
     try {
       const body = { first_name, middle_name, surname };
@@ -40,6 +51,8 @@
       if (gender) body.gender = gender;
        if (marital_status) body.status_id = marital_status;
        body.deceased = deceased;
+      body.relationship_status = relationship_status || null;
+      body.children_count = children;
 
       const data = await api('/api/contacts', { method: 'POST', body });
       invalidate('contacts');
@@ -135,6 +148,21 @@
             </option>
           {/each}
        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="relationship_status">{t('contactRelationshipStatus')}</label>
+        <select id="relationship_status" class="select" bind:value={relationship_status}>
+          <option value="">{t('contactRelationshipUnspecified')}</option>
+          <option value="SINGLE">{t('contactRelationshipSingle')}</option>
+          <option value="PARTNERED">{t('contactRelationshipPartnered')}</option>
+          <option value="COHABITING">{t('contactRelationshipCohabiting')}</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="children_count">{t('contactChildren')}</label>
+        <input id="children_count" class="input" type="number" min="0" max="50" step="1" placeholder={t('contactChildrenUnspecified')} bind:value={children_count} />
       </div>
 
       <label class="deceased-toggle"><input type="checkbox" bind:checked={deceased} /> {t('contactDeceased')}</label>

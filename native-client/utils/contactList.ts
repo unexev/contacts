@@ -5,6 +5,8 @@ export interface ContactListItem {
   middle_name?: string | null;
   birthdate?: string | null;
   gender?: string | null;
+  relationship_status?: string | null;
+  children_count?: number | null;
   [key: string]: any;
 }
 
@@ -13,6 +15,8 @@ export type GenderFilter = 'MALE' | 'FEMALE' | 'UNSPECIFIED' | null;
 export type CedulaFilterMode = 'all' | 'with' | 'without';
 export type CedulaFilter = { mode: CedulaFilterMode };
 export type PhoneFilter = { mode: 'all' | 'with' | 'without' };
+export type RelationshipStatusFilter = 'SINGLE' | 'PARTNERED' | 'COHABITING' | 'UNSPECIFIED' | null;
+export type ChildrenFilter = { mode: 'all' | 'with' | 'without' };
 
 // Backward-compat alias
 export type DocumentFilterMode = CedulaFilterMode;
@@ -214,6 +218,29 @@ export function filterContactsByPhone(
   if (!filter || filter.mode === 'all') return list;
   const wantsPhone = filter.mode === 'with';
   return list.filter(c => phoneIds.has(c.contact_id) === wantsPhone);
+}
+
+/** Filters by real-life relationship status; 'UNSPECIFIED' keeps contacts without one. */
+export function filterContactsByRelationshipStatus(
+  list: ContactListItem[],
+  filter: RelationshipStatusFilter,
+): ContactListItem[] {
+  if (filter === 'UNSPECIFIED') return list.filter(c => !c.relationship_status);
+  if (filter) return list.filter(c => c.relationship_status === filter);
+  return list;
+}
+
+/**
+ * Filters by children: 'with' keeps a count > 0, 'without' keeps exactly 0.
+ * An unknown (null) count matches neither.
+ */
+export function filterContactsByChildren(list: ContactListItem[], filter: ChildrenFilter): ContactListItem[] {
+  if (!filter || filter.mode === 'all') return list;
+  return list.filter(c => {
+    if (c.children_count === null || c.children_count === undefined) return false;
+    const count = Number(c.children_count);
+    return filter.mode === 'with' ? count > 0 : count === 0;
+  });
 }
 
 /**

@@ -122,3 +122,37 @@ test('missingUpdatedAtStatements adds a nullable updated_at only where it is mis
   assert.deepEqual(schema.missingUpdatedAtStatements(table => columnsOf(db, table)), []);
   db.close();
 });
+
+function freshDb() {
+  const db = new SQL.Database();
+  db.exec(schema.createTablesSql);
+  return db;
+}
+
+test('contact table has nullable relationship_status and children_count', () => {
+  const db = freshDb();
+  db.exec("INSERT INTO contact (contact_id, first_name, surname) VALUES ('c1', 'A', 'B')");
+  db.exec("INSERT INTO contact (contact_id, first_name, surname, relationship_status, children_count) VALUES ('c2', 'A', 'B', 'COHABITING', 0)");
+  assert.deepEqual(db.exec('SELECT relationship_status, children_count FROM contact ORDER BY contact_id')[0].values,
+    [[null, null], ['COHABITING', 0]]);
+});
+
+test('contact CHECKs reject unknown relationship status and negative children', () => {
+  const db = freshDb();
+  assert.throws(() => db.exec("INSERT INTO contact (contact_id, first_name, surname, relationship_status) VALUES ('c1', 'A', 'B', 'MARRIED')"));
+  assert.throws(() => db.exec("INSERT INTO contact (contact_id, first_name, surname, children_count) VALUES ('c1', 'A', 'B', -1)"));
+});
+
+test('migrations add relationship_status and children_count to a legacy contact table, idempotently', () => {
+  const db = makeLegacyDb();
+  for (let run = 0; run < 2; run++) {
+    for (const sql of schema.migrationsSql) {
+      try { db.exec(sql); } catch (_) { /* already applied */ }
+    }
+  }
+  const cols = columnsOf(db, 'contact');
+  assert.ok(cols.includes('relationship_status'));
+  assert.ok(cols.includes('children_count'));
+  db.exec("UPDATE contact SET relationship_status = 'SINGLE', children_count = 3 WHERE contact_id = 'c1'");
+  assert.throws(() => db.exec("UPDATE contact SET relationship_status = 'NOPE'"));
+});

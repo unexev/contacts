@@ -25,6 +25,8 @@
   const cap = (text) => text.charAt(0).toUpperCase() + text.slice(1);
   const editLabel = (itemKey) => t('actionEditItem').replace('{item}', t(itemKey));
   const addLabel = (itemKey) => t('actionAddItem').replace('{item}', t(itemKey));
+  const RELATIONSHIP_KEYS = { SINGLE: 'contactRelationshipSingle', PARTNERED: 'contactRelationshipPartnered', COHABITING: 'contactRelationshipCohabiting' };
+  const relationshipLabel = (value) => (RELATIONSHIP_KEYS[value] ? t(RELATIONSHIP_KEYS[value]) : formatValue(null));
 
   const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
   const PHOTO_MAX_BYTES = 2 * 1024 * 1024;
@@ -335,6 +337,14 @@
         <div class="field-row">
           <span class="field-label">{t('contactMaritalStatus')}</span>
           <span class="field-value">{formatValue(c.marital_status)}</span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">{t('contactRelationshipStatus')}</span>
+          <span class="field-value">{relationshipLabel(c.relationship_status)}</span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">{t('contactChildren')}</span>
+          <span class="field-value">{formatValue(c.children_count)}</span>
         </div>
      </div>
     </div>

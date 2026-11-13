@@ -28,6 +28,8 @@
   let gender = $state('');
    let marital_status = $state('');
    let deceased = $state(false);
+  let relationship_status = $state('');
+  let children_count = $state('');
   let maritalStatuses = $state([]);
   let availableOrgs = $state([]);
   let availableAchievements = $state([]);
@@ -121,6 +123,8 @@
       gender = c.gender || '';
        marital_status = c.status_id || '';
        deceased = c.deceased === true;
+      relationship_status = c.relationship_status || '';
+      children_count = c.children_count ?? '';
       phones = normalizeList(c.phones, ['phone', 'label', 'created_at', 'is_active']).map(phone => ({ ...phone, is_active: phone.is_active !== false }));
       emails = normalizeList(c.emails, ['email', 'label']);
       urls = normalizeList(c.urls, ['url', 'label']);
@@ -210,12 +214,19 @@
     }
   }
 
+  // Empty input means "unknown" (null); otherwise a whole number from 0 to 50, or undefined if invalid.
+  function parseChildrenCount(value) {
+    if (value === '' || value === null || value === undefined) return null;
+    const n = Number(value);
+    return Number.isInteger(n) && n >= 0 && n <= 50 ? n : undefined;
+  }
+
   function collectSaveTasks() {
     const tasks = [];
     const shouldSave = (section) => !selectedSection || selectedSection === section;
 
     if (shouldSave('personal')) {
-      tasks.push(api(`/api/contacts/${id}`, { method: 'PUT', body: { first_name, middle_name, surname, birthdate, gender, status_id: marital_status, deceased } }));
+      tasks.push(api(`/api/contacts/${id}`, { method: 'PUT', body: { first_name, middle_name, surname, birthdate, gender, status_id: marital_status, deceased, relationship_status: relationship_status || null, children_count: parseChildrenCount(children_count) } }));
     }
     if (shouldSave('phone')) tasks.push(saveCollection(phones, original.phones, `/api/contacts/${id}/phones`, 'phone_id'));
     if (shouldSave('email')) tasks.push(saveCollection(emails, original.emails, `/api/contacts/${id}/emails`, 'email_id'));
@@ -252,6 +263,10 @@
       error = t('contactNamesRequired');
       return;
     }
+    if (parseChildrenCount(children_count) === undefined) {
+      error = t('contactChildrenInvalid');
+      return;
+    }
     saving = true;
     try {
       await resolveOrganizations();
@@ -286,7 +301,7 @@
   {#if ready}
   <form onsubmit={save}>
      {#if !selectedSection || selectedSection === 'personal'}
-    <div class="form-card"><h2 class="form-section-title">Datos personales</h2><div class="form-group"><label class="form-label" for="first_name">{t('contactFirstName')} *</label><input id="first_name" class="input" bind:value={first_name} /></div><div class="form-group"><label class="form-label" for="middle_name">{t('contactMiddleName')}</label><input id="middle_name" class="input" bind:value={middle_name} /></div><div class="form-group"><label class="form-label" for="surname">{t('contactSurname')} *</label><input id="surname" class="input" bind:value={surname} /></div><div class="form-group"><label class="form-label" for="birthdate">{t('contactBirthdate')}</label><input id="birthdate" class="input" type="date" bind:value={birthdate} /></div><div class="form-group"><label class="form-label" for="gender">{t('contactGender')}</label><select id="gender" class="select" bind:value={gender}><option value="">{t('contactGenderUnspecified')}</option><option value="MALE">{t('contactGenderMale')}</option><option value="FEMALE">{t('contactGenderFemale')}</option></select></div><div class="form-group"><label class="form-label" for="marital_status">{t('contactMaritalStatus')}</label><select id="marital_status" class="select" bind:value={marital_status}><option value="">—</option>{#each maritalStatuses as status}<option value={status.status_id}>{status.marital_status}</option>{/each}</select></div></div>
+    <div class="form-card"><h2 class="form-section-title">Datos personales</h2><div class="form-group"><label class="form-label" for="first_name">{t('contactFirstName')} *</label><input id="first_name" class="input" bind:value={first_name} /></div><div class="form-group"><label class="form-label" for="middle_name">{t('contactMiddleName')}</label><input id="middle_name" class="input" bind:value={middle_name} /></div><div class="form-group"><label class="form-label" for="surname">{t('contactSurname')} *</label><input id="surname" class="input" bind:value={surname} /></div><div class="form-group"><label class="form-label" for="birthdate">{t('contactBirthdate')}</label><input id="birthdate" class="input" type="date" bind:value={birthdate} /></div><div class="form-group"><label class="form-label" for="gender">{t('contactGender')}</label><select id="gender" class="select" bind:value={gender}><option value="">{t('contactGenderUnspecified')}</option><option value="MALE">{t('contactGenderMale')}</option><option value="FEMALE">{t('contactGenderFemale')}</option></select></div><div class="form-group"><label class="form-label" for="marital_status">{t('contactMaritalStatus')}</label><select id="marital_status" class="select" bind:value={marital_status}><option value="">—</option>{#each maritalStatuses as status}<option value={status.status_id}>{status.marital_status}</option>{/each}</select></div><div class="form-group"><label class="form-label" for="relationship_status">{t('contactRelationshipStatus')}</label><select id="relationship_status" class="select" bind:value={relationship_status}><option value="">{t('contactRelationshipUnspecified')}</option><option value="SINGLE">{t('contactRelationshipSingle')}</option><option value="PARTNERED">{t('contactRelationshipPartnered')}</option><option value="COHABITING">{t('contactRelationshipCohabiting')}</option></select></div><div class="form-group"><label class="form-label" for="children_count">{t('contactChildren')}</label><input id="children_count" class="input" type="number" min="0" max="50" step="1" placeholder={t('contactChildrenUnspecified')} bind:value={children_count} /></div></div>
      <label class="deceased-toggle"><input type="checkbox" bind:checked={deceased} /> {t('contactDeceased')}</label>
      {/if}
 

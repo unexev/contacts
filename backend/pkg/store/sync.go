@@ -159,12 +159,12 @@ func (s *Store) SyncChanges(userID string, since int64) (SyncChanges, error) {
 
 	// Contacts
 	if out.Contacts, err = syncRows(ctx, tx,
-		`SELECT user_id, contact_id, first_name, middle_name, surname, birthdate, gender, status_id, deceased, updated_at, created_at, COALESCE(deleted, 0)
+		`SELECT user_id, contact_id, first_name, middle_name, surname, birthdate, gender, status_id, relationship_status, children_count, deceased, updated_at, created_at, COALESCE(deleted, 0)
 		 FROM contacts WHERE user_id = $1 AND updated_at >= $2 ORDER BY updated_at, contact_id`,
 		userID, since,
 		func(r pgx.Rows, c *model.Contact, deleted *int) error {
 			return r.Scan(&c.UserID, &c.ContactID, &c.FirstName, &c.MiddleName, &c.Surname,
-				&c.Birthdate, &c.Gender, &c.StatusID, &c.Deceased, &c.UpdatedAt, &c.CreatedAt, deleted)
+				&c.Birthdate, &c.Gender, &c.StatusID, &c.RelationshipStatus, &c.ChildrenCount, &c.Deceased, &c.UpdatedAt, &c.CreatedAt, deleted)
 		}); err != nil {
 		return SyncChanges{}, err
 	}

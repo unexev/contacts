@@ -30,8 +30,8 @@ func (s *Store) UpsertContact(userID string, c model.Contact) error {
 
 	_, err := s.pool.Exec(context.Background(),
 		`INSERT INTO contacts (user_id, contact_id, first_name, middle_name, surname,
-		        birthdate, gender, status_id, deceased, updated_at, created_at, deleted)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0)
+		        birthdate, gender, status_id, relationship_status, children_count, deceased, updated_at, created_at, deleted)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 0)
 		 ON CONFLICT (user_id, contact_id) DO UPDATE
 		 SET first_name = EXCLUDED.first_name,
 		     middle_name = EXCLUDED.middle_name,
@@ -39,11 +39,13 @@ func (s *Store) UpsertContact(userID string, c model.Contact) error {
 		     birthdate = EXCLUDED.birthdate,
 		     gender = EXCLUDED.gender,
 		     status_id = EXCLUDED.status_id,
+		     relationship_status = EXCLUDED.relationship_status,
+		     children_count = EXCLUDED.children_count,
 		     deceased = EXCLUDED.deceased,
 		     updated_at = EXCLUDED.updated_at,
 		     deleted = 0`,
 		userID, c.ContactID, c.FirstName, c.MiddleName, c.Surname,
-		c.Birthdate, c.Gender, c.StatusID, c.Deceased, c.UpdatedAt, c.CreatedAt,
+		c.Birthdate, c.Gender, c.StatusID, c.RelationshipStatus, c.ChildrenCount, c.Deceased, c.UpdatedAt, c.CreatedAt,
 	)
 	return err
 }

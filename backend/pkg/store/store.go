@@ -104,7 +104,7 @@ func (s *Store) GetUserByID(userID string) (model.User, error) {
 
 // ──────────────────────────── Contacts ────────────────────────
 
-func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCard, hasOrganization, hasMaritalStatus, hasPhone *bool, limit, offset int) ([]model.Contact, int, error) {
+func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCard, hasOrganization, hasMaritalStatus, hasPhone *bool, relationshipStatus string, hasChildren *bool, limit, offset int) ([]model.Contact, int, error) {
 	ctx := context.Background()
 	limit = clampLimit(limit)
 	if offset < 0 {
@@ -174,6 +174,25 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 		}
 	}
 
+	if relationshipStatus != "" {
+		if relationshipStatus == "NONE" {
+			where = append(where, "c.relationship_status IS NULL")
+		} else {
+			where = append(where, fmt.Sprintf("c.relationship_status = $%d", argIdx))
+			args = append(args, relationshipStatus)
+			argIdx++
+		}
+	}
+
+	// An unknown (NULL) children_count matches neither "with" nor "without".
+	if hasChildren != nil {
+		if *hasChildren {
+			where = append(where, "c.children_count > 0")
+		} else {
+			where = append(where, "c.children_count = 0")
+		}
+	}
+
 	whereClause := ""
 	for i, w := range where {
 		if i == 0 {
@@ -191,7 +210,8 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 	offsetIdx := argIdx + 1
 	selectQuery := fmt.Sprintf(`
 		SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
-		       c.birthdate, c.gender, c.status_id, ms.marital_status, c.deceased, c.updated_at, c.created_at,
+		       c.birthdate, c.gender, c.status_id, ms.marital_status, c.relationship_status, c.children_count,
+		       c.deceased, c.updated_at, c.created_at,
 		       COALESCE(c.photo_path, '') AS photo_path,
 		       COALESCE(pp.phone, '') AS primary_phone,
 		       NOT COALESCE(pp.is_active, true) AS primary_phone_inactive,
@@ -221,7 +241,8 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 		var c model.Contact
 		if err := rows.Scan(
 			&c.UserID, &c.ContactID, &c.FirstName, &c.MiddleName, &c.Surname,
-			&c.Birthdate, &c.Gender, &c.StatusID, &c.MaritalStatus, &c.Deceased, &c.UpdatedAt, &c.CreatedAt,
+			&c.Birthdate, &c.Gender, &c.StatusID, &c.MaritalStatus, &c.RelationshipStatus, &c.ChildrenCount,
+			&c.Deceased, &c.UpdatedAt, &c.CreatedAt,
 			&c.PhotoPath,
 			&c.PrimaryPhone, &c.PrimaryPhoneInactive, &c.PrimaryEmail,
 		); err != nil {
@@ -236,14 +257,15 @@ func (s *Store) GetContact(userID, contactID string) (model.Contact, error) {
 	var c model.Contact
 	err := s.pool.QueryRow(context.Background(),
 		`SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
-		        c.birthdate, c.gender, c.status_id, ms.marital_status, c.deceased, c.updated_at,
-		        COALESCE(c.photo_path, '')
+		        c.birthdate, c.gender, c.status_id, ms.marital_status, c.relationship_status, c.children_count,
+		        c.deceased, c.updated_at, COALESCE(c.photo_path, '')
 		 FROM contacts c
 		 LEFT JOIN marital_status ms ON c.status_id = ms.status_id
 		 WHERE c.user_id = $1 AND c.contact_id = $2 AND c.deleted = 0`,
 		userID, contactID,
 	).Scan(&c.UserID, &c.ContactID, &c.FirstName, &c.MiddleName, &c.Surname,
-		&c.Birthdate, &c.Gender, &c.StatusID, &c.MaritalStatus, &c.Deceased, &c.UpdatedAt, &c.PhotoPath)
+		&c.Birthdate, &c.Gender, &c.StatusID, &c.MaritalStatus, &c.RelationshipStatus, &c.ChildrenCount,
+		&c.Deceased, &c.UpdatedAt, &c.PhotoPath)
 	return c, err
 }
 
@@ -256,10 +278,10 @@ func (s *Store) CreateContact(userID string, c model.Contact) (model.Contact, er
 	c.CreatedAt = c.UpdatedAt
 	_, err := s.pool.Exec(context.Background(),
 		`INSERT INTO contacts (user_id, contact_id, first_name, middle_name, surname,
-		        birthdate, gender, status_id, deceased, updated_at, created_at, deleted)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0)`,
+		        birthdate, gender, status_id, relationship_status, children_count, deceased, updated_at, created_at, deleted)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 0)`,
 		c.UserID, c.ContactID, c.FirstName, c.MiddleName, c.Surname,
-		c.Birthdate, c.Gender, c.StatusID, c.Deceased, c.UpdatedAt, c.CreatedAt,
+		c.Birthdate, c.Gender, c.StatusID, c.RelationshipStatus, c.ChildrenCount, c.Deceased, c.UpdatedAt, c.CreatedAt,
 	)
 	return c, err
 }
@@ -269,10 +291,11 @@ func (s *Store) UpdateContact(userID string, c model.Contact) error {
 	_, err := s.pool.Exec(context.Background(),
 		`UPDATE contacts
 		 SET first_name = $3, middle_name = $4, surname = $5, birthdate = $6,
-		     gender = $7, status_id = $8, deceased = $9, updated_at = $10
+		     gender = $7, status_id = $8, relationship_status = $9, children_count = $10,
+		     deceased = $11, updated_at = $12
 		 WHERE user_id = $1 AND contact_id = $2 AND deleted = 0`,
 		userID, c.ContactID, c.FirstName, c.MiddleName, c.Surname,
-		c.Birthdate, c.Gender, c.StatusID, c.Deceased, c.UpdatedAt,
+		c.Birthdate, c.Gender, c.StatusID, c.RelationshipStatus, c.ChildrenCount, c.Deceased, c.UpdatedAt,
 	)
 	return err
 }
@@ -308,6 +331,13 @@ func nullStr(ns sql.NullString) *string {
 	return nil
 }
 
+func nullInt64(n sql.NullInt64) *int64 {
+	if n.Valid {
+		return &n.Int64
+	}
+	return nil
+}
+
 func (s *Store) GetContactFull(userID, contactID string) (map[string]interface{}, error) {
 	c, err := s.GetContact(userID, contactID)
 	if err != nil {
@@ -315,17 +345,19 @@ func (s *Store) GetContactFull(userID, contactID string) (map[string]interface{}
 	}
 
 	result := map[string]interface{}{
-		"user_id":        c.UserID,
-		"contact_id":     c.ContactID,
-		"first_name":     c.FirstName,
-		"middle_name":    nullStr(c.MiddleName),
-		"surname":        c.Surname,
-		"birthdate":      nullStr(c.Birthdate),
-		"gender":         nullStr(c.Gender),
-		"status_id":      nullStr(c.StatusID),
-		"marital_status": c.MaritalStatus.String,
-		"deceased":       c.Deceased,
-		"updated_at":     c.UpdatedAt,
+		"user_id":             c.UserID,
+		"contact_id":          c.ContactID,
+		"first_name":          c.FirstName,
+		"middle_name":         nullStr(c.MiddleName),
+		"surname":             c.Surname,
+		"birthdate":           nullStr(c.Birthdate),
+		"gender":              nullStr(c.Gender),
+		"status_id":           nullStr(c.StatusID),
+		"marital_status":      c.MaritalStatus.String,
+		"relationship_status": nullStr(c.RelationshipStatus),
+		"children_count":      nullInt64(c.ChildrenCount),
+		"deceased":            c.Deceased,
+		"updated_at":          c.UpdatedAt,
 		// Internal: the app layer swaps this for a signed photo_url.
 		"photo_path": c.PhotoPath,
 	}
@@ -1252,7 +1284,8 @@ func (s *Store) GetBirthdaysThisMonth(userID string, month, year, limit, offset 
 
 	rows, err := s.pool.Query(ctx,
 		`SELECT c.user_id, c.contact_id, c.first_name, c.middle_name, c.surname,
-		        c.birthdate, c.gender, c.status_id, ms.marital_status, c.deceased, c.updated_at
+		        c.birthdate, c.gender, c.status_id, ms.marital_status, c.relationship_status, c.children_count,
+		        c.deceased, c.updated_at
 		 FROM contacts c
 		 LEFT JOIN marital_status ms ON c.status_id = ms.status_id
 		 WHERE c.user_id = $1 AND c.deleted = 0
@@ -1270,7 +1303,7 @@ func (s *Store) GetBirthdaysThisMonth(userID string, month, year, limit, offset 
 		var c model.Contact
 		if err := rows.Scan(&c.UserID, &c.ContactID, &c.FirstName, &c.MiddleName,
 			&c.Surname, &c.Birthdate, &c.Gender, &c.StatusID,
-			&c.MaritalStatus, &c.Deceased, &c.UpdatedAt); err != nil {
+			&c.MaritalStatus, &c.RelationshipStatus, &c.ChildrenCount, &c.Deceased, &c.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
 		items = append(items, c)

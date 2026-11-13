@@ -19,7 +19,7 @@ export const DOCS_WITH_DATES = ["Driver's License", 'Passport'];
 
 export const EXCLUDED_FIELDS = [
   'contact_id', 'first_name', 'middle_name', 'surname',
-  'status_id', 'gender', 'created_at', 'updated_at',
+  'status_id', 'gender', 'relationship_status', 'children_count', 'created_at', 'updated_at',
 ];
 
 export interface ContactDetail {
@@ -30,6 +30,8 @@ export interface ContactDetail {
   birthdate?: string;
   gender?: string;
   status_id?: string;
+  relationship_status?: string | null;
+  children_count?: number | null;
   [key: string]: any;
 }
 
