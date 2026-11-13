@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 // searchTerm is one word of a contact search. A term the user already closed
@@ -21,7 +22,8 @@ func parseSearchTerms(search string) []searchTerm {
 	if len(fields) == 0 {
 		return nil
 	}
-	endsWithSpace := unicode.IsSpace(rune(search[len(search)-1]))
+	lastRune, _ := utf8.DecodeLastRuneInString(search)
+	endsWithSpace := unicode.IsSpace(lastRune)
 	terms := make([]searchTerm, len(fields))
 	for i, f := range fields {
 		last := i == len(fields)-1

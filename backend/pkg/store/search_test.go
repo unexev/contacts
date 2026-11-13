@@ -16,6 +16,8 @@ func TestParseSearchTerms(t *testing.T) {
 		{"mari ", []searchTerm{{Text: "mari", WholeWord: true}}},
 		{"  mari  lop", []searchTerm{{Text: "mari"}, {Text: "lop"}}},
 		{"mar andr", []searchTerm{{Text: "mar"}, {Text: "andr"}}},
+		{"là", []searchTerm{{Text: "là"}}},
+		{"là ", []searchTerm{{Text: "là", WholeWord: true}}},
 		{"mari lopez ", []searchTerm{{Text: "mari"}, {Text: "lopez", WholeWord: true}}},
 	}
 	for _, c := range cases {
