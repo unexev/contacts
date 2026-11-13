@@ -347,7 +347,7 @@ const translations = {
         `VCF: ${imported} importado${imported !== 1 ? 's' : ''}${skipped > 0 ? `, ${skipped} omitido${skipped !== 1 ? 's' : ''}` : ''}.`,
     },
     login: {
-      title: 'Contacts',
+      title: 'amichi',
       subtitle: 'Tu agenda personal, siempre con vos.',
       continueWithGoogle: 'Continuar con Google',
       enableBackup: 'Activá el respaldo automático en Google Drive',
@@ -853,7 +853,7 @@ const translations = {
         `VCF: ${imported} imported${skipped > 0 ? `, ${skipped} skipped` : ''}.`,
     },
     login: {
-      title: 'Contacts',
+      title: 'amichi',
       subtitle: 'Your personal agenda, always with you.',
       continueWithGoogle: 'Continue with Google',
       enableBackup: 'Enable automatic backup on Google Drive',
