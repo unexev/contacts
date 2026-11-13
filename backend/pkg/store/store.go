@@ -104,7 +104,7 @@ func (s *Store) GetUserByID(userID string) (model.User, error) {
 
 // ──────────────────────────── Contacts ────────────────────────
 
-func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCard, hasOrganization, hasMaritalStatus, hasPhone *bool, relationshipStatus string, hasChildren *bool, limit, offset int) ([]model.Contact, int, error) {
+func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCard, hasOrganization, hasMaritalStatus, hasPhone *bool, relationshipStatus string, hasChildren *bool, statusID string, limit, offset int) ([]model.Contact, int, error) {
 	ctx := context.Background()
 	limit = clampLimit(limit)
 	if offset < 0 {
@@ -164,6 +164,12 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 		} else {
 			where = append(where, "(c.status_id IS NULL OR c.status_id = '')")
 		}
+	}
+
+	if statusID != "" {
+		where = append(where, fmt.Sprintf("c.status_id = $%d", argIdx))
+		args = append(args, statusID)
+		argIdx++
 	}
 
 	if hasPhone != nil {

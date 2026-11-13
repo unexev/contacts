@@ -50,7 +50,19 @@
   onMount(() => {
     if (!A.token) { goto('/login'); return; }
     loadContacts();
+    loadMaritalStatuses();
   });
+
+  let maritalStatuses = $state([]);
+
+  async function loadMaritalStatuses() {
+    try {
+      const data = await api('/api/marital-statuses');
+      maritalStatuses = Array.isArray(data) ? data : (data?.statuses || []);
+    } catch {
+      // Without the list the filter still offers all / with / without.
+    }
+  }
 
   let fetchId = 0;
 
@@ -67,6 +79,7 @@
     if (filterOrganization === 'no') params.push('has_organization=false');
     if (filterMaritalStatus === 'yes') params.push('has_marital_status=true');
     if (filterMaritalStatus === 'no') params.push('has_marital_status=false');
+    else if (filterMaritalStatus && filterMaritalStatus !== 'yes') params.push(`status_id=${encodeURIComponent(filterMaritalStatus)}`);
     if (filterPhone === 'yes') params.push('has_phone=true');
     if (filterPhone === 'no') params.push('has_phone=false');
     if (filterRelationship) params.push(`relationship_status=${encodeURIComponent(filterRelationship)}`);
@@ -218,7 +231,7 @@
     { name: 'filterIDCard', label: 'filterIdCard', value: filterIDCard, options: TRI },
     { name: 'filterPhone', label: 'filterPhone', value: filterPhone, options: TRI },
     { name: 'filterOrganization', label: 'filterOrganization', value: filterOrganization, options: TRI },
-    { name: 'filterMaritalStatus', label: 'filterMaritalStatus', value: filterMaritalStatus, options: TRI },
+    { name: 'filterMaritalStatus', label: 'filterMaritalStatus', value: filterMaritalStatus, options: [...TRI, ...maritalStatuses.map(s => [s.status_id, s.marital_status])] },
     { name: 'filterRelationship', label: 'filterRelationship', value: filterRelationship, options: [['', 'filterAllRelationship'], ['SINGLE', 'contactRelationshipSingle'], ['PARTNERED', 'contactRelationshipPartnered'], ['COHABITING', 'contactRelationshipCohabiting'], ['NONE', 'filterUnspecified']] },
     { name: 'filterChildren', label: 'filterChildren', value: filterChildren, options: [['', 'filterAll'], ['yes', 'filterWithChildren'], ['no', 'filterWithoutChildren']] }
   ]);
