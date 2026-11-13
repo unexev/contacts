@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -116,10 +115,13 @@ func (s *Store) ListContacts(userID, search, gender string, hasBirthday, hasIDCa
 	argIdx := 2
 
 	if search != "" {
-		terms := strings.Fields(search)
-		for _, term := range terms {
-			where = append(where, fmt.Sprintf("(c.first_name ILIKE $%d OR c.middle_name ILIKE $%d OR c.surname ILIKE $%d OR EXISTS (SELECT 1 FROM contact_keywords ck WHERE ck.user_id = c.user_id AND ck.contact_id = c.contact_id AND ck.keyword ILIKE $%d))", argIdx, argIdx, argIdx, argIdx))
-			args = append(args, "%"+term+"%")
+		for _, term := range parseSearchTerms(search) {
+			op, pattern := "ILIKE", "%"+term.Text+"%"
+			if term.WholeWord {
+				op, pattern = "~*", wholeWordPattern(term.Text)
+			}
+			where = append(where, fmt.Sprintf("(c.first_name %[1]s $%[2]d OR c.middle_name %[1]s $%[2]d OR c.surname %[1]s $%[2]d OR EXISTS (SELECT 1 FROM contact_keywords ck WHERE ck.user_id = c.user_id AND ck.contact_id = c.contact_id AND ck.keyword %[1]s $%[2]d))", op, argIdx))
+			args = append(args, pattern)
 			argIdx++
 		}
 	}
