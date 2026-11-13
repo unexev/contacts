@@ -21,8 +21,8 @@ const VALID = {
   filterBirthday: (v) => TRI.includes(v),
   filterIDCard: (v) => TRI.includes(v),
   filterOrganization: (v) => TRI.includes(v),
-  // '' / yes / no, or a specific status_id such as 'casado'.
-  filterMaritalStatus: (v) => TRI.includes(v) || (typeof v === 'string' && /^[a-z_]{1,40}$/.test(v)),
+  // '' (all), 'no' (unspecified) or a specific status_id such as 'casado'.
+  filterMaritalStatus: (v) => v !== 'yes' && (v === '' || (typeof v === 'string' && /^[a-z_]{1,40}$/.test(v))),
   filterPhone: (v) => TRI.includes(v),
   filterRelationship: (v) => ['', 'SINGLE', 'PARTNERED', 'COHABITING', 'NONE'].includes(v),
   filterChildren: (v) => TRI.includes(v)
