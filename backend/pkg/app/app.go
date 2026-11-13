@@ -357,6 +357,7 @@ type ContactFilters struct {
 	// "" = no filter, "NONE" = unknown, otherwise one of relationshipStatuses.
 	RelationshipStatus string
 	HasChildren        *bool
+	StatusID           string
 }
 
 // relationshipStatuses are the stored values of contacts.relationship_status.
@@ -424,11 +425,12 @@ func (a *App) listContacts(w http.ResponseWriter, r *http.Request) {
 		HasPhone:           parseBoolPtr(r.URL.Query().Get("has_phone")),
 		RelationshipStatus: parseRelationshipStatusFilter(r.URL.Query().Get("relationship_status")),
 		HasChildren:        parseBoolPtr(r.URL.Query().Get("has_children")),
+		StatusID:           strings.TrimSpace(r.URL.Query().Get("status_id")),
 	}
 
 	contacts, total, err := a.store.ListContacts(claims.UserID, filters.Search, filters.Gender,
 		filters.HasBirthday, filters.HasIDCard, filters.HasOrganization, filters.HasMaritalStatus, filters.HasPhone,
-		filters.RelationshipStatus, filters.HasChildren,
+		filters.RelationshipStatus, filters.HasChildren, filters.StatusID,
 		limit, offset)
 	if err != nil {
 		log.Printf("listContacts error: user=%s search=%q err=%v", claims.UserID, filters.Search, err)
