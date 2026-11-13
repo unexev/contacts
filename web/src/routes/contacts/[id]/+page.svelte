@@ -330,7 +330,7 @@
         </div>
         <div class="field-row">
           <span class="field-label">{t('contactGender')}</span>
-          <span class="field-value">{formatValue(c.gender)}</span>
+          <span class="field-value">{c.gender === 'MALE' ? t('contactGenderMale') : c.gender === 'FEMALE' ? t('contactGenderFemale') : formatValue(c.gender)}</span>
         </div>
         <div class="field-row">
           <span class="field-label">{t('contactMaritalStatus')}</span>
