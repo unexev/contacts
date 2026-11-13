@@ -29,8 +29,12 @@ type Contact struct {
 	Gender        sql.NullString `json:"gender"`
 	StatusID      sql.NullString `json:"status_id"`
 	MaritalStatus sql.NullString `json:"marital_status"`
-	Deceased      bool           `json:"deceased"`
-	UpdatedAt     int64          `json:"updated_at"`
+	// Real-life situation, independent of the legal StatusID: SINGLE, PARTNERED or COHABITING; NULL = unknown.
+	RelationshipStatus sql.NullString `json:"relationship_status"`
+	// Number of children; NULL = unknown.
+	ChildrenCount sql.NullInt64 `json:"children_count"`
+	Deceased      bool          `json:"deceased"`
+	UpdatedAt     int64         `json:"updated_at"`
 	// Creation time in ms; 0 when unknown (imported contacts). Only ListContacts fills it.
 	CreatedAt int64 `json:"created_at"`
 	// Filled only by ListContacts, so list rows can offer quick actions.
@@ -49,26 +53,37 @@ func (c Contact) MarshalJSON() ([]byte, error) {
 	type Alias Contact
 	return json.Marshal(&struct {
 		Alias
-		MiddleName    string  `json:"middle_name"`
-		Birthdate     *string `json:"birthdate"`
-		Gender        *string `json:"gender"`
-		StatusID      *string `json:"status_id"`
-		MaritalStatus string  `json:"marital_status"`
-		Deceased      bool    `json:"deceased"`
+		MiddleName         string  `json:"middle_name"`
+		Birthdate          *string `json:"birthdate"`
+		Gender             *string `json:"gender"`
+		StatusID           *string `json:"status_id"`
+		MaritalStatus      string  `json:"marital_status"`
+		RelationshipStatus *string `json:"relationship_status"`
+		ChildrenCount      *int64  `json:"children_count"`
+		Deceased           bool    `json:"deceased"`
 	}{
-		Alias:         (Alias)(c),
-		MiddleName:    c.MiddleName.String,
-		Birthdate:     nullStrPtr(c.Birthdate),
-		Gender:        nullStrPtr(c.Gender),
-		StatusID:      nullStrPtr(c.StatusID),
-		MaritalStatus: c.MaritalStatus.String,
-		Deceased:      c.Deceased,
+		Alias:              (Alias)(c),
+		MiddleName:         c.MiddleName.String,
+		Birthdate:          nullStrPtr(c.Birthdate),
+		Gender:             nullStrPtr(c.Gender),
+		StatusID:           nullStrPtr(c.StatusID),
+		MaritalStatus:      c.MaritalStatus.String,
+		RelationshipStatus: nullStrPtr(c.RelationshipStatus),
+		ChildrenCount:      nullInt64Ptr(c.ChildrenCount),
+		Deceased:           c.Deceased,
 	})
 }
 
 func nullStrPtr(ns sql.NullString) *string {
 	if ns.Valid {
 		return &ns.String
+	}
+	return nil
+}
+
+func nullInt64Ptr(n sql.NullInt64) *int64 {
+	if n.Valid {
+		return &n.Int64
 	}
 	return nil
 }

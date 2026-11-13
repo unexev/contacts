@@ -354,6 +354,47 @@ type ContactFilters struct {
 	HasOrganization  *bool
 	HasMaritalStatus *bool
 	HasPhone         *bool
+	// "" = no filter, "NONE" = unknown, otherwise one of relationshipStatuses.
+	RelationshipStatus string
+	HasChildren        *bool
+}
+
+// relationshipStatuses are the stored values of contacts.relationship_status.
+var relationshipStatuses = map[string]bool{"SINGLE": true, "PARTNERED": true, "COHABITING": true}
+
+const maxChildrenCount = 50
+
+// parseRelationshipStatusFilter normalizes the relationship_status query param;
+// unrecognized values disable the filter.
+func parseRelationshipStatusFilter(s string) string {
+	v := strings.ToUpper(strings.TrimSpace(s))
+	if v == "NONE" || relationshipStatuses[v] {
+		return v
+	}
+	return ""
+}
+
+// parseRelationshipInput validates the relationship_status and children_count
+// request fields. A nil or blank value means unknown and is stored as NULL.
+func parseRelationshipInput(status *string, children *int) (sql.NullString, sql.NullInt64, error) {
+	var ns sql.NullString
+	if status != nil {
+		v := strings.ToUpper(strings.TrimSpace(*status))
+		if v != "" {
+			if !relationshipStatuses[v] {
+				return ns, sql.NullInt64{}, errors.New("relationship_status must be SINGLE, PARTNERED, COHABITING or null")
+			}
+			ns = sql.NullString{String: v, Valid: true}
+		}
+	}
+	var nc sql.NullInt64
+	if children != nil {
+		if *children < 0 || *children > maxChildrenCount {
+			return ns, nc, errors.New("children_count must be null or between 0 and " + strconv.Itoa(maxChildrenCount))
+		}
+		nc = sql.NullInt64{Int64: int64(*children), Valid: true}
+	}
+	return ns, nc, nil
 }
 
 func parseBoolPtr(s string) *bool {
@@ -374,17 +415,20 @@ func (a *App) listContacts(w http.ResponseWriter, r *http.Request) {
 	limit, offset := parsePagination(r)
 
 	filters := ContactFilters{
-		Search:           r.URL.Query().Get("search"),
-		Gender:           strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("gender"))),
-		HasBirthday:      parseBoolPtr(r.URL.Query().Get("has_birthday")),
-		HasIDCard:        parseBoolPtr(r.URL.Query().Get("has_id_card")),
-		HasOrganization:  parseBoolPtr(r.URL.Query().Get("has_organization")),
-		HasMaritalStatus: parseBoolPtr(r.URL.Query().Get("has_marital_status")),
-		HasPhone:         parseBoolPtr(r.URL.Query().Get("has_phone")),
+		Search:             r.URL.Query().Get("search"),
+		Gender:             strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("gender"))),
+		HasBirthday:        parseBoolPtr(r.URL.Query().Get("has_birthday")),
+		HasIDCard:          parseBoolPtr(r.URL.Query().Get("has_id_card")),
+		HasOrganization:    parseBoolPtr(r.URL.Query().Get("has_organization")),
+		HasMaritalStatus:   parseBoolPtr(r.URL.Query().Get("has_marital_status")),
+		HasPhone:           parseBoolPtr(r.URL.Query().Get("has_phone")),
+		RelationshipStatus: parseRelationshipStatusFilter(r.URL.Query().Get("relationship_status")),
+		HasChildren:        parseBoolPtr(r.URL.Query().Get("has_children")),
 	}
 
 	contacts, total, err := a.store.ListContacts(claims.UserID, filters.Search, filters.Gender,
 		filters.HasBirthday, filters.HasIDCard, filters.HasOrganization, filters.HasMaritalStatus, filters.HasPhone,
+		filters.RelationshipStatus, filters.HasChildren,
 		limit, offset)
 	if err != nil {
 		log.Printf("listContacts error: user=%s search=%q err=%v", claims.UserID, filters.Search, err)
@@ -401,26 +445,35 @@ func (a *App) listContacts(w http.ResponseWriter, r *http.Request) {
 func (a *App) createContact(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	var req struct {
-		FirstName  string `json:"first_name"`
-		MiddleName string `json:"middle_name"`
-		Surname    string `json:"surname"`
-		Birthdate  string `json:"birthdate"`
-		Gender     string `json:"gender"`
-		StatusID   string `json:"status_id"`
-		Deceased   bool   `json:"deceased"`
+		FirstName          string  `json:"first_name"`
+		MiddleName         string  `json:"middle_name"`
+		Surname            string  `json:"surname"`
+		Birthdate          string  `json:"birthdate"`
+		Gender             string  `json:"gender"`
+		StatusID           string  `json:"status_id"`
+		Deceased           bool    `json:"deceased"`
+		RelationshipStatus *string `json:"relationship_status"`
+		ChildrenCount      *int    `json:"children_count"`
 	}
 	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	relStatus, children, err := parseRelationshipInput(req.RelationshipStatus, req.ChildrenCount)
+	if err != nil {
+		errResp(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	c := model.Contact{
-		FirstName:  strings.ToUpper(strings.TrimSpace(req.FirstName)),
-		Surname:    strings.ToUpper(strings.TrimSpace(req.Surname)),
-		MiddleName: nullString(strings.ToUpper(req.MiddleName)),
-		Birthdate:  nullString(req.Birthdate),
-		Gender:     nullString(req.Gender),
-		StatusID:   nullString(req.StatusID),
-		Deceased:   req.Deceased,
+		FirstName:          strings.ToUpper(strings.TrimSpace(req.FirstName)),
+		Surname:            strings.ToUpper(strings.TrimSpace(req.Surname)),
+		MiddleName:         nullString(strings.ToUpper(req.MiddleName)),
+		Birthdate:          nullString(req.Birthdate),
+		Gender:             nullString(req.Gender),
+		StatusID:           nullString(req.StatusID),
+		RelationshipStatus: relStatus,
+		ChildrenCount:      children,
+		Deceased:           req.Deceased,
 	}
 
 	created, err := a.store.CreateContact(claims.UserID, c)
@@ -458,21 +511,30 @@ func (a *App) updateContact(w http.ResponseWriter, r *http.Request) {
 	contactID := chi.URLParam(r, "id")
 
 	var req struct {
-		FirstName  string `json:"first_name"`
-		MiddleName string `json:"middle_name"`
-		Surname    string `json:"surname"`
-		Birthdate  string `json:"birthdate"`
-		Gender     string `json:"gender"`
-		StatusID   string `json:"status_id"`
-		Deceased   bool   `json:"deceased"`
+		FirstName          string  `json:"first_name"`
+		MiddleName         string  `json:"middle_name"`
+		Surname            string  `json:"surname"`
+		Birthdate          string  `json:"birthdate"`
+		Gender             string  `json:"gender"`
+		StatusID           string  `json:"status_id"`
+		Deceased           bool    `json:"deceased"`
+		RelationshipStatus *string `json:"relationship_status"`
+		ChildrenCount      *int    `json:"children_count"`
 	}
 	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	relStatus, children, err := parseRelationshipInput(req.RelationshipStatus, req.ChildrenCount)
+	if err != nil {
+		errResp(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	c := model.Contact{
 		UserID: claims.UserID, ContactID: contactID,
-		FirstName: strings.ToUpper(strings.TrimSpace(req.FirstName)), Surname: strings.ToUpper(strings.TrimSpace(req.Surname)),
+		RelationshipStatus: relStatus,
+		ChildrenCount:      children,
+		FirstName:          strings.ToUpper(strings.TrimSpace(req.FirstName)), Surname: strings.ToUpper(strings.TrimSpace(req.Surname)),
 		MiddleName: nullString(strings.ToUpper(req.MiddleName)),
 		Birthdate:  nullString(req.Birthdate),
 		Gender:     nullString(req.Gender),
