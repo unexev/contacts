@@ -353,6 +353,7 @@ type ContactFilters struct {
 	HasIDCard        *bool
 	HasOrganization  *bool
 	HasMaritalStatus *bool
+	HasPhone         *bool
 }
 
 func parseBoolPtr(s string) *bool {
@@ -379,10 +380,11 @@ func (a *App) listContacts(w http.ResponseWriter, r *http.Request) {
 		HasIDCard:        parseBoolPtr(r.URL.Query().Get("has_id_card")),
 		HasOrganization:  parseBoolPtr(r.URL.Query().Get("has_organization")),
 		HasMaritalStatus: parseBoolPtr(r.URL.Query().Get("has_marital_status")),
+		HasPhone:         parseBoolPtr(r.URL.Query().Get("has_phone")),
 	}
 
 	contacts, total, err := a.store.ListContacts(claims.UserID, filters.Search, filters.Gender,
-		filters.HasBirthday, filters.HasIDCard, filters.HasOrganization, filters.HasMaritalStatus,
+		filters.HasBirthday, filters.HasIDCard, filters.HasOrganization, filters.HasMaritalStatus, filters.HasPhone,
 		limit, offset)
 	if err != nil {
 		log.Printf("listContacts error: user=%s search=%q err=%v", claims.UserID, filters.Search, err)

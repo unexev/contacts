@@ -25,11 +25,12 @@
   let filterIDCard = $state(saved.filterIDCard);
   let filterOrganization = $state(saved.filterOrganization);
   let filterMaritalStatus = $state(saved.filterMaritalStatus);
+  let filterPhone = $state(saved.filterPhone);
 
   let sortBy = $state(saved.sortBy);
 
   function persistView() {
-    saveView({ sortBy, filterGender, filterBirthday, filterIDCard, filterOrganization, filterMaritalStatus });
+    saveView({ sortBy, filterGender, filterBirthday, filterIDCard, filterOrganization, filterMaritalStatus, filterPhone });
   }
   let loadError = $state(false);
   let syncing = $state(false);
@@ -64,6 +65,8 @@
     if (filterOrganization === 'no') params.push('has_organization=false');
     if (filterMaritalStatus === 'yes') params.push('has_marital_status=true');
     if (filterMaritalStatus === 'no') params.push('has_marital_status=false');
+    if (filterPhone === 'yes') params.push('has_phone=true');
+    if (filterPhone === 'no') params.push('has_phone=false');
     return params.join('&');
   }
 
@@ -208,6 +211,7 @@
     { name: 'filterGender', label: 'filterGender', value: filterGender, options: [['', 'filterAll'], ['MALE', 'filterMale'], ['FEMALE', 'filterFemale'], ['NONE', 'filterNoGender']] },
     { name: 'filterBirthday', label: 'filterBirthday', value: filterBirthday, options: TRI },
     { name: 'filterIDCard', label: 'filterIdCard', value: filterIDCard, options: TRI },
+    { name: 'filterPhone', label: 'filterPhone', value: filterPhone, options: TRI },
     { name: 'filterOrganization', label: 'filterOrganization', value: filterOrganization, options: TRI },
     { name: 'filterMaritalStatus', label: 'filterMaritalStatus', value: filterMaritalStatus, options: TRI }
   ]);
@@ -220,6 +224,7 @@
     else if (name === 'filterIDCard') filterIDCard = value;
     else if (name === 'filterOrganization') filterOrganization = value;
     else if (name === 'filterMaritalStatus') filterMaritalStatus = value;
+    else if (name === 'filterPhone') filterPhone = value;
     persistView();
     loadContacts();
   }
@@ -230,6 +235,7 @@
     filterIDCard = '';
     filterOrganization = '';
     filterMaritalStatus = '';
+    filterPhone = '';
     persistView();
     loadContacts();
   }
@@ -265,7 +271,8 @@
     (filterBirthday ? 1 : 0) +
     (filterIDCard ? 1 : 0) +
     (filterOrganization ? 1 : 0) +
-    (filterMaritalStatus ? 1 : 0)
+    (filterMaritalStatus ? 1 : 0) +
+    (filterPhone ? 1 : 0)
   );
 </script>
 
