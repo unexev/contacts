@@ -8,7 +8,9 @@
   import { ArrowLeft, Pencil, Plus, Trash2, Skull, X, Ellipsis, Camera } from '@lucide/svelte';
   import { formatAge, formatAgeAt, parseContactDate } from '$lib/date.js';
   import { formatValue, formatPhone as formatPhoneBase, formatEmail, formatUrl, formatDate, formatSavedDate } from '$lib/format.js';
-  import { resolveDocTypeLabel } from '$lib/docTypes.js';
+  import { resolveDocTypeLabel, normalizeDocType } from '$lib/docTypes.js';
+  import { ecCedulaProvince } from '$lib/docValidation.js';
+  import { resolvePhoneLabel } from '$lib/phoneLabels.js';
   import { resolveCountryLabel } from '$lib/countries.js';
   import ContactActionsMenu from '$lib/components/ContactActionsMenu.svelte';
   import Avatar from '$lib/components/Avatar.svelte';
@@ -210,7 +212,7 @@
 
   function phoneMeta(p) {
     return [
-      phoneLabel(p),
+      resolvePhoneLabel(phoneLabel(p), t),
       p.is_active ? t('phoneInUse') : t('phoneNotInUse'),
       p.created_at ? `${t('phoneSavedOn')} ${formatSavedDate(p.created_at)}` : ''
     ].filter(Boolean).join(' · ');
@@ -451,10 +453,12 @@
         </div>
         <div class="section-card-body">
           {#each c.identity_cards as card}
+            {@const province = ecCedulaProvince(card.country_code, normalizeDocType(card.doc_type || card.type), card.card_number || card.number || card.value)}
             <div class="detail-item">
               <div style="display: flex; flex-direction: column; align-items: flex-start;">
                 <span class="field-label">{docTypeLabel(card.doc_type || card.type)}</span>
                 <span class="field-value">{card.card_number || card.number || card.value || '—'}</span>
+                {#if province}<small class="field-helper">{t('docEcProvince')}: {province}</small>{/if}
                 {#if (card.expiry_date && formatValue(card.expiry_date) !== '—') || (card.issue_date && formatValue(card.issue_date) !== '—')}
                   <small class="field-helper">
                     {#if card.issue_date && formatValue(card.issue_date) !== '—'}Emisión: {formatDate(card.issue_date)}{/if}
