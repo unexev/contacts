@@ -13,7 +13,8 @@
   import { parseContactDate } from '$lib/date.js';
   import { DOCUMENT_TYPES, normalizeDocType } from '$lib/docTypes.js';
   import { COUNTRIES } from '$lib/countries.js';
-  import { validateDocument, MAX_CARD_NUMBER_LENGTH } from '$lib/docValidation.js';
+  import { PHONE_LABELS, DEFAULT_PHONE_LABEL, normalizePhoneLabel } from '$lib/phoneLabels.js';
+  import { validateDocument, ecCedulaProvince, MAX_CARD_NUMBER_LENGTH } from '$lib/docValidation.js';
 
   const NOTE_MAX_LENGTH = 500;
   const NOTE_MAX_COUNT = 10;
@@ -85,7 +86,7 @@
     return String(text || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
   }
 
-  function addPhone() { phones = [...phones, { phone: '', label: '', is_active: true, created_at: 0 }]; }
+  function addPhone() { phones = [...phones, { phone: '', label: DEFAULT_PHONE_LABEL, is_active: true, created_at: 0 }]; }
   function addEmail() { emails = [...emails, { email: '', label: '' }]; }
   function addUrl() { urls = [...urls, { url: '', label: '' }]; }
   function addNote() { if (notes.length >= NOTE_MAX_COUNT) return; notes = [...notes, { note: '' }]; }
@@ -125,7 +126,7 @@
        deceased = c.deceased === true;
       relationship_status = c.relationship_status || '';
       children_count = c.children_count ?? '';
-      phones = normalizeList(c.phones, ['phone', 'label', 'created_at', 'is_active']).map(phone => ({ ...phone, is_active: phone.is_active !== false }));
+      phones = normalizeList(c.phones, ['phone', 'label', 'created_at', 'is_active']).map(phone => ({ ...phone, label: normalizePhoneLabel(phone.label), is_active: phone.is_active !== false }));
       emails = normalizeList(c.emails, ['email', 'label']);
       urls = normalizeList(c.urls, ['url', 'label']);
       notes = normalizeList(c.notes, ['note']);
@@ -307,7 +308,7 @@
 
     {#if !selectedSection || selectedSection === 'phone'}
     <RelatedSection title="Teléfonos" add={addPhone}>
-      {#each phones as phone, i}<div class="related-item"><div class="related-row"><input class="input" placeholder="Teléfono" bind:value={phone.phone} /><input class="input" placeholder="Etiqueta" bind:value={phone.label} /><button type="button" class="icon-button danger" aria-label="Eliminar teléfono" onclick={() => removeAt(phones, i)}><Trash2 size={16} /></button></div><label class="phone-status"><input type="checkbox" bind:checked={phone.is_active} /> {phone.is_active ? t('phoneInUse') : t('phoneNotInUse')}</label></div>{/each}
+      {#each phones as phone, i}<div class="related-item"><div class="related-row"><input class="input" placeholder="Teléfono" bind:value={phone.phone} /><select class="select" aria-label={t('phoneLabelField')} bind:value={phone.label}>{#if !phone.label}<option value="">{t('phoneLabelNone')}</option>{:else if !PHONE_LABELS.some(option => option.value === phone.label)}<option value={phone.label}>{phone.label}</option>{/if}{#each PHONE_LABELS as option}<option value={option.value}>{t(option.label)}</option>{/each}</select><button type="button" class="icon-button danger" aria-label="Eliminar teléfono" onclick={() => removeAt(phones, i)}><Trash2 size={16} /></button></div><label class="phone-status"><input type="checkbox" bind:checked={phone.is_active} /> {phone.is_active ? t('phoneInUse') : t('phoneNotInUse')}</label></div>{/each}
     </RelatedSection>
     {/if}
     {#if !selectedSection || selectedSection === 'email'}
@@ -343,6 +344,7 @@
       {#each cards as card, i}
         {@const isEcNationalId = card.country_code === 'EC' && card.doc_type === 'national_id'}
         {@const validation = validateDocument(card.country_code, card.doc_type, card.card_number)}
+        {@const province = ecCedulaProvince(card.country_code, card.doc_type, card.card_number)}
         <div class="related-item">
           <div class="related-grid card-grid">
             <select class="select" aria-label={t('docTypeLabel')} bind:value={card.doc_type}>
@@ -374,6 +376,9 @@
           </div>
           {#if card.card_number && !validation.valid}
             <p class="doc-error">{t(validation.error)}</p>
+          {/if}
+          {#if province}
+            <p class="doc-hint">{t('docEcProvince')}: {province}</p>
           {/if}
         </div>
       {/each}
@@ -514,6 +519,7 @@
   .coordinates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
   .note-counter { font-size: 0.75rem; color: var(--text2); text-align: right; margin-top: 4px; }
   .doc-error { color: var(--danger-text); font-size: 0.75rem; margin: 6px 0 0; }
+  .doc-hint { color: var(--text2); font-size: 0.75rem; margin: 6px 0 0; }
   @media (min-width: 640px) {
     .org-grid { grid-template-columns: 1.3fr 1.2fr 1fr auto; }
     .org-grid :global(.combobox), .org-grid .date-field { grid-column: auto; }
