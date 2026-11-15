@@ -85,13 +85,20 @@ const EC_PROVINCES = {
   '24': 'Santa Elena'
 };
 
+// The API serializes nullable columns (e.g. country_code) as
+// { String, Valid } objects; the detail page passes them through untouched.
+function plainText(value) {
+  if (value && typeof value === 'object') return value.Valid ? String(value.String ?? '') : '';
+  return String(value ?? '');
+}
+
 // Returns the issuing province of an Ecuadorian cédula, or null when the
 // document is not an EC national ID or its first two digits are not a
 // province code (including 30, used for cédulas issued abroad). Only the
 // two-digit prefix is needed, so it also works while the number is typed.
 export function ecCedulaProvince(countryCode, docType, cardNumber) {
-  if ((countryCode || '').toUpperCase() !== 'EC' || docType !== 'national_id') return null;
-  const s = stripECFormatting(cardNumber);
+  if (plainText(countryCode).toUpperCase() !== 'EC' || plainText(docType) !== 'national_id') return null;
+  const s = stripECFormatting(plainText(cardNumber));
   if (!/^[0-9]{2,10}$/.test(s)) return null;
   return EC_PROVINCES[s.slice(0, 2)] || null;
 }
