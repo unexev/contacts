@@ -1,5 +1,5 @@
 <script>
-  import { A, api, setToken } from '$lib/api.svelte.js';
+  import { A, api, logout } from '$lib/api.svelte.js';
   import { t } from '$lib/i18n.svelte.js';
   import LangSwitch from '$lib/components/LangSwitch.svelte';
   import { goto } from '$app/navigation';
@@ -20,8 +20,7 @@
   });
 
   function handleLogout() {
-    setToken('');
-    A.user = null;
+    logout();
     goto('/');
   }
 

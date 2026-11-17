@@ -35,7 +35,7 @@
     loading = true;
     try {
       const data = await api('/api/auth/me', { method: 'PUT', body, keepSession: true });
-      setToken(data.token);
+      setToken(data.token, data.refresh_token);
       if (data.user) A.user = data.user;
       currentPassword = '';
       email = '';
@@ -43,6 +43,7 @@
       confirmPassword = '';
       success = t('accountSaved');
     } catch (err) {
+      if (err?.expired) { goto('/login'); return; }
       error = err?.message === 'Invalid credentials' ? t('accountWrongPassword') : friendlyError(err, t);
     } finally {
       loading = false;

@@ -1,6 +1,6 @@
 <script>
   import '../app.css';
-  import { A, loadToken, setToken } from '$lib/api.svelte.js';
+  import { A, loadToken, logout } from '$lib/api.svelte.js';
   import { contacts } from '$lib/stores.svelte.js';
   import { t, restoreLocale } from '$lib/i18n.svelte.js';
   import { toast } from '$lib/toast.svelte.js';
@@ -27,7 +27,7 @@
   let contactCount = $derived(contacts.value.length);
 
   function handleLogout() {
-    setToken('');
+    logout();
     goto('/');
   }
 </script>

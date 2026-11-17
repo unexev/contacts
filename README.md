@@ -77,7 +77,7 @@ The app will be available at http://localhost:5173.
 |----------|-------------|---------|
 | `DATABASE_URL` | PostgreSQL connection string | `postgres://postgres:postgres@localhost:5432/contacts` |
 | `JWT_SECRET` | Secret key for JWT signing | - |
-| `JWT_TTL_HOURS` | JWT token lifetime in hours | `72` |
+| `JWT_TTL_MINUTES` | Access token lifetime in minutes; clients renew it with the refresh token | `60` |
 
 ### Frontend
 

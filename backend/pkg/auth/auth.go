@@ -26,11 +26,8 @@ type Manager struct {
 	ttl    time.Duration
 }
 
-func NewManager(secret string, ttlHours int) *Manager {
-	return &Manager{
-		secret: []byte(secret),
-		ttl:    time.Duration(ttlHours) * time.Hour,
-	}
+func NewManager(secret string, ttl time.Duration) *Manager {
+	return &Manager{secret: []byte(secret), ttl: ttl}
 }
 
 func (m *Manager) Generate(userID, email, role string) (string, error) {
