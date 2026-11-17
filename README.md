@@ -19,7 +19,7 @@ A contact management SaaS application built with Go, SvelteKit, and PostgreSQL.
 1. Create a project in Supabase
 2. Use **Transaction Pooler** (IPv4 compatible with Vercel)
 3. Add `?sslmode=require&pgbouncer=true` to the URL
-4. Run migrations: `go run ./cmd/migrate`
+4. Migrations are applied automatically when the backend starts (or run them manually with `go run ./cmd/migrate`)
 
 ## Tech Stack
 
@@ -78,6 +78,20 @@ The app will be available at http://localhost:5173.
 | `DATABASE_URL` | PostgreSQL connection string | `postgres://postgres:postgres@localhost:5432/contacts` |
 | `JWT_SECRET` | Secret key for JWT signing | - |
 | `JWT_TTL_MINUTES` | Access token lifetime in minutes; clients renew it with the refresh token | `60` |
+| `REFRESH_TTL_DAYS` | Refresh token lifetime in days | `90` |
+| `REFRESH_GRACE_SECONDS` | Window in which a just-rotated refresh token may be retried (lost responses) | `300` |
+| `CORS_ORIGINS` | Comma-separated allowed origins (`*` for all) | `http://localhost:5173,http://localhost:4173` |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `SUPABASE_BUCKET` | Optional. Supabase Storage for contact photos; photo endpoints answer 503 when unset | - |
+
+Migrations run automatically every time the backend starts and are idempotent, so deploying is enough to apply new ones.
+
+## Authentication
+
+- **Passwords** are hashed with bcrypt (8 to 72 bytes). Emails are trimmed, lowercased and unique regardless of letter case.
+- **Access token**: a short-lived JWT (`JWT_TTL_MINUTES`, 60 by default) sent as `Authorization: Bearer <token>`.
+- **Refresh token**: opaque, stored hashed, rotated on every use and revoked as a family when reuse is detected. Clients call `/api/auth/refresh` when the access token expires; the web client does this automatically and retries the request once.
+- **Rate limits** are stored in PostgreSQL, so they hold across serverless instances: 30 requests per minute per IP on `/api/auth/*`, and 10 login attempts per 15 minutes per account. Both answer `429` with `Retry-After`.
+- Changing the email or password requires the current password and revokes every other session.
 
 ### Frontend
 
@@ -90,7 +104,11 @@ The app will be available at http://localhost:5173.
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/api/auth/register` | Register a new user |
-| POST | `/api/auth/login` | Login |
+| POST | `/api/auth/login` | Login; returns an access token and a refresh token |
+| POST | `/api/auth/refresh` | Exchange a refresh token for a new access and refresh token |
+| POST | `/api/auth/logout` | Revoke the session's refresh token |
+| GET | `/api/auth/me` | Current user (requires auth) |
+| PUT | `/api/auth/me` | Change email and/or password (requires auth and the current password) |
 | GET | `/api/contacts` | List contacts |
 | POST | `/api/contacts` | Create contact |
 | GET | `/api/contacts/:id` | Get contact |
