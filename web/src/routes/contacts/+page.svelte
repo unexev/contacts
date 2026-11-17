@@ -260,6 +260,15 @@
   );
 
   let openGroup = $state(null);
+
+  function closePanels() {
+    showFilters = false;
+    showSort = false;
+  }
+
+  function onWindowKeydown(e) {
+    if (e.key === 'Escape' && (showFilters || showSort)) closePanels();
+  }
   function toggleGroup(name) {
     openGroup = openGroup === name ? null : name;
   }
@@ -330,6 +339,8 @@
   );
 </script>
 
+<svelte:window onkeydown={onWindowKeydown} />
+
 <div class="contacts-page animate-in" style="--search-h: {searchHeight}px">
   <h1 class="sr-only">{t('contactsTitle')}</h1>
 
@@ -362,8 +373,13 @@
     </div>
   </div>
 
+  {#if showFilters || showSort}
+    <button class="panel-backdrop" aria-label={t('filtersClose')} tabindex="-1" onclick={closePanels}></button>
+  {/if}
+
+  <div class="panel-anchor">
   {#if showFilters}
-    <div class="filter-panel">
+    <div class="filter-panel" role="dialog" aria-label={t('filtersTitle')}>
       <div class="filter-header">
         <span class="filter-title">{t('filtersTitle')} <span class="filter-count" aria-live="polite">· {resultsLabel}</span></span>
         <button class="filter-clear" onclick={clearFilters} disabled={activeFilters === 0}>{t('filtersClear')}</button>
@@ -410,21 +426,10 @@
         </section>
       {/each}
     </div>
-  {:else if activeChips.length > 0}
-    <ul class="active-filters" aria-label={t('filtersTitle')}>
-      {#each activeChips as chip (chip.name)}
-        <li>
-          <button class="active-chip" onclick={() => setFilter(chip.name, '')} aria-label="{t('filterRemove')}: {chip.text}">
-            <span>{chip.text}</span>
-            <X size={14} aria-hidden="true" />
-          </button>
-        </li>
-      {/each}
-    </ul>
   {/if}
 
   {#if showSort}
-    <div class="sort-panel">
+    <div class="sort-panel" role="dialog" aria-label={t('sortTitle')}>
       <div class="sort-header">
         <span class="sort-title">{t('sortTitle')}</span>
       </div>
@@ -437,6 +442,20 @@
         </button>
       {/each}
     </div>
+  {/if}
+  </div>
+
+  {#if !showFilters && activeChips.length > 0}
+    <ul class="active-filters" aria-label={t('filtersTitle')}>
+      {#each activeChips as chip (chip.name)}
+        <li>
+          <button class="active-chip" onclick={() => setFilter(chip.name, '')} aria-label="{t('filterRemove')}: {chip.text}">
+            <span>{chip.text}</span>
+            <X size={14} aria-hidden="true" />
+          </button>
+        </li>
+      {/each}
+    </ul>
   {/if}
 
   {#if loadError}
@@ -585,12 +604,56 @@
     justify-content: center;
   }
 
+  /* Zero-height anchor: the panels float over the list instead of pushing it down. */
+  .panel-anchor { position: relative; height: 0; }
+
+  .panel-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 110;
+    border: none;
+    padding: 0;
+    background: transparent;
+    cursor: default;
+  }
+
+  .filter-panel,
+  .sort-panel {
+    position: absolute;
+    top: 4px;
+    right: 0;
+    z-index: 120;
+    width: min(420px, 100%);
+    max-height: calc(100vh - 220px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+  }
+
   .filter-panel {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 16px;
-    margin-bottom: 12px;
+  }
+
+  @media (max-width: 600px) {
+    .panel-backdrop { background: rgba(0, 0, 0, 0.4); }
+
+    /* Bottom sheet above the tab bar, so the list keeps its full height. */
+    .filter-panel,
+    .sort-panel {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      top: auto;
+      width: auto;
+      max-height: 80vh;
+      border-radius: 16px 16px 0 0;
+      padding-bottom: calc(16px + env(safe-area-inset-bottom));
+      z-index: 120;
+    }
   }
 
   .filter-header {
@@ -776,8 +839,6 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    overflow: hidden;
-    margin-bottom: 12px;
   }
 
   .sort-header {
