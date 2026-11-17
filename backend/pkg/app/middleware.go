@@ -1,12 +1,15 @@
 package app
 
 import (
+	"log"
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
-	"sync"
 	"time"
+
+	"contacts/pkg/store"
 )
 
 // CORS permite los orígenes configurados (o todos si "*").
@@ -63,76 +66,7 @@ func securityHeaders(next http.Handler) http.Handler {
 	})
 }
 
-// ── Rate limiting por IP ──────────────────────────────────────────────────────
-
-type ipLimiter struct {
-	mu       sync.Mutex
-	buckets  map[string]*bucket
-	rate     int
-	interval time.Duration
-}
-
-type bucket struct {
-	tokens  int
-	updated time.Time
-}
-
-func newIPLimiter(perMin int) *ipLimiter {
-	il := &ipLimiter{
-		buckets:  map[string]*bucket{},
-		rate:     perMin,
-		interval: time.Minute,
-	}
-	go il.gc()
-	return il
-}
-
-func (l *ipLimiter) gc() {
-	t := time.NewTicker(5 * time.Minute)
-	defer t.Stop()
-	for range t.C {
-		l.mu.Lock()
-		cutoff := time.Now().Add(-10 * time.Minute)
-		for k, b := range l.buckets {
-			if b.updated.Before(cutoff) {
-				delete(l.buckets, k)
-			}
-		}
-		l.mu.Unlock()
-	}
-}
-
-func (l *ipLimiter) allow(ip string) bool {
-	if l.rate <= 0 {
-		return true
-	}
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	now := time.Now()
-	b, ok := l.buckets[ip]
-	if !ok {
-		l.buckets[ip] = &bucket{tokens: l.rate - 1, updated: now}
-		return true
-	}
-	elapsed := now.Sub(b.updated)
-	refill := int(elapsed / l.interval) * l.rate
-	if refill > 0 {
-		b.tokens = min(l.rate, b.tokens+refill)
-		b.updated = now
-	}
-	if b.tokens <= 0 {
-		return false
-	}
-	b.tokens--
-	return true
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
+// ── Rate limiting ─────────────────────────────────────────────────────────────
 
 func clientIP(r *http.Request) string {
 	if h := r.Header.Get("X-Forwarded-For"); h != "" {
@@ -149,20 +83,43 @@ func clientIP(r *http.Request) string {
 	return host
 }
 
-func rateLimit(perMin int) func(http.Handler) http.Handler {
-	if perMin <= 0 {
-		return func(next http.Handler) http.Handler { return next }
+// rateLimiter counts one event for key and reports whether it is still within
+// limit for the current window.
+type rateLimiter interface {
+	Allow(key string, limit int, window time.Duration) bool
+}
+
+// storeLimiter keeps the counters in Postgres so every instance shares them.
+// It fails open: a database hiccup must not lock everyone out of auth.
+type storeLimiter struct{ store *store.Store }
+
+func (l storeLimiter) Allow(key string, limit int, window time.Duration) bool {
+	count, err := l.store.HitRateLimit(key, window)
+	if err != nil {
+		log.Printf("rate limit error: %v", err)
+		return true
 	}
-	lim := newIPLimiter(perMin)
+	return count <= limit
+}
+
+// allow is the nil-safe entry point; without a limiter nothing is limited.
+func (a *App) allow(key string, limit int, window time.Duration) bool {
+	return a.limiter == nil || a.limiter.Allow(key, limit, window)
+}
+
+func tooManyRequests(w http.ResponseWriter, window time.Duration) {
+	w.Header().Set("Retry-After", strconv.Itoa(int(window.Seconds())))
+	errResp(w, http.StatusTooManyRequests, "too many requests")
+}
+
+// rateLimit caps the requests each IP may send to /api/auth/* per minute.
+func (a *App) rateLimit(perMin int) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if strings.HasPrefix(r.URL.Path, "/api/auth/") {
-				ip := clientIP(r)
-				if !lim.allow(ip) {
-					w.Header().Set("Retry-After", "60")
-					errResp(w, http.StatusTooManyRequests, "too many requests")
-					return
-				}
+			if r.Method != http.MethodOptions && strings.HasPrefix(r.URL.Path, "/api/auth/") &&
+				!a.allow("ip:"+clientIP(r), perMin, time.Minute) {
+				tooManyRequests(w, time.Minute)
+				return
 			}
 			next.ServeHTTP(w, r)
 		})

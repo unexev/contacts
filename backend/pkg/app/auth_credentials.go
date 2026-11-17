@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/mail"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -22,6 +23,49 @@ const (
 	maxPasswordBytes = 72
 )
 
+const (
+	// A real user rarely needs more than a few tries; this stops brute force.
+	loginAttemptsPerWindow = 10
+	loginAttemptsWindow    = 15 * time.Minute
+)
+
+// dummyPasswordHash is compared against when the email is unknown.
+var dummyPasswordHash, _ = bcrypt.GenerateFromPassword([]byte("unknown-account"), bcrypt.DefaultCost)
+
+// normalizeEmail trims and lowercases, so the same address always maps to one account.
+func normalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
+}
+
+// validEmail reports whether s is a bare address (no display name).
+func validEmail(s string) bool {
+	addr, err := mail.ParseAddress(s)
+	return err == nil && addr.Address == s
+}
+
+type registerRequest struct {
+	Email    string `json:"email"`
+	Name     string `json:"name"`
+	Password string `json:"password"`
+}
+
+// validateRegister returns an error message ("" when valid). It normalizes the
+// email and trims the name in place.
+func validateRegister(req *registerRequest) string {
+	req.Email = normalizeEmail(req.Email)
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Email == "" || req.Password == "" {
+		return "email and password are required"
+	}
+	if !validEmail(req.Email) {
+		return "invalid email"
+	}
+	if len(req.Password) < minPasswordLen {
+		return "password must be at least 8 characters"
+	}
+	return validatePasswordLength(req.Password)
+}
+
 // validatePasswordLength returns an error message ("" when valid) for a
 // password that bcrypt cannot hash.
 func validatePasswordLength(password string) string {
@@ -37,8 +81,8 @@ type credentialsRequest struct {
 	NewPassword     *string `json:"new_password"`
 }
 
-// validateCredentialsUpdate returns an error message ("" when valid). It trims
-// the email in place.
+// validateCredentialsUpdate returns an error message ("" when valid). It
+// normalizes the email in place.
 func validateCredentialsUpdate(req *credentialsRequest) string {
 	if req.CurrentPassword == "" {
 		return "current password is required"
@@ -47,12 +91,11 @@ func validateCredentialsUpdate(req *credentialsRequest) string {
 		return "nothing to update"
 	}
 	if req.Email != nil {
-		trimmed := strings.TrimSpace(*req.Email)
-		addr, err := mail.ParseAddress(trimmed)
-		if err != nil || addr.Address != trimmed {
+		email := normalizeEmail(*req.Email)
+		if !validEmail(email) {
 			return "invalid email"
 		}
-		req.Email = &trimmed
+		req.Email = &email
 	}
 	if req.NewPassword != nil && len(*req.NewPassword) < minPasswordLen {
 		return "password must be at least 8 characters"

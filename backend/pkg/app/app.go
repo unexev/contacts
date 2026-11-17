@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -27,6 +28,8 @@ type App struct {
 	auth  *auth.Manager
 
 	photos storage.Store // nil when photo storage is not configured
+
+	limiter rateLimiter // nil disables rate limiting
 
 	refreshTTL   time.Duration
 	refreshGrace time.Duration
@@ -46,6 +49,7 @@ func New(s *store.Store, a *auth.Manager, opts ...Option) *App {
 	app := &App{
 		store:        s,
 		auth:         a,
+		limiter:      storeLimiter{store: s},
 		refreshTTL:   time.Duration(cfg.RefreshTTLDays) * 24 * time.Hour,
 		refreshGrace: time.Duration(cfg.RefreshGraceSeconds) * time.Second,
 	}
@@ -63,7 +67,7 @@ func (a *App) Handler() http.Handler {
 
 	r.Use(securityHeaders)
 	r.Use(CORS())
-	r.Use(rateLimit(30))
+	r.Use(a.rateLimit(30))
 
 	r.Route("/api", func(r chi.Router) {
 		r.Post("/auth/register", a.register)
@@ -252,20 +256,12 @@ type nationalityRequest struct {
 // --- auth handlers ---
 
 func (a *App) register(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Email    string `json:"email"`
-		Name     string `json:"name"`
-		Password string `json:"password"`
-	}
+	var req registerRequest
 	if err := decodeJSON(r, &req); err != nil {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if req.Email == "" || req.Password == "" {
-		errResp(w, http.StatusBadRequest, "email and password are required")
-		return
-	}
-	if msg := validatePasswordLength(req.Password); msg != "" {
+	if msg := validateRegister(&req); msg != "" {
 		errResp(w, http.StatusBadRequest, msg)
 		return
 	}
@@ -277,9 +273,13 @@ func (a *App) register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := a.store.Register(req.Email, req.Name, string(hash))
+	if errors.Is(err, store.ErrEmailTaken) {
+		errResp(w, http.StatusConflict, "email already in use")
+		return
+	}
 	if err != nil {
 		log.Printf("register error: %v", err)
-		errResp(w, http.StatusBadRequest, "invalid request body")
+		errResp(w, http.StatusInternalServerError, "failed to register")
 		return
 	}
 
@@ -307,10 +307,26 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 		errResp(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	email := normalizeEmail(req.Email)
 
-	user, hash, err := a.store.GetUserByEmailWithHash(req.Email)
-	if err != nil {
+	// Per-account cap: the per-IP limit alone does not stop a password-guessing
+	// run spread over many addresses.
+	if !a.allow("login:"+email, loginAttemptsPerWindow, loginAttemptsWindow) {
+		tooManyRequests(w, loginAttemptsWindow)
+		return
+	}
+
+	user, hash, err := a.store.GetUserByEmailWithHash(email)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// Spend the same bcrypt time as a real check, so response time does not
+		// reveal whether the email is registered.
+		bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(req.Password))
 		errResp(w, http.StatusUnauthorized, "invalid credentials")
+		return
+	}
+	if err != nil {
+		log.Printf("login error: %v", err)
+		errResp(w, http.StatusInternalServerError, "failed to log in")
 		return
 	}
 

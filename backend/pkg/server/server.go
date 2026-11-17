@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"contacts/pkg/app"
 	"contacts/pkg/auth"
@@ -64,7 +65,7 @@ func Handler() (http.Handler, error) {
 		}
 
 		s := store.New(pool)
-		authMgr := auth.NewManager(cfg.JWTSecret, cfg.JWT_TTL_Hours)
+		authMgr := auth.NewManager(cfg.JWTSecret, time.Duration(cfg.JWTTTLMinutes)*time.Minute)
 		a := app.New(s, authMgr)
 
 		handler = a.Handler()

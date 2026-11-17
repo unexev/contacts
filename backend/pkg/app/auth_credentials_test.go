@@ -50,3 +50,33 @@ func TestValidatePasswordLength(t *testing.T) {
 		t.Fatal("73 bytes should be rejected")
 	}
 }
+
+func TestValidateRegister(t *testing.T) {
+	cases := []struct {
+		name    string
+		req     registerRequest
+		wantMsg string
+	}{
+		{"missing email", registerRequest{Password: "longenough"}, "email and password are required"},
+		{"missing password", registerRequest{Email: "a@b.com"}, "email and password are required"},
+		{"bad email", registerRequest{Email: "not-an-email", Password: "longenough"}, "invalid email"},
+		{"display-name email", registerRequest{Email: "A <a@b.com>", Password: "longenough"}, "invalid email"},
+		{"short password", registerRequest{Email: "a@b.com", Password: "short"}, "password must be at least 8 characters"},
+		{"too long password", registerRequest{Email: "a@b.com", Password: strings.Repeat("a", 73)}, "password must be at most 72 bytes"},
+		{"ok", registerRequest{Email: "a@b.com", Password: "longenough"}, ""},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := validateRegister(&c.req); got != c.wantMsg {
+				t.Fatalf("got %q, want %q", got, c.wantMsg)
+			}
+		})
+	}
+}
+
+func TestValidateRegisterNormalizes(t *testing.T) {
+	req := registerRequest{Email: "  Ana@Example.COM ", Name: " Ana ", Password: "longenough"}
+	if msg := validateRegister(&req); msg != "" || req.Email != "ana@example.com" || req.Name != "Ana" {
+		t.Fatalf("msg=%q email=%q name=%q", msg, req.Email, req.Name)
+	}
+}

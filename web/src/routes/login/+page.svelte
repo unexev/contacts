@@ -27,7 +27,7 @@
         method: 'POST',
         body: { email, password }
       });
-      setToken(data.token);
+      setToken(data.token, data.refresh_token);
       if (data.user) A.user = data.user;
       goto('/contacts');
     } catch (err) {

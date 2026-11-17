@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"contacts/pkg/achievements"
@@ -51,6 +53,8 @@ func clampLimit(limit int) int {
 
 // ──────────────────────────── Auth ────────────────────────────
 
+// Register creates the user. The email must already be normalized; it returns
+// ErrEmailTaken when another account uses it in any letter case.
 func (s *Store) Register(email, name, passwordHash string) (model.User, error) {
 	u := model.User{
 		UserID: genID("usr"),
@@ -59,11 +63,19 @@ func (s *Store) Register(email, name, passwordHash string) (model.User, error) {
 		Role:   "user",
 		Status: "active",
 	}
-	_, err := s.pool.Exec(context.Background(),
+	tag, err := s.pool.Exec(context.Background(),
 		`INSERT INTO app_users (user_id, email, name, password_hash, role, status)
-		 VALUES ($1, $2, $3, $4, $5, $6)`,
+		 SELECT $1::text, $2::text, $3::text, $4::text, $5::text, $6::text
+		  WHERE NOT EXISTS (SELECT 1 FROM app_users WHERE lower(email) = lower($2::text))`,
 		u.UserID, u.Email, u.Name, passwordHash, u.Role, u.Status,
 	)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return u, ErrEmailTaken
+	}
+	if err == nil && tag.RowsAffected() == 0 {
+		return u, ErrEmailTaken
+	}
 	return u, err
 }
 
@@ -75,6 +87,8 @@ func (s *Store) GetUserByEmail(email string) (model.User, error) {
 	return u, err
 }
 
+// GetUserByEmailWithHash matches the email case-insensitively and returns
+// pgx.ErrNoRows when it is unknown. Only transient errors are retried.
 func (s *Store) GetUserByEmailWithHash(email string) (model.User, string, error) {
 	ctx := context.Background()
 	var u model.User
@@ -83,10 +97,11 @@ func (s *Store) GetUserByEmailWithHash(email string) (model.User, string, error)
 
 	for attempt := 0; attempt < 3; attempt++ {
 		err = s.pool.QueryRow(ctx,
-			`SELECT user_id, email, name, role, status, password_hash FROM app_users WHERE email = $1`, email,
+			`SELECT user_id, email, name, role, status, password_hash FROM app_users
+			  WHERE lower(email) = lower($1) ORDER BY created_at, user_id LIMIT 1`, email,
 		).Scan(&u.UserID, &u.Email, &u.Name, &u.Role, &u.Status, &hash)
-		if err == nil {
-			return u, hash, nil
+		if err == nil || errors.Is(err, pgx.ErrNoRows) {
+			return u, hash, err
 		}
 		time.Sleep(time.Duration(100*(attempt+1)) * time.Millisecond)
 	}
