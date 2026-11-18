@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -23,6 +24,15 @@ type Config struct {
 	SupabaseURL        string
 	SupabaseServiceKey string
 	SupabaseBucket     string
+
+	// Resend sends the verification email; without ResendAPIKey registration
+	// still works and the email is skipped. APIURL is the public base URL of
+	// this backend (the link in the email points at it); AppURL is the public
+	// URL of the web app, where the link redirects afterwards.
+	ResendAPIKey string
+	EmailFrom    string
+	APIURL       string
+	AppURL       string
 }
 
 func Load(required bool) (Config, error) {
@@ -39,6 +49,10 @@ func Load(required bool) (Config, error) {
 		SupabaseURL:         os.Getenv("SUPABASE_URL"),
 		SupabaseServiceKey:  os.Getenv("SUPABASE_SERVICE_KEY"),
 		SupabaseBucket:      os.Getenv("SUPABASE_BUCKET"),
+		ResendAPIKey:        os.Getenv("RESEND_API_KEY"),
+		EmailFrom:           os.Getenv("EMAIL_FROM"),
+		APIURL:              strings.TrimRight(os.Getenv("API_URL"), "/"),
+		AppURL:              strings.TrimRight(os.Getenv("APP_URL"), "/"),
 	}
 
 	if v := os.Getenv("JWT_TTL_MINUTES"); v != "" {

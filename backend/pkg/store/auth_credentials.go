@@ -33,7 +33,9 @@ func (s *Store) UpdateCredentials(userID, newEmail, newPasswordHash string, ttl 
 	now := time.Now()
 	_, err = tx.Exec(ctx,
 		`UPDATE app_users
-		    SET email = COALESCE(NULLIF($2, ''), email),
+		    SET email_verified = CASE WHEN NULLIF($2, '') IS NOT NULL AND lower(email) <> lower($2)
+		                              THEN FALSE ELSE email_verified END,
+		        email = COALESCE(NULLIF($2, ''), email),
 		        password_hash = COALESCE(NULLIF($3, ''), password_hash)
 		  WHERE user_id = $1`,
 		userID, newEmail, newPasswordHash)
