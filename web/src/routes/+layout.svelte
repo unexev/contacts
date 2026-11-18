@@ -3,10 +3,11 @@
   import { A, loadToken, logout } from '$lib/api.svelte.js';
   import { contacts } from '$lib/stores.svelte.js';
   import { t, restoreLocale } from '$lib/i18n.svelte.js';
-  import { toast } from '$lib/toast.svelte.js';
+  import { toast, showToast } from '$lib/toast.svelte.js';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { ModeWatcher } from 'mode-watcher';
+  import { onMount } from 'svelte';
   import { Users, CalendarDays, Settings } from '@lucide/svelte';
 
   let { children } = $props();
@@ -14,6 +15,25 @@
   // Restore the session before child routes run their access checks.
   loadToken();
   restoreLocale();
+
+  // The link in the confirmation email lands here with ?email_verified=ok|invalid|error.
+  // It is read before any page runs, because the landing page redirects signed-in
+  // users and would drop it, and it is removed so a reload does not repeat the notice.
+  const verifyKeys = { ok: 'emailVerifiedOk', invalid: 'emailVerifiedInvalid', error: 'emailVerifiedError' };
+  let verifyResult = null;
+  try {
+    const url = new URL(window.location.href);
+    const value = url.searchParams.get('email_verified');
+    if (value in verifyKeys) verifyResult = value;
+    if (value !== null) {
+      url.searchParams.delete('email_verified');
+      history.replaceState(history.state, '', url);
+    }
+  } catch {}
+
+  onMount(() => {
+    if (verifyResult) showToast(t(verifyKeys[verifyResult]), 6000);
+  });
 
   let navItems = $derived([
     { href: '/contacts', label: t('navContacts'), icon: Users },
