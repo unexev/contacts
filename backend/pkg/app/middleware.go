@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"log"
 	"net"
 	"net/http"
@@ -139,6 +140,15 @@ func getCORSOrigins() []string {
 	return out
 }
 
+type verifiedKey struct{}
+
+// verificationRequired reports whether email confirmation is enforced. It is
+// only possible when email delivery is configured, so a missing Resend setup
+// can never lock everyone out.
+func (a *App) verificationRequired() bool {
+	return a.mailer != nil && a.apiURL != "" && a.appURL != ""
+}
+
 // requireUser rejects a valid token whose account no longer exists. Access
 // tokens are stateless, so without this a deleted account's token would keep
 // working, and could even create orphan rows, until it expires.
@@ -149,18 +159,31 @@ func (a *App) requireUser(next http.Handler) http.Handler {
 			errResp(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
-		exists := a.userExists
-		if exists == nil {
-			exists = a.store.UserExists
+		state := a.userState
+		if state == nil {
+			state = a.store.UserState
 		}
-		ok, err := exists(claims.UserID)
+		exists, verified, err := state(claims.UserID)
 		if err != nil {
 			log.Printf("check user error: %v", err)
 			errResp(w, http.StatusInternalServerError, "failed to verify session")
 			return
 		}
-		if !ok {
+		if !exists {
 			errResp(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), verifiedKey{}, verified)))
+	})
+}
+
+// requireVerified blocks accounts whose email is not confirmed yet. It runs
+// after requireUser, and the few routes a locked account still needs (read,
+// fix or delete the account) sit outside it.
+func (a *App) requireVerified(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if verified, _ := r.Context().Value(verifiedKey{}).(bool); !verified && a.verificationRequired() {
+			errResp(w, http.StatusForbidden, "email not verified")
 			return
 		}
 		next.ServeHTTP(w, r)

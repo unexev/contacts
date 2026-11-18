@@ -3,6 +3,7 @@
   import { t } from '$lib/i18n.svelte.js';
   import LangSwitch from '$lib/components/LangSwitch.svelte';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
+  import VerifyEmailNotice from '$lib/components/VerifyEmailNotice.svelte';
   import { friendlyError } from '$lib/errors.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
@@ -11,6 +12,7 @@
   let password = $state('');
   let error = $state('');
   let loading = $state(false);
+  let pending = $state(false);
 
   onMount(() => {
     if (A.token) goto('/contacts');
@@ -31,6 +33,10 @@
       if (data.user) A.user = data.user;
       goto('/contacts');
     } catch (err) {
+      if (err?.unverified) {
+        pending = true;
+        return;
+      }
       error = friendlyError(err, t);
     } finally {
       loading = false;
@@ -41,6 +47,9 @@
 <div class="login-page">
   <div class="lang-corner"><LangSwitch /></div>
   <div class="login-card animate-in">
+    {#if pending}
+      <VerifyEmailNotice {email} {password} onback={() => (pending = false)} />
+    {:else}
     <h1 class="login-title">{t('loginTitle')}</h1>
 
     {#if error}
@@ -83,6 +92,7 @@
       {t('loginNoAccount')}
       <a href="/register">{t('loginRegister')}</a>
     </p>
+    {/if}
   </div>
 </div>
 

@@ -108,12 +108,18 @@ func (s *Store) GetUserByEmailWithHash(email string) (model.User, string, error)
 	return u, hash, err
 }
 
-// UserExists reports whether the account still exists.
-func (s *Store) UserExists(userID string) (bool, error) {
-	var ok bool
-	err := s.pool.QueryRow(context.Background(),
-		`SELECT EXISTS (SELECT 1 FROM app_users WHERE user_id = $1)`, userID).Scan(&ok)
-	return ok, err
+// UserState reports whether the account still exists and, if so, whether its
+// email is verified.
+func (s *Store) UserState(userID string) (exists, verified bool, err error) {
+	err = s.pool.QueryRow(context.Background(),
+		`SELECT email_verified FROM app_users WHERE user_id = $1`, userID).Scan(&verified)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, false, nil
+	}
+	if err != nil {
+		return false, false, err
+	}
+	return true, verified, nil
 }
 
 func (s *Store) GetUserByID(userID string) (model.User, error) {

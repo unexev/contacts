@@ -163,8 +163,11 @@ func (a *App) updateCredentials(w http.ResponseWriter, r *http.Request) {
 		errResp(w, http.StatusNotFound, "user not found")
 		return
 	}
-	if newEmail != "" {
+	if newEmail != "" && a.verificationRequired() {
+		// The new address is unconfirmed, so no session until it is.
 		a.sendVerification(user.UserID, user.Email, user.Name)
+		dataResp(w, http.StatusOK, model.AuthResponse{User: user, VerificationRequired: true})
+		return
 	}
 	token, err := a.auth.Generate(user.UserID, user.Email, user.Role)
 	if err != nil {

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"contacts/pkg/auth"
+	"contacts/pkg/mailer"
 )
 
 // fakeLimiter counts hits per key in memory.
@@ -60,8 +62,8 @@ func TestRateLimitWithoutLimiterAllowsEverything(t *testing.T) {
 }
 
 func TestRequireUserRejectsDeletedAccount(t *testing.T) {
-	run := func(exists func(string) (bool, error)) int {
-		a := &App{userExists: exists, auth: auth.NewManager("secret", time.Minute)}
+	run := func(exists func(string) (bool, bool, error)) int {
+		a := &App{userState: exists, auth: auth.NewManager("secret", time.Minute)}
 		token, err := a.auth.Generate("usr_1", "a@b.c", "user")
 		if err != nil {
 			t.Fatal(err)
@@ -76,13 +78,52 @@ func TestRequireUserRejectsDeletedAccount(t *testing.T) {
 		return rec.Code
 	}
 
-	if got := run(func(string) (bool, error) { return true, nil }); got != http.StatusOK {
+	if got := run(func(string) (bool, bool, error) { return true, true, nil }); got != http.StatusOK {
 		t.Fatalf("existing user: got %d, want 200", got)
 	}
-	if got := run(func(string) (bool, error) { return false, nil }); got != http.StatusUnauthorized {
+	if got := run(func(string) (bool, bool, error) { return false, false, nil }); got != http.StatusUnauthorized {
 		t.Fatalf("deleted user: got %d, want 401", got)
 	}
-	if got := run(func(string) (bool, error) { return false, errors.New("db down") }); got != http.StatusInternalServerError {
+	if got := run(func(string) (bool, bool, error) { return false, false, errors.New("db down") }); got != http.StatusInternalServerError {
 		t.Fatalf("lookup error: got %d, want 500", got)
+	}
+}
+
+type noopSender struct{}
+
+func (noopSender) Send(context.Context, mailer.Message) error { return nil }
+
+func TestRequireVerifiedBlocksUnconfirmedAccounts(t *testing.T) {
+	run := func(configured, verified bool) int {
+		a := &App{
+			auth:      auth.NewManager("secret", time.Minute),
+			userState: func(string) (bool, bool, error) { return true, verified, nil },
+		}
+		if configured {
+			a.mailer, a.apiURL, a.appURL = noopSender{}, "https://api.example", "https://app.example"
+		}
+		token, err := a.auth.Generate("usr_1", "a@b.c", "user")
+		if err != nil {
+			t.Fatal(err)
+		}
+		h := a.auth.Middleware(a.requireUser(a.requireVerified(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))))
+		req := httptest.NewRequest(http.MethodGet, "/api/contacts", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec.Code
+	}
+
+	if got := run(true, true); got != http.StatusOK {
+		t.Fatalf("verified: got %d, want 200", got)
+	}
+	if got := run(true, false); got != http.StatusForbidden {
+		t.Fatalf("unverified with email configured: got %d, want 403", got)
+	}
+	// Without email delivery nobody can confirm, so nobody may be locked out.
+	if got := run(false, false); got != http.StatusOK {
+		t.Fatalf("unverified without email configured: got %d, want 200", got)
 	}
 }
