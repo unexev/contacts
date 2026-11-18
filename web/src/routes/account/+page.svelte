@@ -1,5 +1,6 @@
 <script>
   import { A, api, setToken, logout } from '$lib/api.svelte.js';
+  import { showToast } from '$lib/toast.svelte.js';
   import { t } from '$lib/i18n.svelte.js';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { friendlyError } from '$lib/errors.js';
@@ -57,6 +58,13 @@
     loading = true;
     try {
       const data = await api('/api/auth/me', { method: 'PUT', body, keepSession: true });
+      if (data.verification_required) {
+        // The new address must be confirmed before the account can be used again.
+        logout();
+        showToast(t('accountEmailChangedVerify'), 8000);
+        goto('/login');
+        return;
+      }
       setToken(data.token, data.refresh_token);
       if (data.user) A.user = data.user;
       currentPassword = '';

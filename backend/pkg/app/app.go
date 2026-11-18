@@ -32,7 +32,7 @@ type App struct {
 
 	limiter rateLimiter // nil disables rate limiting
 
-	userExists func(userID string) (bool, error) // nil uses the store
+	userState func(userID string) (exists, verified bool, err error) // nil uses the store
 
 	mailer mailer.Sender // nil when email is not configured
 	apiURL string        // public URL of this backend, for links in emails
@@ -87,87 +87,91 @@ func (a *App) Handler() http.Handler {
 		r.Post("/auth/refresh", a.refresh)
 		r.Post("/auth/logout", a.logout)
 		r.Get("/auth/verify-email", a.verifyEmail)
+		r.Post("/auth/resend-verification", a.resendVerification)
 		r.Group(func(r chi.Router) {
 			r.Use(a.auth.Middleware)
 			r.Use(a.requireUser)
 			r.Get("/auth/me", a.me)
-			r.Post("/auth/resend-verification", a.resendVerification)
 			r.Delete("/auth/me", a.deleteAccount)
 			r.Put("/auth/me", a.updateCredentials)
 
-			r.Get("/contacts", a.listContacts)
-			r.Post("/contacts", a.createContact)
-			r.Get("/contacts/{id}", a.getContact)
-			r.Put("/contacts/{id}", a.updateContact)
-			r.Delete("/contacts/{id}", a.deleteContact)
+			r.Group(func(r chi.Router) {
+				r.Use(a.requireVerified)
 
-			r.Put("/contacts/{id}/photo", a.putPhoto)
-			r.Delete("/contacts/{id}/photo", a.deletePhoto)
+				r.Get("/contacts", a.listContacts)
+				r.Post("/contacts", a.createContact)
+				r.Get("/contacts/{id}", a.getContact)
+				r.Put("/contacts/{id}", a.updateContact)
+				r.Delete("/contacts/{id}", a.deleteContact)
 
-			r.Get("/contacts/{id}/locations", a.listLocations)
-			r.Post("/contacts/{id}/locations", a.createLocation)
-			r.Put("/contacts/{id}/locations/{locationId}", a.updateLocation)
-			r.Delete("/contacts/{id}/locations/{locationId}", a.deleteLocation)
+				r.Put("/contacts/{id}/photo", a.putPhoto)
+				r.Delete("/contacts/{id}/photo", a.deletePhoto)
 
-			r.Get("/contacts/{id}/nationalities", a.listNationalities)
-			r.Post("/contacts/{id}/nationalities", a.createNationality)
-			r.Put("/contacts/{id}/nationalities/{nationalityId}", a.updateNationality)
-			r.Delete("/contacts/{id}/nationalities/{nationalityId}", a.deleteNationality)
+				r.Get("/contacts/{id}/locations", a.listLocations)
+				r.Post("/contacts/{id}/locations", a.createLocation)
+				r.Put("/contacts/{id}/locations/{locationId}", a.updateLocation)
+				r.Delete("/contacts/{id}/locations/{locationId}", a.deleteLocation)
 
-			r.Get("/contacts/{id}/phones", a.listPhones)
-			r.Post("/contacts/{id}/phones", a.createPhone)
-			r.Put("/contacts/{id}/phones/{phoneId}", a.updatePhone)
-			r.Delete("/contacts/{id}/phones/{phoneId}", a.deletePhone)
+				r.Get("/contacts/{id}/nationalities", a.listNationalities)
+				r.Post("/contacts/{id}/nationalities", a.createNationality)
+				r.Put("/contacts/{id}/nationalities/{nationalityId}", a.updateNationality)
+				r.Delete("/contacts/{id}/nationalities/{nationalityId}", a.deleteNationality)
 
-			r.Get("/contacts/{id}/emails", a.listEmails)
-			r.Post("/contacts/{id}/emails", a.createEmail)
-			r.Put("/contacts/{id}/emails/{emailId}", a.updateEmail)
-			r.Delete("/contacts/{id}/emails/{emailId}", a.deleteEmail)
+				r.Get("/contacts/{id}/phones", a.listPhones)
+				r.Post("/contacts/{id}/phones", a.createPhone)
+				r.Put("/contacts/{id}/phones/{phoneId}", a.updatePhone)
+				r.Delete("/contacts/{id}/phones/{phoneId}", a.deletePhone)
 
-			r.Get("/contacts/{id}/urls", a.listURLs)
-			r.Post("/contacts/{id}/urls", a.createURL)
-			r.Put("/contacts/{id}/urls/{urlId}", a.updateURL)
-			r.Delete("/contacts/{id}/urls/{urlId}", a.deleteURL)
+				r.Get("/contacts/{id}/emails", a.listEmails)
+				r.Post("/contacts/{id}/emails", a.createEmail)
+				r.Put("/contacts/{id}/emails/{emailId}", a.updateEmail)
+				r.Delete("/contacts/{id}/emails/{emailId}", a.deleteEmail)
 
-			r.Get("/contacts/{id}/notes", a.listNotes)
-			r.Post("/contacts/{id}/notes", a.createNote)
-			r.Put("/contacts/{id}/notes/{noteId}", a.updateNote)
-			r.Delete("/contacts/{id}/notes/{noteId}", a.deleteNote)
+				r.Get("/contacts/{id}/urls", a.listURLs)
+				r.Post("/contacts/{id}/urls", a.createURL)
+				r.Put("/contacts/{id}/urls/{urlId}", a.updateURL)
+				r.Delete("/contacts/{id}/urls/{urlId}", a.deleteURL)
 
-			r.Get("/contacts/{id}/keywords", a.listKeywords)
-			r.Post("/contacts/{id}/keywords", a.createKeyword)
-			r.Delete("/contacts/{id}/keywords/{keyword}", a.deleteKeyword)
+				r.Get("/contacts/{id}/notes", a.listNotes)
+				r.Post("/contacts/{id}/notes", a.createNote)
+				r.Put("/contacts/{id}/notes/{noteId}", a.updateNote)
+				r.Delete("/contacts/{id}/notes/{noteId}", a.deleteNote)
 
-			r.Get("/contacts/{id}/cards", a.listCards)
-			r.Post("/contacts/{id}/cards", a.createCard)
-			r.Put("/contacts/{id}/cards/{cardId}", a.updateCard)
-			r.Delete("/contacts/{id}/cards/{cardId}", a.deleteCard)
+				r.Get("/contacts/{id}/keywords", a.listKeywords)
+				r.Post("/contacts/{id}/keywords", a.createKeyword)
+				r.Delete("/contacts/{id}/keywords/{keyword}", a.deleteKeyword)
 
-			r.Get("/contacts/{id}/bank-accounts", a.listBankAccounts)
-			r.Post("/contacts/{id}/bank-accounts", a.createBankAccount)
-			r.Put("/contacts/{id}/bank-accounts/{bankAccountId}", a.updateBankAccount)
-			r.Delete("/contacts/{id}/bank-accounts/{bankAccountId}", a.deleteBankAccount)
+				r.Get("/contacts/{id}/cards", a.listCards)
+				r.Post("/contacts/{id}/cards", a.createCard)
+				r.Put("/contacts/{id}/cards/{cardId}", a.updateCard)
+				r.Delete("/contacts/{id}/cards/{cardId}", a.deleteCard)
 
-			r.Get("/contacts/{id}/relationships", a.listRelationships)
-			r.Post("/contacts/{id}/relationships", a.createRelationship)
-			r.Delete("/contacts/{id}/relationships/{relatedContactId}", a.deleteRelationship)
+				r.Get("/contacts/{id}/bank-accounts", a.listBankAccounts)
+				r.Post("/contacts/{id}/bank-accounts", a.createBankAccount)
+				r.Put("/contacts/{id}/bank-accounts/{bankAccountId}", a.updateBankAccount)
+				r.Delete("/contacts/{id}/bank-accounts/{bankAccountId}", a.deleteBankAccount)
 
-			r.Get("/contacts/{id}/organizations", a.listContactOrganizations)
-			r.Post("/contacts/{id}/organizations", a.createContactOrganization)
-			r.Put("/contacts/{id}/organizations/{organizationId}", a.updateContactOrganization)
-			r.Delete("/contacts/{id}/organizations/{organizationId}", a.deleteContactOrganization)
+				r.Get("/contacts/{id}/relationships", a.listRelationships)
+				r.Post("/contacts/{id}/relationships", a.createRelationship)
+				r.Delete("/contacts/{id}/relationships/{relatedContactId}", a.deleteRelationship)
 
-			r.Get("/marital-statuses", a.listMaritalStatuses)
-			r.Get("/relationship-types", a.listRelationshipTypes)
-			r.Get("/organizations/achievements", a.listOrganizationAchievements)
-			r.Get("/organizations", a.listOrganizations)
-			r.Post("/organizations", a.createOrganization)
+				r.Get("/contacts/{id}/organizations", a.listContactOrganizations)
+				r.Post("/contacts/{id}/organizations", a.createContactOrganization)
+				r.Put("/contacts/{id}/organizations/{organizationId}", a.updateContactOrganization)
+				r.Delete("/contacts/{id}/organizations/{organizationId}", a.deleteContactOrganization)
 
-			r.Get("/birthdays", a.getBirthdays)
+				r.Get("/marital-statuses", a.listMaritalStatuses)
+				r.Get("/relationship-types", a.listRelationshipTypes)
+				r.Get("/organizations/achievements", a.listOrganizationAchievements)
+				r.Get("/organizations", a.listOrganizations)
+				r.Post("/organizations", a.createOrganization)
 
-			// Sync
-			r.Get("/sync", a.syncPull)
-			r.Post("/sync/push", a.syncPush)
+				r.Get("/birthdays", a.getBirthdays)
+
+				// Sync
+				r.Get("/sync", a.syncPull)
+				r.Post("/sync/push", a.syncPush)
+			})
 		})
 	})
 
@@ -299,6 +303,14 @@ func (a *App) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// With confirmation enforced the account gets no session until the link in
+	// the email is opened; the client then shows a "check your email" screen.
+	if a.verificationRequired() {
+		a.sendVerification(user.UserID, user.Email, user.Name)
+		dataResp(w, http.StatusCreated, model.AuthResponse{User: user, VerificationRequired: true})
+		return
+	}
+
 	token, err := a.auth.Generate(user.UserID, user.Email, user.Role)
 	if err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to generate token")
@@ -310,8 +322,6 @@ func (a *App) register(w http.ResponseWriter, r *http.Request) {
 		errResp(w, http.StatusInternalServerError, "failed to issue refresh token")
 		return
 	}
-
-	a.sendVerification(user.UserID, user.Email, user.Name)
 
 	dataResp(w, http.StatusCreated, model.AuthResponse{Token: token, User: user, RefreshToken: refreshToken})
 }
@@ -353,6 +363,20 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Checked only after the password, so it does not reveal which emails exist.
+	if a.verificationRequired() {
+		verified, err := a.store.IsEmailVerified(user.UserID)
+		if err != nil {
+			log.Printf("login verification check error: %v", err)
+			errResp(w, http.StatusInternalServerError, "failed to log in")
+			return
+		}
+		if !verified {
+			errResp(w, http.StatusForbidden, "email not verified")
+			return
+		}
+	}
+
 	token, err := a.auth.Generate(user.UserID, user.Email, user.Role)
 	if err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to generate token")
@@ -375,7 +399,15 @@ func (a *App) me(w http.ResponseWriter, r *http.Request) {
 		errResp(w, http.StatusNotFound, "user not found")
 		return
 	}
-	dataResp(w, http.StatusOK, user)
+	verified, err := a.store.IsEmailVerified(claims.UserID)
+	if err != nil {
+		errResp(w, http.StatusInternalServerError, "failed to load user")
+		return
+	}
+	dataResp(w, http.StatusOK, struct {
+		model.User
+		EmailVerified bool `json:"email_verified"`
+	}{user, verified})
 }
 
 // --- contacts ---

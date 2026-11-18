@@ -108,6 +108,10 @@ export async function api(path, { method = 'GET', body, signal, keepSession = fa
     if (expired || !keepSession) setToken('');
     throw Object.assign(new Error('Invalid credentials'), { status: 401, expired });
   }
+  if (res.status === 403 && raw?.error === 'email not verified') {
+    setToken('');
+    throw Object.assign(new Error('Email not verified'), { status: 403, unverified: true });
+  }
   if (!res.ok) {
     const safeMsg = res.status === 409 ? 'Invalid request' :
                     res.status === 400 ? (raw?.error || 'Invalid input') :

@@ -10,7 +10,9 @@ import (
 	"net/url"
 	"time"
 
-	"contacts/pkg/auth"
+	"github.com/jackc/pgx/v5"
+	"golang.org/x/crypto/bcrypt"
+
 	"contacts/pkg/mailer"
 	"contacts/pkg/store"
 )
@@ -67,31 +69,57 @@ func (a *App) verifyEmail(w http.ResponseWriter, r *http.Request) {
 		log.Printf("verify email error: %v", err)
 		result = "error"
 	}
-	http.Redirect(w, r, a.appURL+"/?email_verified="+result, http.StatusSeeOther)
+	http.Redirect(w, r, a.appURL+"/login?email_verified="+result, http.StatusSeeOther)
 }
 
+// resendVerification is public, because an account that must confirm its
+// email has no session. The password proves the caller owns the account and
+// shares the login attempt budget, so it cannot be used to guess passwords.
 func (a *App) resendVerification(w http.ResponseWriter, r *http.Request) {
-	claims := auth.GetUser(r)
-	if a.mailer == nil || a.apiURL == "" || a.appURL == "" {
+	var req struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	if err := decodeJSON(r, &req); err != nil || req.Email == "" || req.Password == "" {
+		errResp(w, http.StatusBadRequest, "email and password are required")
+		return
+	}
+	if !a.verificationRequired() {
 		errResp(w, http.StatusServiceUnavailable, "email is not configured")
 		return
 	}
-	verified, err := a.store.IsEmailVerified(claims.UserID)
+	email := normalizeEmail(req.Email)
+	if !a.allow("login:"+email, loginAttemptsPerWindow, loginAttemptsWindow) {
+		tooManyRequests(w, loginAttemptsWindow)
+		return
+	}
+
+	user, hash, err := a.store.GetUserByEmailWithHash(email)
+	if errors.Is(err, pgx.ErrNoRows) {
+		bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(req.Password))
+		errResp(w, http.StatusUnauthorized, "invalid credentials")
+		return
+	}
 	if err != nil {
-		errResp(w, http.StatusNotFound, "user not found")
+		log.Printf("resend verification error: %v", err)
+		errResp(w, http.StatusInternalServerError, "failed to resend")
+		return
+	}
+	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.Password)) != nil {
+		errResp(w, http.StatusUnauthorized, "invalid credentials")
+		return
+	}
+	verified, err := a.store.IsEmailVerified(user.UserID)
+	if err != nil {
+		errResp(w, http.StatusInternalServerError, "failed to resend")
 		return
 	}
 	if verified {
 		errResp(w, http.StatusConflict, "email already verified")
 		return
 	}
-	if !a.allow("verify:"+claims.UserID, 1, verifyResendWindow) {
+	if !a.allow("verify:"+user.UserID, 1, verifyResendWindow) {
 		tooManyRequests(w, verifyResendWindow)
-		return
-	}
-	user, err := a.store.GetUserByID(claims.UserID)
-	if err != nil {
-		errResp(w, http.StatusNotFound, "user not found")
 		return
 	}
 	a.sendVerification(user.UserID, user.Email, user.Name)

@@ -88,7 +88,7 @@ Migrations run automatically every time the backend starts and are idempotent, s
 
 ## Authentication
 
-- **Email confirmation**: registering sends a link valid for 24 hours; the token is stored hashed and is single use. Login does not require a confirmed email. Existing accounts count as confirmed, and changing the email makes the account unconfirmed again and sends a new link.
+- **Email confirmation**: when `RESEND_API_KEY`, `EMAIL_FROM`, `API_URL` and `APP_URL` are all set, an account must confirm its email before it can sign in. Registering sends a link valid for 24 hours (the token is stored hashed and is single use) and returns `verification_required` instead of tokens; login answers `403 email not verified` until the link is opened, and every data route does too, so a session cannot outlive a change of email. A locked account can still read, change or delete itself (`/api/auth/me`). Changing the email makes the account unconfirmed again, sends a new link and ends the session. Existing accounts count as confirmed. With any of the four variables missing nothing is enforced, so a broken mail setup can never lock everyone out.
 - **Passwords** are hashed with bcrypt (8 to 72 bytes). Emails are trimmed, lowercased and unique regardless of letter case.
 - **Access token**: a short-lived JWT (`JWT_TTL_MINUTES`, 60 by default) sent as `Authorization: Bearer <token>`.
 - **Refresh token**: opaque, stored hashed, rotated on every use and revoked as a family when reuse is detected. Clients call `/api/auth/refresh` when the access token expires; the web client does this automatically and retries the request once.
@@ -109,9 +109,9 @@ Migrations run automatically every time the backend starts and are idempotent, s
 | POST | `/api/auth/login` | Login; returns an access token and a refresh token |
 | POST | `/api/auth/refresh` | Exchange a refresh token for a new access and refresh token |
 | POST | `/api/auth/logout` | Revoke the session's refresh token |
-| GET | `/api/auth/verify-email?token=` | Confirm an email from the link sent by email; redirects to `APP_URL/?email_verified=ok\|invalid\|error` |
-| POST | `/api/auth/resend-verification` | Send the confirmation email again (requires auth; once per 10 minutes) |
-| GET | `/api/auth/me` | Current user (requires auth) |
+| GET | `/api/auth/verify-email?token=` | Confirm an email from the link sent by email; redirects to `APP_URL/login?email_verified=ok\|invalid\|error` |
+| POST | `/api/auth/resend-verification` | Send the confirmation email again. Public: takes `email` and `password` (the account has no session yet), shares the login attempt limit, once per 10 minutes per account |
+| GET | `/api/auth/me` | Current user, including `email_verified` (requires auth) |
 | PUT | `/api/auth/me` | Change email and/or password (requires auth and the current password) |
 | DELETE | `/api/auth/me` | Permanently delete the account, its contacts and their photos (requires auth and `current_password` in the body; answers `204`) |
 | GET | `/api/contacts` | List contacts |

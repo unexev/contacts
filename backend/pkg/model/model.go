@@ -17,6 +17,9 @@ type AuthResponse struct {
 	Token        string `json:"token"`
 	User         User   `json:"user"`
 	RefreshToken string `json:"refresh_token,omitempty"`
+	// VerificationRequired is set instead of tokens when the account must
+	// confirm its email before it can sign in.
+	VerificationRequired bool `json:"verification_required,omitempty"`
 }
 
 type Contact struct {
