@@ -81,12 +81,14 @@ The app will be available at http://localhost:5173.
 | `REFRESH_TTL_DAYS` | Refresh token lifetime in days | `90` |
 | `REFRESH_GRACE_SECONDS` | Window in which a just-rotated refresh token may be retried (lost responses) | `300` |
 | `CORS_ORIGINS` | Comma-separated allowed origins (`*` for all) | `http://localhost:5173,http://localhost:4173` |
+| `RESEND_API_KEY`, `EMAIL_FROM`, `API_URL`, `APP_URL` | Optional. Resend sends the email-confirmation message. `EMAIL_FROM` must use a domain verified in Resend (e.g. `Contacts <no-reply@example.com>`); `API_URL` is the public URL of this backend (the email link points at it) and `APP_URL` the public URL of the web app (where the link redirects after confirming), both without a trailing slash. Without all four, registration works and no email is sent | - |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `SUPABASE_BUCKET` | Optional. Supabase Storage for contact photos; photo endpoints answer 503 when unset | - |
 
 Migrations run automatically every time the backend starts and are idempotent, so deploying is enough to apply new ones.
 
 ## Authentication
 
+- **Email confirmation**: registering sends a link valid for 24 hours; the token is stored hashed and is single use. Login does not require a confirmed email. Existing accounts count as confirmed, and changing the email makes the account unconfirmed again and sends a new link.
 - **Passwords** are hashed with bcrypt (8 to 72 bytes). Emails are trimmed, lowercased and unique regardless of letter case.
 - **Access token**: a short-lived JWT (`JWT_TTL_MINUTES`, 60 by default) sent as `Authorization: Bearer <token>`.
 - **Refresh token**: opaque, stored hashed, rotated on every use and revoked as a family when reuse is detected. Clients call `/api/auth/refresh` when the access token expires; the web client does this automatically and retries the request once.
@@ -107,6 +109,8 @@ Migrations run automatically every time the backend starts and are idempotent, s
 | POST | `/api/auth/login` | Login; returns an access token and a refresh token |
 | POST | `/api/auth/refresh` | Exchange a refresh token for a new access and refresh token |
 | POST | `/api/auth/logout` | Revoke the session's refresh token |
+| GET | `/api/auth/verify-email?token=` | Confirm an email from the link sent by email; redirects to `APP_URL/?email_verified=ok\|invalid\|error` |
+| POST | `/api/auth/resend-verification` | Send the confirmation email again (requires auth; once per 10 minutes) |
 | GET | `/api/auth/me` | Current user (requires auth) |
 | PUT | `/api/auth/me` | Change email and/or password (requires auth and the current password) |
 | GET | `/api/contacts` | List contacts |

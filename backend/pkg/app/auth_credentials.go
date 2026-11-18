@@ -163,6 +163,9 @@ func (a *App) updateCredentials(w http.ResponseWriter, r *http.Request) {
 		errResp(w, http.StatusNotFound, "user not found")
 		return
 	}
+	if newEmail != "" {
+		a.sendVerification(user.UserID, user.Email, user.Name)
+	}
 	token, err := a.auth.Generate(user.UserID, user.Email, user.Role)
 	if err != nil {
 		errResp(w, http.StatusInternalServerError, "failed to generate token")

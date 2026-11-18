@@ -12,6 +12,7 @@ import (
 	"contacts/pkg/auth"
 	"contacts/pkg/config"
 	"contacts/pkg/docvalidate"
+	"contacts/pkg/mailer"
 	"contacts/pkg/model"
 	"contacts/pkg/noteval"
 	"contacts/pkg/storage"
@@ -30,6 +31,10 @@ type App struct {
 	photos storage.Store // nil when photo storage is not configured
 
 	limiter rateLimiter // nil disables rate limiting
+
+	mailer mailer.Sender // nil when email is not configured
+	apiURL string        // public URL of this backend, for links in emails
+	appURL string        // public URL of the web app, for redirects
 
 	refreshTTL   time.Duration
 	refreshGrace time.Duration
@@ -53,6 +58,11 @@ func New(s *store.Store, a *auth.Manager, opts ...Option) *App {
 		refreshTTL:   time.Duration(cfg.RefreshTTLDays) * 24 * time.Hour,
 		refreshGrace: time.Duration(cfg.RefreshGraceSeconds) * time.Second,
 	}
+	if m := mailer.New(cfg.ResendAPIKey, cfg.EmailFrom); m != nil {
+		app.mailer = m
+		app.apiURL = cfg.APIURL
+		app.appURL = cfg.AppURL
+	}
 	if sc := storage.New(cfg.SupabaseURL, cfg.SupabaseServiceKey, cfg.SupabaseBucket); sc.Configured() {
 		app.photos = sc
 	}
@@ -74,9 +84,11 @@ func (a *App) Handler() http.Handler {
 		r.Post("/auth/login", a.login)
 		r.Post("/auth/refresh", a.refresh)
 		r.Post("/auth/logout", a.logout)
+		r.Get("/auth/verify-email", a.verifyEmail)
 		r.Group(func(r chi.Router) {
 			r.Use(a.auth.Middleware)
 			r.Get("/auth/me", a.me)
+			r.Post("/auth/resend-verification", a.resendVerification)
 			r.Put("/auth/me", a.updateCredentials)
 
 			r.Get("/contacts", a.listContacts)
@@ -294,6 +306,8 @@ func (a *App) register(w http.ResponseWriter, r *http.Request) {
 		errResp(w, http.StatusInternalServerError, "failed to issue refresh token")
 		return
 	}
+
+	a.sendVerification(user.UserID, user.Email, user.Name)
 
 	dataResp(w, http.StatusCreated, model.AuthResponse{Token: token, User: user, RefreshToken: refreshToken})
 }
