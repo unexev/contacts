@@ -108,6 +108,14 @@ func (s *Store) GetUserByEmailWithHash(email string) (model.User, string, error)
 	return u, hash, err
 }
 
+// UserExists reports whether the account still exists.
+func (s *Store) UserExists(userID string) (bool, error) {
+	var ok bool
+	err := s.pool.QueryRow(context.Background(),
+		`SELECT EXISTS (SELECT 1 FROM app_users WHERE user_id = $1)`, userID).Scan(&ok)
+	return ok, err
+}
+
 func (s *Store) GetUserByID(userID string) (model.User, error) {
 	var u model.User
 	err := s.pool.QueryRow(context.Background(),

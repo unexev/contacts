@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"contacts/pkg/auth"
 	"contacts/pkg/store"
 )
 
@@ -136,4 +137,32 @@ func getCORSOrigins() []string {
 		out = append(out, strings.TrimRight(strings.TrimSpace(o), "/"))
 	}
 	return out
+}
+
+// requireUser rejects a valid token whose account no longer exists. Access
+// tokens are stateless, so without this a deleted account's token would keep
+// working, and could even create orphan rows, until it expires.
+func (a *App) requireUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims := auth.GetUser(r)
+		if claims == nil {
+			errResp(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+		exists := a.userExists
+		if exists == nil {
+			exists = a.store.UserExists
+		}
+		ok, err := exists(claims.UserID)
+		if err != nil {
+			log.Printf("check user error: %v", err)
+			errResp(w, http.StatusInternalServerError, "failed to verify session")
+			return
+		}
+		if !ok {
+			errResp(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

@@ -1,10 +1,13 @@
 package app
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"contacts/pkg/auth"
 )
 
 // fakeLimiter counts hits per key in memory.
@@ -53,5 +56,33 @@ func TestRateLimitWithoutLimiterAllowsEverything(t *testing.T) {
 	a := &App{}
 	if !a.allow("ip:1.1.1.1", 0, time.Minute) {
 		t.Fatal("a nil limiter must allow")
+	}
+}
+
+func TestRequireUserRejectsDeletedAccount(t *testing.T) {
+	run := func(exists func(string) (bool, error)) int {
+		a := &App{userExists: exists, auth: auth.NewManager("secret", time.Minute)}
+		token, err := a.auth.Generate("usr_1", "a@b.c", "user")
+		if err != nil {
+			t.Fatal(err)
+		}
+		h := a.auth.Middleware(a.requireUser(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})))
+		req := httptest.NewRequest(http.MethodGet, "/api/contacts", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec.Code
+	}
+
+	if got := run(func(string) (bool, error) { return true, nil }); got != http.StatusOK {
+		t.Fatalf("existing user: got %d, want 200", got)
+	}
+	if got := run(func(string) (bool, error) { return false, nil }); got != http.StatusUnauthorized {
+		t.Fatalf("deleted user: got %d, want 401", got)
+	}
+	if got := run(func(string) (bool, error) { return false, errors.New("db down") }); got != http.StatusInternalServerError {
+		t.Fatalf("lookup error: got %d, want 500", got)
 	}
 }
