@@ -32,6 +32,8 @@ type App struct {
 
 	limiter rateLimiter // nil disables rate limiting
 
+	userExists func(userID string) (bool, error) // nil uses the store
+
 	mailer mailer.Sender // nil when email is not configured
 	apiURL string        // public URL of this backend, for links in emails
 	appURL string        // public URL of the web app, for redirects
@@ -87,8 +89,10 @@ func (a *App) Handler() http.Handler {
 		r.Get("/auth/verify-email", a.verifyEmail)
 		r.Group(func(r chi.Router) {
 			r.Use(a.auth.Middleware)
+			r.Use(a.requireUser)
 			r.Get("/auth/me", a.me)
 			r.Post("/auth/resend-verification", a.resendVerification)
+			r.Delete("/auth/me", a.deleteAccount)
 			r.Put("/auth/me", a.updateCredentials)
 
 			r.Get("/contacts", a.listContacts)

@@ -113,6 +113,7 @@ Migrations run automatically every time the backend starts and are idempotent, s
 | POST | `/api/auth/resend-verification` | Send the confirmation email again (requires auth; once per 10 minutes) |
 | GET | `/api/auth/me` | Current user (requires auth) |
 | PUT | `/api/auth/me` | Change email and/or password (requires auth and the current password) |
+| DELETE | `/api/auth/me` | Permanently delete the account, its contacts and their photos (requires auth and `current_password` in the body; answers `204`) |
 | GET | `/api/contacts` | List contacts |
 | POST | `/api/contacts` | Create contact |
 | GET | `/api/contacts/:id` | Get contact |

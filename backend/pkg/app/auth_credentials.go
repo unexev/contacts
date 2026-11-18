@@ -173,3 +173,56 @@ func (a *App) updateCredentials(w http.ResponseWriter, r *http.Request) {
 	}
 	dataResp(w, http.StatusOK, model.AuthResponse{Token: token, User: user, RefreshToken: refreshToken})
 }
+
+const (
+	deleteAttemptsPerWindow = 5
+	deleteAttemptsWindow    = 15 * time.Minute
+)
+
+// deleteAccount permanently removes the account and all its data. It asks for
+// the password again, so a stolen access token alone cannot wipe an account.
+func (a *App) deleteAccount(w http.ResponseWriter, r *http.Request) {
+	claims := auth.GetUser(r)
+	var req struct {
+		CurrentPassword string `json:"current_password"`
+	}
+	if err := decodeJSON(r, &req); err != nil || req.CurrentPassword == "" {
+		errResp(w, http.StatusBadRequest, "current password is required")
+		return
+	}
+	if !a.allow("delete:"+claims.UserID, deleteAttemptsPerWindow, deleteAttemptsWindow) {
+		tooManyRequests(w, deleteAttemptsWindow)
+		return
+	}
+
+	hash, err := a.store.GetPasswordHashByID(claims.UserID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		errResp(w, http.StatusUnauthorized, "invalid credentials")
+		return
+	}
+	if err != nil {
+		log.Printf("load password hash error: %v", err)
+		errResp(w, http.StatusInternalServerError, "failed to verify credentials")
+		return
+	}
+	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.CurrentPassword)) != nil {
+		errResp(w, http.StatusUnauthorized, "invalid credentials")
+		return
+	}
+
+	photos, err := a.store.DeleteAccount(claims.UserID)
+	if err != nil {
+		log.Printf("delete account error: %v", err)
+		errResp(w, http.StatusInternalServerError, "failed to delete account")
+		return
+	}
+	// The data is already gone; a photo that fails to delete is only logged.
+	if a.photos != nil {
+		for _, p := range photos {
+			if err := a.photos.Delete(r.Context(), p); err != nil {
+				log.Printf("delete photo %q error: %v", p, err)
+			}
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

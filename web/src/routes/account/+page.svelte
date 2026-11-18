@@ -1,5 +1,5 @@
 <script>
-  import { A, api, setToken } from '$lib/api.svelte.js';
+  import { A, api, setToken, logout } from '$lib/api.svelte.js';
   import { t } from '$lib/i18n.svelte.js';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { friendlyError } from '$lib/errors.js';
@@ -13,6 +13,28 @@
   let error = $state('');
   let success = $state('');
   let loading = $state(false);
+
+  let deleting = $state(false);
+  let deletePassword = $state('');
+  let deleteError = $state('');
+  let deleteLoading = $state(false);
+
+  async function handleDelete(e) {
+    e.preventDefault();
+    deleteError = '';
+    if (!deletePassword) { deleteError = t('accountCurrentRequired'); return; }
+    deleteLoading = true;
+    try {
+      await api('/api/auth/me', { method: 'DELETE', body: { current_password: deletePassword }, keepSession: true });
+      logout();
+      goto('/login');
+    } catch (err) {
+      if (err?.expired) { goto('/login'); return; }
+      deleteError = err?.message === 'Invalid credentials' ? t('accountWrongPassword') : friendlyError(err, t);
+    } finally {
+      deleteLoading = false;
+    }
+  }
 
   onMount(() => {
     if (!A.token) goto('/login');
@@ -88,6 +110,36 @@
     </button>
   </form>
 
+  <section class="danger-zone">
+    <h2 class="danger-title">{t('accountDeleteTitle')}</h2>
+    <p class="danger-text">{t('accountDeleteWarning')}</p>
+    {#if !deleting}
+      <button class="btn btn-secondary btn-full" type="button" onclick={() => (deleting = true)}>
+        {t('accountDeleteAction')}
+      </button>
+    {:else}
+      {#if deleteError}
+        <ErrorNotice message={deleteError} />
+      {/if}
+      <form onsubmit={handleDelete}>
+        <div class="form-group">
+          <label class="form-label" for="delete-password">{t('accountDeletePrompt')}</label>
+          <input id="delete-password" class="input" type="password" bind:value={deletePassword}
+            required autocomplete="current-password" />
+        </div>
+        <div class="danger-actions">
+          <button class="btn btn-secondary" type="button"
+            onclick={() => { deleting = false; deletePassword = ''; deleteError = ''; }}>
+            {t('accountDeleteCancel')}
+          </button>
+          <button class="btn btn-danger" type="submit" disabled={deleteLoading}>
+            {deleteLoading ? '...' : t('accountDeleteConfirm')}
+          </button>
+        </div>
+      </form>
+    {/if}
+  </section>
+
   <p class="account-footer"><a href="/config">{t('accountBack')}</a></p>
 </div>
 
@@ -96,5 +148,9 @@
   .account-title { font-size: 1.75rem; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
   .account-intro { color: var(--text2); font-size: 0.875rem; margin-bottom: 20px; }
   .account-success { color: var(--text); margin-bottom: 16px; font-size: 0.875rem; }
+  .danger-zone { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .danger-title { font-size: 1.0625rem; font-weight: 700; margin-bottom: 6px; }
+  .danger-text { color: var(--text2); font-size: 0.875rem; margin-bottom: 14px; }
+  .danger-actions { display: flex; gap: 10px; flex-wrap: wrap; }
   .account-footer { margin-top: 20px; font-size: 0.875rem; }
 </style>
