@@ -6,6 +6,7 @@
   import { friendlyError } from '$lib/errors.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import { downloadExport } from '$lib/export.js';
 
   let currentPassword = $state('');
   let email = $state('');
@@ -14,6 +15,20 @@
   let error = $state('');
   let success = $state('');
   let loading = $state(false);
+
+  let exporting = $state(false);
+
+  async function handleExport() {
+    exporting = true;
+    try {
+      const count = await downloadExport();
+      showToast(t('exportDone').replace('{count}', count));
+    } catch {
+      showToast(t('exportFailed'));
+    } finally {
+      exporting = false;
+    }
+  }
 
   let deleting = $state(false);
   let deletePassword = $state('');
@@ -118,6 +133,14 @@
     </button>
   </form>
 
+  <section class="export-zone">
+    <h2 class="danger-title">{t('accountExportTitle')}</h2>
+    <p class="danger-text">{t('accountExportText')}</p>
+    <button class="btn btn-secondary btn-full" type="button" onclick={handleExport} disabled={exporting}>
+      {exporting ? '...' : t('accountExportAction')}
+    </button>
+  </section>
+
   <section class="danger-zone">
     <h2 class="danger-title">{t('accountDeleteTitle')}</h2>
     <p class="danger-text">{t('accountDeleteWarning')}</p>
@@ -156,6 +179,7 @@
   .account-title { font-size: 1.75rem; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
   .account-intro { color: var(--text2); font-size: 0.875rem; margin-bottom: 20px; }
   .account-success { color: var(--text); margin-bottom: 16px; font-size: 0.875rem; }
+  .export-zone { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border); }
   .danger-zone { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border); }
   .danger-title { font-size: 1.0625rem; font-weight: 700; margin-bottom: 6px; }
   .danger-text { color: var(--text2); font-size: 0.875rem; margin-bottom: 14px; }
