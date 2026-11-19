@@ -4,7 +4,9 @@
   import { t } from '$lib/i18n.svelte.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { Search, RefreshCw, ArrowUpDown, Filter, X, Check, Ellipsis, ChevronDown } from '@lucide/svelte';
+  import { Search, RefreshCw, ArrowUpDown, Filter, X, Check, Ellipsis, ChevronDown, Download } from '@lucide/svelte';
+  import { downloadExport } from '$lib/export.js';
+  import { showToast } from '$lib/toast.svelte.js';
   import { hasActions, primaryPhone, primaryEmail } from '$lib/contactActions.js';
   import ContactActionsMenu from '$lib/components/ContactActionsMenu.svelte';
   import Avatar from '$lib/components/Avatar.svelte';
@@ -61,6 +63,22 @@
       maritalStatuses = Array.isArray(data) ? data : (data?.statuses || []);
     } catch {
       // Without the list the filter still offers all / with / without.
+    }
+  }
+
+  let exporting = $state(false);
+
+  // Exports what the list currently shows: same search and filters, no paging.
+  async function exportCurrent() {
+    exporting = true;
+    try {
+      const query = buildParams().split('&').filter((p) => !p.startsWith('limit=')).join('&');
+      const count = await downloadExport(query);
+      showToast(t('exportDone').replace('{count}', count));
+    } catch {
+      showToast(t('exportFailed'));
+    } finally {
+      exporting = false;
     }
   }
 
@@ -366,6 +384,9 @@
         {#if activeFilters > 0}
           <span class="filter-badge">{activeFilters}</span>
         {/if}
+      </button>
+      <button class="icon-btn" onclick={exportCurrent} title={t('contactsExport')} aria-label={t('contactsExport')} aria-busy={exporting} disabled={exporting}>
+        <Download size={18} />
       </button>
       <button class="icon-btn" class:active={showSort} onclick={() => { showSort = !showSort; showFilters = false; }} title={t('contactsSort')} aria-label={t('contactsSort')}>
         <ArrowUpDown size={18} />
