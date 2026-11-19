@@ -171,6 +171,8 @@ func (a *App) Handler() http.Handler {
 				// Sync
 				r.Get("/sync", a.syncPull)
 				r.Post("/sync/push", a.syncPush)
+
+				r.Get("/export", a.exportData)
 			})
 		})
 	})
@@ -481,18 +483,7 @@ func (a *App) listContacts(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	limit, offset := parsePagination(r)
 
-	filters := ContactFilters{
-		Search:             r.URL.Query().Get("search"),
-		Gender:             strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("gender"))),
-		HasBirthday:        parseBoolPtr(r.URL.Query().Get("has_birthday")),
-		HasIDCard:          parseBoolPtr(r.URL.Query().Get("has_id_card")),
-		HasOrganization:    parseBoolPtr(r.URL.Query().Get("has_organization")),
-		HasMaritalStatus:   parseBoolPtr(r.URL.Query().Get("has_marital_status")),
-		HasPhone:           parseBoolPtr(r.URL.Query().Get("has_phone")),
-		RelationshipStatus: parseRelationshipStatusFilter(r.URL.Query().Get("relationship_status")),
-		HasChildren:        parseBoolPtr(r.URL.Query().Get("has_children")),
-		StatusID:           strings.TrimSpace(r.URL.Query().Get("status_id")),
-	}
+	filters := contactFiltersFromQuery(r)
 
 	contacts, total, err := a.store.ListContacts(claims.UserID, filters.Search, filters.Gender,
 		filters.HasBirthday, filters.HasIDCard, filters.HasOrganization, filters.HasMaritalStatus, filters.HasPhone,
