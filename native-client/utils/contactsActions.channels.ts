@@ -1,5 +1,6 @@
 import { db } from './db';
 import { toDisplay, toUpper } from './contactUtils';
+import { normalizePhoneLabel } from './phoneLabels';
 import type {
     ContactEmail,
     ContactKeyword,
@@ -34,20 +35,20 @@ export function createContactsChannelActions(): Pick<
             const result = await db.getAllAsync<ContactPhone>(
                 'SELECT * FROM contact_phone WHERE contact_id = ? ORDER BY id ASC', contactId
             );
-            return result.map(r => ({ ...r, label: r.label ? toDisplay(r.label) : r.label }));
+            return result;
         } catch (e) { console.error(e); return []; }
     };
 
-    const addContactPhone = async (contactId: string, phone: string, label?: string): Promise<boolean> => {
+    const addContactPhone = async (contactId: string, phone: string, label?: string, isActive: boolean = true): Promise<boolean> => {
         try {
-            await db.runAsync('INSERT INTO contact_phone (contact_id, phone, label) VALUES (?, ?, ?)', contactId, phone, toUpper(label));
+            await db.runAsync('INSERT INTO contact_phone (contact_id, phone, label, is_active) VALUES (?, ?, ?, ?)', contactId, phone, normalizePhoneLabel(label) || null, isActive ? 1 : 0);
             return true;
         } catch (e) { console.error(e); return false; }
     };
 
-    const updateContactPhone = async (id: number, phone: string, label?: string): Promise<boolean> => {
+    const updateContactPhone = async (id: number, phone: string, label?: string, isActive: boolean = true): Promise<boolean> => {
         try {
-            await db.runAsync("UPDATE contact_phone SET phone = ?, label = ?, updated_at = datetime('now') WHERE id = ?", phone, toUpper(label), id);
+            await db.runAsync("UPDATE contact_phone SET phone = ?, label = ?, is_active = ?, updated_at = datetime('now') WHERE id = ?", phone, normalizePhoneLabel(label) || null, isActive ? 1 : 0, id);
             return true;
         } catch (e) { console.error(e); return false; }
     };

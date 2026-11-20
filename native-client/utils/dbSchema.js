@@ -293,12 +293,18 @@ const LEGACY_DOC_TYPES = {
   other: ['Other', 'Otro'],
 };
 
+const PHONE_LABELS = ['Personal', 'Trabajo', 'Casa', 'Otro'];
+
 function normalizeDataStatements() {
   const out = ISO_DATE_COLUMNS.map(([table, col]) =>
     `UPDATE ${table} SET ${col} = substr(${col}, 7, 4) || '-' || substr(${col}, 4, 2) || '-' || substr(${col}, 1, 2) WHERE ${col} LIKE '__/__/____'`);
   for (const [code, legacy] of Object.entries(LEGACY_DOC_TYPES)) {
     const list = legacy.map((v) => `'${v.replace(/'/g, "''")}'`).join(', ');
     out.push(`UPDATE national_identity_card SET doc_type = '${code}' WHERE doc_type IN (${list})`);
+  }
+  // Phone labels: stored as the canonical word whatever the case they were typed in.
+  for (const label of PHONE_LABELS) {
+    out.push(`UPDATE contact_phone SET label = '${label}' WHERE lower(label) = '${label.toLowerCase()}' AND label <> '${label}'`);
   }
   return out;
 }

@@ -1,3 +1,5 @@
+import { DEFAULT_PHONE_LABEL, normalizePhoneLabel, PHONE_LABELS, phoneLabelText } from '../../utils/phoneLabels';
+import CheckboxRow from './CheckboxRow';
 import { Ionicons } from '@expo/vector-icons';
 import { copyToClipboard } from '../../utils/clipboard';
 import React, { useCallback, useState } from 'react';
@@ -124,20 +126,29 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
   const [editingEmailId, setEditingEmailId] = useState<number | null>(null);
   const [phoneInput, setPhoneInput] = useState('');
   const [phoneLabelInput, setPhoneLabelInput] = useState('');
+  const [phoneActive, setPhoneActive] = useState(true);
   const [emailInput, setEmailInput] = useState('');
   const [emailLabelInput, setEmailLabelInput] = useState('');
+
+  // The fixed options, plus a label typed before the menu existed so it is not lost on edit.
+  const phoneLabelOptions = [
+    ...PHONE_LABELS.map(o => ({ value: o.value as string, text: t.contactInfo[o.labelKey] })),
+    ...(phoneLabelInput && !PHONE_LABELS.some(o => o.value === phoneLabelInput) ? [{ value: phoneLabelInput, text: phoneLabelInput }] : []),
+  ];
 
   const openAddPhoneModal = () => {
     setEditingPhoneId(null);
     setPhoneInput('');
-    setPhoneLabelInput('');
+    setPhoneLabelInput(DEFAULT_PHONE_LABEL);
+    setPhoneActive(true);
     setPhoneModal(true);
   };
 
   const openEditPhoneModal = (p: ContactPhone) => {
     setEditingPhoneId(p.id);
     setPhoneInput(p.phone);
-    setPhoneLabelInput(p.label ?? '');
+    setPhoneLabelInput(normalizePhoneLabel(p.label));
+    setPhoneActive(p.is_active !== 0);
     setPhoneModal(true);
   };
 
@@ -165,8 +176,8 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
       return;
     }
     const ok = editingPhoneId !== null
-      ? await updateContactPhone(editingPhoneId, phoneInput.trim(), phoneLabelInput.trim() || undefined)
-      : await addContactPhone(contactId, phoneInput.trim(), phoneLabelInput.trim() || undefined);
+      ? await updateContactPhone(editingPhoneId, phoneInput.trim(), phoneLabelInput.trim() || undefined, phoneActive)
+      : await addContactPhone(contactId, phoneInput.trim(), phoneLabelInput.trim() || undefined, phoneActive);
     if (ok) {
       setPhones(await getContactPhones(contactId));
       setPhoneModal(false);
@@ -237,8 +248,12 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
           phones.map(p => (
             <View key={p.id} style={styles.row}>
               <Pressable accessibilityRole="button" style={styles.info} onPress={() => openPhoneActions(p.phone)}>
-                {p.label ? <Text style={[styles.label, { color: colors.textSecondary }]}>{p.label}</Text> : null}
-                <Text style={[styles.phoneValue, { color: colors.accent }]}>{p.phone}</Text>
+                {p.label || p.is_active === 0 ? (
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>
+                    {[p.label ? phoneLabelText(p.label, t.contactInfo) : '', p.is_active === 0 ? t.contactInfo.phoneNotInUse : ''].filter(Boolean).join(' · ')}
+                  </Text>
+                ) : null}
+                <Text style={[styles.phoneValue, { color: colors.accent }, p.is_active === 0 && styles.inactivePhone]}>{p.phone}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" onPress={() => openEditPhoneModal(p)} style={styles.editBtn} accessibilityLabel={t.common.edit}>
                 <Text style={[styles.editBtnText, { color: colors.accent }]}>{t.common.edit}</Text>
@@ -353,10 +368,23 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
               />
               <Text style={[styles.phoneHint, { color: colors.textSecondary }]}>{t.contactInfo.phoneHint}</Text>
               <Text style={s.fieldLabel}>{t.contactInfo.phoneLabel}</Text>
-              <TextInput accessibilityLabel={t.common.placeholderMobile}
-                style={s.input} value={phoneLabelInput} onChangeText={setPhoneLabelInput}
-                placeholder={t.common.placeholderMobile} placeholderTextColor={colors.placeholder}
-              />
+              <View style={styles.labelRow} accessibilityRole="radiogroup">
+                {phoneLabelOptions.map(opt => {
+                  const selected = phoneLabelInput === opt.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected }}
+                      onPress={() => setPhoneLabelInput(selected ? '' : opt.value)}
+                      style={[styles.labelChip, { borderColor: selected ? colors.accentFill : colors.border, backgroundColor: selected ? colors.accentFill : colors.surface2 }]}
+                    >
+                      <Text style={[styles.labelChipText, { color: selected ? colors.surface : colors.text }]}>{opt.text}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <CheckboxRow label={t.contactInfo.phoneInUse} value={phoneActive} onChange={setPhoneActive} />
             </ScrollView>
             <View style={s.modalActions}>
               <Pressable accessibilityRole="button" style={s.btnCancel} onPress={() => setPhoneModal(false)}>
@@ -414,6 +442,10 @@ const styles = StyleSheet.create({
   info: { flex: 1 },
   label: { fontSize: 11, color: '#6C6C70', marginBottom: 2 },
   phoneValue: { fontSize: 17, color: '#0066D6', fontWeight: '500' },
+  inactivePhone: { textDecorationLine: 'line-through', opacity: 0.7 },
+  labelRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  labelChip: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, justifyContent: 'center' },
+  labelChipText: { fontSize: 15, fontWeight: '500' },
   value: { fontSize: 16, color: '#000' },
   callBtn: {
     paddingHorizontal: 10, paddingVertical: 7,

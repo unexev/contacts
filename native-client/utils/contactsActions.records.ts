@@ -1,4 +1,5 @@
 import { toIsoDate } from './dates';
+import { normalizePhoneLabel } from './phoneLabels';
 import { db } from './db';
 import { toDisplay, toUpper } from './contactUtils';
 import { toTitleDisplay } from './textFormat';
@@ -278,7 +279,7 @@ export function createContactsRecordActions({
                 );
 
                 for (const p of card.phones) {
-                    await db.runAsync('INSERT INTO contact_phone (contact_id, phone, label) VALUES (?, ?, ?)', id, p.phone, toUpper(p.label));
+                    await db.runAsync('INSERT INTO contact_phone (contact_id, phone, label) VALUES (?, ?, ?)', id, p.phone, normalizePhoneLabel(p.label) || null);
                 }
                 for (const e of card.emails) {
                     await db.runAsync('INSERT INTO contact_email (contact_id, email, label) VALUES (?, ?, ?)', id, e.email, toUpper(e.label));

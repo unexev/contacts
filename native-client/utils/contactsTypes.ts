@@ -18,6 +18,8 @@ export interface ContactPhone {
     contact_id: string;
     phone: string;
     label?: string;
+    /** 0 when the person no longer uses this number. */
+    is_active?: number;
 }
 
 export interface ContactEmail {
@@ -129,8 +131,8 @@ export interface ContactsContextType {
     deleteContact: (id: string) => Promise<boolean>;
     updateContact: (id: string, data: ContactInput) => Promise<boolean>;
     getContactPhones: (contactId: string) => Promise<ContactPhone[]>;
-    addContactPhone: (contactId: string, phone: string, label?: string) => Promise<boolean>;
-    updateContactPhone: (id: number, phone: string, label?: string) => Promise<boolean>;
+    addContactPhone: (contactId: string, phone: string, label?: string, isActive?: boolean) => Promise<boolean>;
+    updateContactPhone: (id: number, phone: string, label?: string, isActive?: boolean) => Promise<boolean>;
     removeContactPhone: (id: number) => Promise<boolean>;
     getContactEmails: (contactId: string) => Promise<ContactEmail[]>;
     addContactEmail: (contactId: string, email: string, label?: string) => Promise<boolean>;
