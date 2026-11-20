@@ -1,3 +1,4 @@
+import { useToast } from '../utils/toast';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Alert, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -27,6 +28,7 @@ interface Props {
 export default function ContactActionsMenu({ visible, name, phone, email, canCall, onClose }: Props) {
   const { colors } = useTheme();
   const { t } = useI18n();
+  const showToast = useToast();
   const actions = contactActions(phone, email, canCall);
   const labels: Record<ContactActionKey, string> = {
     call: t.contactList.actionCall,
@@ -40,7 +42,7 @@ export default function ContactActionsMenu({ visible, name, phone, email, canCal
     try {
       if (key === 'copy') {
         await copyToClipboard(phone);
-        Alert.alert(t.contactList.actionCopied);
+        showToast(t.contactList.actionCopied);
       } else if (url) {
         await Linking.openURL(url);
       }

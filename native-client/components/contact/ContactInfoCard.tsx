@@ -1,3 +1,4 @@
+import { useToast } from '../../utils/toast';
 import { DEFAULT_PHONE_LABEL, normalizePhoneLabel, PHONE_LABELS, phoneLabelText } from '../../utils/phoneLabels';
 import CheckboxRow from './CheckboxRow';
 import { Ionicons } from '@expo/vector-icons';
@@ -108,6 +109,7 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
+  const showToast = useToast();
   const { getContactPhones, addContactPhone, updateContactPhone, removeContactPhone, getContactEmails, addContactEmail, updateContactEmail, removeContactEmail } = useContacts();
 
   const [phones, setPhones] = useState<ContactPhone[]>(initialPhones);
@@ -295,7 +297,7 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
                 accessibilityLabel={t.common.copyEmail}
                 onPress={async () => {
                   await copyToClipboard(e.email);
-                  Alert.alert(t.contactInfo.phoneActions.copied);
+                  showToast(t.contactInfo.phoneActions.copied);
                 }}
               >
                 <Ionicons name="copy-outline" size={20} color={colors.accent} />
@@ -340,7 +342,7 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
               onPress={async () => {
                 await copyToClipboard(actionsSheet?.phone ?? '');
                 setActionsSheet(null);
-                Alert.alert(t.contactInfo.phoneActions.copied);
+                showToast(t.contactInfo.phoneActions.copied);
               }}
             >
               <Text style={[styles.actionLabel, { color: colors.text }]}>{t.contactInfo.phoneActions.copyToClipboard}</Text>

@@ -1,3 +1,4 @@
+import ContactListSkeleton from '../../components/ContactListSkeleton';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { parseView, serializeView, VIEW_STORAGE_KEY } from '../../utils/viewState';
 import ContactActionsMenu from '../../components/ContactActionsMenu';
@@ -6,7 +7,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -602,11 +602,7 @@ export default function HomeScreen() {
         </Text>
 
         <View style={{ flex: 1 }}>
-          {contactsLoading && (
-            <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color={colors.accent} />
-            </View>
-          )}
+          {contactsLoading ? <ContactListSkeleton /> : (
           <SectionList
             sections={sections}
             keyExtractor={(item) => item.contact_id}
@@ -704,6 +700,7 @@ export default function HomeScreen() {
             )}
             contentContainerStyle={[styles.listContent, isDesktop && styles.listContentDesktop]}
           />
+          )}
 
           <Pressable accessibilityRole="button" style={[styles.fab, isDesktop && styles.fabDesktop, { backgroundColor: colors.accentDecor, shadowColor: colors.accentDecor }]} onPress={handleOpenModal} accessibilityLabel={t.contacts.newContact}>
             <Ionicons name="add" size={24} color="#FFFFFF" />
@@ -1056,12 +1053,6 @@ const styles = StyleSheet.create({
   contactSecondaryLight: { fontSize: 12, color: '#0066D6', marginTop: 1 },
 
   // List
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
   listContent: { paddingBottom: 100 },
   listContentDesktop: { paddingBottom: 120 },
   emptyContainer: { flex: 1, alignItems: 'center', marginTop: 60 },

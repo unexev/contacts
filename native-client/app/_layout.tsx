@@ -1,3 +1,4 @@
+import { ToastProvider } from '../utils/toast';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from "expo-router";
@@ -45,6 +46,7 @@ function ThemedApp() {
   const sidePadding = Platform.OS === 'android' ? { paddingLeft: insets.left, paddingRight: insets.right } : null;
   return (
     <ContactsProvider>
+      <ToastProvider>
       <GestureHandlerRootView style={[{ flex: 1 }, sidePadding]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
         <AuthGate>
@@ -63,6 +65,7 @@ function ThemedApp() {
           </Stack>
         </AuthGate>
       </GestureHandlerRootView>
+      </ToastProvider>
     </ContactsProvider>
   );
 }

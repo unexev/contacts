@@ -1,3 +1,4 @@
+import { useToast } from '../../utils/toast';
 import { toDisplayDate } from '../../utils/dates';
 import { DEFAULT_DOC_TYPE, DOCUMENT_TYPES, docTypeLabelKey } from '../../utils/docTypes';
 import { COUNTRY_CODES, countryName } from '../../utils/countries';
@@ -23,6 +24,7 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
   const s = useSharedStyles();
   const { colors } = useTheme();
   const { t } = useI18n();
+  const showToast = useToast();
   const { getIdentityCards, addIdentityCard, updateIdentityCard, deleteIdentityCard } = useContacts();
 
   const [cards, setCards] = useState<IdentityCard[]>(initialCards);
@@ -130,7 +132,7 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
                 style={styles.editBtn}
                 onPress={async () => {
                   await copyToClipboard(doc.card_number);
-                  Alert.alert(t.contactInfo.phoneActions.copied);
+                  showToast(t.contactInfo.phoneActions.copied);
                 }}
               >
                 <Ionicons name="copy-outline" size={20} color={colors.accent} />

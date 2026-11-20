@@ -1,6 +1,7 @@
+import { useToast } from '../utils/toast';
 import { Stack, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { requestApi, setApiTokens } from '../utils/apiClient';
 import { syncNow } from '../utils/apiSync';
 import { useAuth } from '../utils/authContext';
@@ -17,6 +18,7 @@ export default function AccountScreen() {
   const { colors } = useTheme();
   const { signOutUser } = useAuth();
   const router = useRouter();
+  const showToast = useToast();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -58,7 +60,7 @@ export default function AccountScreen() {
       const outcome = readCredentialsResponse(res.data);
       if (outcome.kind === 'verify') {
         await signOutUser();
-        Alert.alert(t.accountPage.verifyEmail);
+        showToast(t.accountPage.verifyEmail, 8000);
         return;
       }
       if (outcome.kind === 'session') await setApiTokens(outcome.token, outcome.refreshToken);
