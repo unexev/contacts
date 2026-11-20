@@ -90,7 +90,8 @@ export async function requestApi<T = any>(
   { raw = false }: { raw?: boolean } = {}
 ): Promise<{ data?: T; error?: string; status: number }> {
   const headers = new Headers(options.headers || {});
-  headers.set('Content-Type', 'application/json');
+  // A multipart body sets its own Content-Type (with the boundary).
+  if (!(typeof FormData !== 'undefined' && options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
 
   if (currentAccessToken) {
     headers.set('Authorization', `Bearer ${currentAccessToken}`);

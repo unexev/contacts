@@ -13,6 +13,8 @@ import NotesCard from '../../components/contact/NotesCard';
 import OrganizationsCard from '../../components/contact/OrganizationsCard';
 import RelationshipsCard from '../../components/contact/RelationshipsCard';
 import UrlsCard from '../../components/contact/UrlsCard';
+import ContactPhoto from '../../components/contact/ContactPhoto';
+import { useAuth } from '../../utils/authContext';
 import { ContactBankAccount, ContactEmail, ContactKeyword, ContactNote, ContactOrganization, ContactPhone, ContactUrl, IdentityCard, Relationship, useContacts } from '../../utils/context';
 import { useI18n } from '../../utils/i18n';
 import { listLabel } from '../../utils/listLabels';
@@ -27,6 +29,7 @@ export default function ContactDetailScreen() {
   const { t, lang } = useI18n();
   const { isDesktop, isTablet, r } = useResponsive();
   const { colors } = useTheme();
+  const { apiSession } = useAuth();
   const { getContact, getIdentityCards, getRelationships, getContactOrganizations, getContactPhones, getContactEmails, getContactKeywords, getBankAccounts, getContactNotes, getContactUrls, getMaritalStatuses, deleteContact } = useContacts();
 
   const [contact, setContact] = useState<ContactDetail | null>(null);
@@ -172,6 +175,7 @@ export default function ContactDetailScreen() {
 
         {/* Encabezado */}
         <View style={styles.headerContainer}>
+          <ContactPhoto contactId={contact.contact_id} firstName={contact.first_name ?? ''} surname={contact.surname ?? ''} enabled={apiSession} />
           {!!contact.deceased && (
             <View style={styles.deceasedRow} accessibilityRole="text">
               <Ionicons name="skull-outline" size={20} color={colors.destructiveText} />
