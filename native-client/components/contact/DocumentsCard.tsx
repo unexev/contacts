@@ -1,5 +1,7 @@
 import { toDisplayDate } from '../../utils/dates';
 import { DEFAULT_DOC_TYPE, DOCUMENT_TYPES, docTypeLabelKey } from '../../utils/docTypes';
+import { COUNTRY_CODES, countryName } from '../../utils/countries';
+import { ecCedulaProvince, MAX_CARD_NUMBER_LENGTH, validateDocument } from '../../utils/docValidation';
 import { Ionicons } from '@expo/vector-icons';
 import { copyToClipboard } from '../../utils/clipboard';
 import React, { useState } from 'react';
@@ -30,6 +32,12 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
   const [cardNumber, setCardNumber] = useState('');
   const [issueDate, setIssueDate] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
+  const [countryCode, setCountryCode] = useState<string | null>(null);
+  // Errors show after the number field loses focus or a save is attempted, not while typing.
+  const [showErrors, setShowErrors] = useState(false);
+
+  const validation = validateDocument(countryCode, docType, cardNumber);
+  const province = ecCedulaProvince(countryCode, docType, cardNumber);
 
   const openAddModal = () => {
     setEditingId(null);
@@ -37,6 +45,8 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
     setCardNumber('');
     setIssueDate('');
     setExpiryDate('');
+    setCountryCode(null);
+    setShowErrors(false);
     setModalVisible(true);
   };
 
@@ -46,6 +56,8 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
     setCardNumber(doc.card_number);
     setIssueDate(toDisplayDate(doc.issue_date));
     setExpiryDate(toDisplayDate(doc.expiry_date));
+    setCountryCode(doc.country_code || null);
+    setShowErrors(false);
     setModalVisible(true);
   };
 
@@ -54,14 +66,18 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
       Alert.alert(t.common.error, t.documents.numberRequired);
       return;
     }
+    if (!validation.valid) {
+      setShowErrors(true);
+      return;
+    }
     const ok = editingId !== null
-      ? await updateIdentityCard(editingId, docType, cardNumber.trim(), issueDate.trim() || undefined, expiryDate.trim() || undefined)
-      : await addIdentityCard(contactId, docType, cardNumber.trim(), issueDate.trim() || undefined, expiryDate.trim() || undefined);
+      ? await updateIdentityCard(editingId, docType, cardNumber.trim(), issueDate.trim() || undefined, expiryDate.trim() || undefined, countryCode)
+      : await addIdentityCard(contactId, docType, cardNumber.trim(), issueDate.trim() || undefined, expiryDate.trim() || undefined, countryCode);
     if (ok) {
       setCards(await getIdentityCards(contactId));
       setModalVisible(false);
     } else {
-      Alert.alert(t.common.error, docType === t.contactList.docIdCard ? t.documents.cedularError : t.documents.saveError);
+      Alert.alert(t.common.error, t.documents.saveError);
     }
   };
 
@@ -100,9 +116,13 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
             <View key={doc.id} style={styles.docRow}>
               <View style={styles.docInfo}>
                 <Text style={[styles.docType, { color: colors.textSecondary }]}>{(t.contactList as any)[docTypeLabelKey(doc.doc_type)]}</Text>
+                {doc.country_code ? <Text style={[styles.docDate, { color: colors.textSecondary }]}>{countryName(doc.country_code, t.countries)}</Text> : null}
                 <Text style={styles.docNumber}>
                   {doc.doc_type === 'drivers_license' ? `${t.documents.licenseType}: ` : ''}{doc.card_number}
                 </Text>
+                {ecCedulaProvince(doc.country_code, doc.doc_type, doc.card_number) ? (
+                  <Text style={[styles.docDate, { color: colors.textSecondary }]}>{t.documents.province}: {ecCedulaProvince(doc.country_code, doc.doc_type, doc.card_number)}</Text>
+                ) : null}
                 {doc.issue_date ? <Text style={styles.docDate}>{t.documents.issuedLabel} {toDisplayDate(doc.issue_date)}</Text> : null}
                 {doc.expiry_date ? <Text style={styles.docDate}>{t.documents.expiryLabel} {toDisplayDate(doc.expiry_date)}</Text> : null}
               </View>
@@ -139,12 +159,29 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
                 onSelect={v => v && setDocType(v)}
               />
 
+              <Text style={s.fieldLabel}>{t.documents.country}</Text>
+              <Dropdown
+                options={COUNTRY_CODES.map(code => ({ label: t.countries[code], value: code }))}
+                value={countryCode}
+                onSelect={setCountryCode}
+                allowNull
+                nullLabel={t.documents.countryNone}
+              />
+
               <Text style={s.fieldLabel}>{docType === 'drivers_license' ? t.documents.licenseType : t.documents.number} <Text style={s.required}>{t.common.required}</Text></Text>
               <TextInput accessibilityLabel={docType === 'drivers_license' ? t.documents.licenseType : t.documents.number}
                 style={s.input} value={cardNumber} onChangeText={setCardNumber}
+                onBlur={() => setShowErrors(true)}
+                maxLength={MAX_CARD_NUMBER_LENGTH}
                 placeholder={docType === 'drivers_license' ? t.documents.licenseType : t.documents.number} placeholderTextColor={colors.placeholder}
                 autoCapitalize="characters"
               />
+              {showErrors && cardNumber.trim() !== '' && !validation.valid && (
+                <Text style={[styles.docMessage, { color: colors.destructiveText }]} accessibilityRole="alert">{t.documents[validation.error]}</Text>
+              )}
+              {province && (
+                <Text style={[styles.docMessage, { color: colors.textSecondary }]}>{t.documents.province}: {province}</Text>
+              )}
 
               {DOCS_WITH_DATES.includes(docType) && (
                 <>
@@ -191,6 +228,7 @@ const styles = StyleSheet.create({
   docType: { fontSize: 12, color: '#6C6C70', fontWeight: '600', textTransform: 'uppercase', marginBottom: 2 },
   docNumber: { fontSize: 16, color: '#000', fontWeight: '500' },
   docDate: { fontSize: 13, color: '#555', marginTop: 2 },
+  docMessage: { fontSize: 13, marginTop: 4 },
   editBtn: { paddingHorizontal: 8, paddingVertical: 8, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   editBtnText: { fontSize: 14, color: '#0066D6' },
 });

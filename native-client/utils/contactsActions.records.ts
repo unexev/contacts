@@ -65,12 +65,12 @@ export function createContactsRecordActions({
     };
 
     const addIdentityCard = async (
-        contactId: string, docType: string, cardNumber: string, issueDate?: string, expiryDate?: string
+        contactId: string, docType: string, cardNumber: string, issueDate?: string, expiryDate?: string, countryCode?: string | null
     ): Promise<boolean> => {
         try {
             await db.runAsync(
-                'INSERT INTO national_identity_card (contact_id, doc_type, card_number, issue_date, expiry_date) VALUES (?, ?, ?, ?, ?)',
-                contactId, docType, toUpper(cardNumber), toIsoDate(issueDate), toIsoDate(expiryDate)
+                'INSERT INTO national_identity_card (contact_id, doc_type, card_number, issue_date, expiry_date, country_code) VALUES (?, ?, ?, ?, ?, ?)',
+                contactId, docType, toUpper(cardNumber), toIsoDate(issueDate), toIsoDate(expiryDate), countryCode || null
             );
             return true;
         } catch (e) {
@@ -80,12 +80,12 @@ export function createContactsRecordActions({
     };
 
     const updateIdentityCard = async (
-        id: number, docType: string, cardNumber: string, issueDate?: string, expiryDate?: string
+        id: number, docType: string, cardNumber: string, issueDate?: string, expiryDate?: string, countryCode?: string | null
     ): Promise<boolean> => {
         try {
             await db.runAsync(
-                'UPDATE national_identity_card SET doc_type = ?, card_number = ?, issue_date = ?, expiry_date = ? WHERE id = ?',
-                docType, toUpper(cardNumber), toIsoDate(issueDate), toIsoDate(expiryDate), id
+                "UPDATE national_identity_card SET doc_type = ?, card_number = ?, issue_date = ?, expiry_date = ?, country_code = ?, updated_at = datetime('now') WHERE id = ?",
+                docType, toUpper(cardNumber), toIsoDate(issueDate), toIsoDate(expiryDate), countryCode || null, id
             );
             return true;
         } catch (e) { console.error(e); return false; }

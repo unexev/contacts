@@ -64,6 +64,8 @@ export interface IdentityCard {
     card_number: string;
     issue_date?: string;
     expiry_date?: string;
+    /** ISO 3166 code (or OTHER) of the issuing country; empty when unknown. */
+    country_code?: string | null;
 }
 
 export interface ContactKeyword {
@@ -120,8 +122,8 @@ export interface ContactsContextType {
     getRelationshipTypes: () => Promise<RelationshipType[]>;
     getMaritalStatuses: () => Promise<MaritalStatus[]>;
     getIdentityCards: (contactId: string) => Promise<IdentityCard[]>;
-    addIdentityCard: (contactId: string, docType: string, cardNumber: string, issueDate?: string, expiryDate?: string) => Promise<boolean>;
-    updateIdentityCard: (id: number, docType: string, cardNumber: string, issueDate?: string, expiryDate?: string) => Promise<boolean>;
+    addIdentityCard: (contactId: string, docType: string, cardNumber: string, issueDate?: string, expiryDate?: string, countryCode?: string | null) => Promise<boolean>;
+    updateIdentityCard: (id: number, docType: string, cardNumber: string, issueDate?: string, expiryDate?: string, countryCode?: string | null) => Promise<boolean>;
     deleteIdentityCard: (id: number) => Promise<boolean>;
     getContactOrganizations: (contactId: string) => Promise<ContactOrganization[]>;
     addContactOrganization: (contactId: string, orgName: string, achievement: string, date?: string) => Promise<boolean>;
