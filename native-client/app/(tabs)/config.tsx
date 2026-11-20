@@ -184,6 +184,11 @@ export default function Config() {
               {licensed ? t.config.activeLicense : t.config.freePlan}
             </Text>
           </View>
+          {apiSession && (
+            <Pressable accessibilityRole="button" style={[styles.button, { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border }]} onPress={() => router.push('/account')}>
+              <Text style={[styles.buttonText, { color: colors.text }]}>{t.accountPage.edit}</Text>
+            </Pressable>
+          )}
           <Pressable accessibilityRole="button" style={[styles.button, styles.buttonSignOut, { backgroundColor: colors.destructiveFill }]} onPress={handleSignOut}>
             <Text style={styles.buttonText}>{t.config.signOut}</Text>
           </Pressable>

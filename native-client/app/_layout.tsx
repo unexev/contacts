@@ -55,6 +55,7 @@ function ThemedApp() {
               animation: 'slide_from_right',
               gestureEnabled: true,
             }} />
+            <Stack.Screen name="account" options={{ headerShown: true }} />
             <Stack.Screen
               name="contact/[id]"
               options={{ headerShown: true }}

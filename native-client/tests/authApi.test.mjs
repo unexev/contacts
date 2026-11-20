@@ -9,6 +9,7 @@ import {
   mapAuthFailure,
   resendVerificationRequest,
   mapDeleteFailure,
+  validateCredentialsChange, credentialsBody, mapCredentialsFailure, readCredentialsResponse,
 } from '../utils/authApi.ts';
 
 function fakeFetch(status, body, { throws } = {}) {
@@ -131,4 +132,36 @@ test('mapDeleteFailure maps account deletion statuses', () => {
   assert.equal(mapDeleteFailure(401), 'wrongPassword');
   assert.equal(mapDeleteFailure(429), 'wait');
   assert.equal(mapDeleteFailure(500), 'failed');
+});
+
+const form = (o = {}) => ({ currentPassword: 'old-pass-1', newEmail: '', newPassword: '', confirmPassword: '', ...o });
+
+test('validateCredentialsChange follows the web order of checks', () => {
+  assert.equal(validateCredentialsChange(form({ currentPassword: '', newEmail: 'a@b.co' })), 'accountCurrentRequired');
+  assert.equal(validateCredentialsChange(form()), 'accountNothingToChange');
+  assert.equal(validateCredentialsChange(form({ newEmail: 'nope' })), 'authEmailInvalid');
+  assert.equal(validateCredentialsChange(form({ newPassword: 'short', confirmPassword: 'short' })), 'authPasswordShort');
+  assert.equal(validateCredentialsChange(form({ newPassword: 'long-enough', confirmPassword: 'different1' })), 'accountPasswordMismatch');
+  assert.equal(validateCredentialsChange(form({ newEmail: ' a@b.co ' })), null);
+  assert.equal(validateCredentialsChange(form({ newPassword: 'long-enough', confirmPassword: 'long-enough' })), null);
+});
+
+test('credentialsBody sends only what changes', () => {
+  assert.deepEqual(credentialsBody(form({ newEmail: ' a@b.co ' })), { current_password: 'old-pass-1', email: 'a@b.co' });
+  assert.deepEqual(credentialsBody(form({ newPassword: 'long-enough' })), { current_password: 'old-pass-1', new_password: 'long-enough' });
+});
+
+test('mapCredentialsFailure tells a wrong current password from a bad login', () => {
+  assert.equal(mapCredentialsFailure(401), 'accountWrongPassword');
+  assert.equal(mapCredentialsFailure(409), 'authEmailTaken');
+  assert.equal(mapCredentialsFailure(400), 'authRequestInvalid');
+  assert.equal(mapCredentialsFailure(0), 'authNetwork');
+  assert.equal(mapCredentialsFailure(500), 'authGeneric');
+});
+
+test('readCredentialsResponse separates a new session from a pending confirmation', () => {
+  assert.deepEqual(readCredentialsResponse({ verification_required: true, user: {} }), { kind: 'verify' });
+  assert.deepEqual(readCredentialsResponse({ token: 't', refresh_token: 'r' }), { kind: 'session', token: 't', refreshToken: 'r' });
+  assert.deepEqual(readCredentialsResponse({}), { kind: 'invalid' });
+  assert.deepEqual(readCredentialsResponse(undefined), { kind: 'invalid' });
 });

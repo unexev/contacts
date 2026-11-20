@@ -145,3 +145,63 @@ export function mapDeleteFailure(status: number): DeleteAccountError {
   if (status === 429) return 'wait';
   return 'failed';
 }
+
+export type CredentialsErrorKey =
+  | 'accountCurrentRequired'
+  | 'accountNothingToChange'
+  | 'accountPasswordMismatch'
+  | 'accountWrongPassword'
+  | AuthErrorKey;
+
+export interface CredentialsForm {
+  currentPassword: string;
+  newEmail: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+/** Same checks, in the same order, as the web account page. */
+export function validateCredentialsChange(form: CredentialsForm): CredentialsErrorKey | null {
+  if (!form.currentPassword) return 'accountCurrentRequired';
+  const email = form.newEmail.trim();
+  if (!email && !form.newPassword) return 'accountNothingToChange';
+  if (email) {
+    const bad = validateEmail(email);
+    if (bad) return bad;
+  }
+  if (form.newPassword) {
+    const bad = validatePassword(form.newPassword);
+    if (bad) return bad;
+    if (form.newPassword !== form.confirmPassword) return 'accountPasswordMismatch';
+  }
+  return null;
+}
+
+/** Body of PUT /api/auth/me: only what is being changed, plus the current password. */
+export function credentialsBody(form: CredentialsForm): Record<string, string> {
+  const body: Record<string, string> = { current_password: form.currentPassword };
+  const email = form.newEmail.trim();
+  if (email) body.email = email;
+  if (form.newPassword) body.new_password = form.newPassword;
+  return body;
+}
+
+/** Maps a failed PUT /api/auth/me status (0 = network failure) to an error key. */
+export function mapCredentialsFailure(status: number): CredentialsErrorKey {
+  if (status === 401) return 'accountWrongPassword';
+  return mapAuthFailure(status);
+}
+
+export type CredentialsOutcome =
+  | { kind: 'session'; token: string; refreshToken: string }
+  | { kind: 'verify' }
+  | { kind: 'invalid' };
+
+/** The new email must be confirmed first (no session), or fresh tokens replace the old ones. */
+export function readCredentialsResponse(data: any): CredentialsOutcome {
+  if (data?.verification_required) return { kind: 'verify' };
+  if (data && typeof data.token === 'string' && typeof data.refresh_token === 'string') {
+    return { kind: 'session', token: data.token, refreshToken: data.refresh_token };
+  }
+  return { kind: 'invalid' };
+}
