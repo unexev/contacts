@@ -4,9 +4,13 @@ import { db } from './db';
 import { toDisplay, toUpper } from './contactUtils';
 import { toTitleDisplay } from './textFormat';
 import type { CreateContactsActionsParams } from './contactsActionsShared';
+import type { LocationValues } from './placeRecords';
+import type { NationalityValues } from './contactsTypes';
 import type {
     Contact,
     ContactBankAccount,
+    ContactLocation,
+    ContactNationality,
     ContactOrganization,
     ContactsContextType,
     IdentityCard,
@@ -38,6 +42,14 @@ export function createContactsRecordActions({
     | 'addBankAccount'
     | 'updateBankAccount'
     | 'deleteBankAccount'
+    | 'getLocations'
+    | 'addLocation'
+    | 'updateLocation'
+    | 'deleteLocation'
+    | 'getNationalities'
+    | 'addNationality'
+    | 'updateNationality'
+    | 'deleteNationality'
     | 'searchAchievements'
     | 'searchBanks'
     | 'searchAccountTypes'
@@ -231,6 +243,72 @@ export function createContactsRecordActions({
         } catch (e) { console.error(e); return false; }
     };
 
+    const getLocations = async (contactId: string): Promise<ContactLocation[]> => {
+        try {
+            return await db.getAllAsync<ContactLocation>('SELECT * FROM contact_location WHERE contact_id = ? ORDER BY id ASC', contactId);
+        } catch (e) { console.error(e); return []; }
+    };
+
+    const addLocation = async (contactId: string, v: LocationValues): Promise<boolean> => {
+        try {
+            await db.runAsync(
+                'INSERT INTO contact_location (contact_id, location_type, address, city, region, country, postal_code, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                contactId, v.locationType, v.address, v.city, v.region, v.country, v.postalCode, v.latitude, v.longitude
+            );
+            return true;
+        } catch (e) { console.error(e); return false; }
+    };
+
+    const updateLocation = async (id: number, v: LocationValues): Promise<boolean> => {
+        try {
+            await db.runAsync(
+                "UPDATE contact_location SET location_type = ?, address = ?, city = ?, region = ?, country = ?, postal_code = ?, latitude = ?, longitude = ?, updated_at = datetime('now') WHERE id = ?",
+                v.locationType, v.address, v.city, v.region, v.country, v.postalCode, v.latitude, v.longitude, id
+            );
+            return true;
+        } catch (e) { console.error(e); return false; }
+    };
+
+    const deleteLocation = async (id: number): Promise<boolean> => {
+        try {
+            await db.runAsync('DELETE FROM contact_location WHERE id = ?', id);
+            return true;
+        } catch (e) { console.error(e); return false; }
+    };
+
+    const getNationalities = async (contactId: string): Promise<ContactNationality[]> => {
+        try {
+            return await db.getAllAsync<ContactNationality>('SELECT * FROM contact_nationality WHERE contact_id = ? ORDER BY id ASC', contactId);
+        } catch (e) { console.error(e); return []; }
+    };
+
+    const addNationality = async (contactId: string, v: NationalityValues): Promise<boolean> => {
+        try {
+            await db.runAsync(
+                'INSERT INTO contact_nationality (contact_id, country_code, acquired_at, note) VALUES (?, ?, ?, ?)',
+                contactId, v.countryCode, v.acquiredAt, v.note
+            );
+            return true;
+        } catch (e) { console.error(e); return false; }
+    };
+
+    const updateNationality = async (id: number, v: NationalityValues): Promise<boolean> => {
+        try {
+            await db.runAsync(
+                "UPDATE contact_nationality SET country_code = ?, acquired_at = ?, note = ?, updated_at = datetime('now') WHERE id = ?",
+                v.countryCode, v.acquiredAt, v.note, id
+            );
+            return true;
+        } catch (e) { console.error(e); return false; }
+    };
+
+    const deleteNationality = async (id: number): Promise<boolean> => {
+        try {
+            await db.runAsync('DELETE FROM contact_nationality WHERE id = ?', id);
+            return true;
+        } catch (e) { console.error(e); return false; }
+    };
+
     const searchAchievements = async (query: string): Promise<string[]> => {
         try {
             const results = await db.getAllAsync<{ achievement: string }>(
@@ -336,6 +414,14 @@ export function createContactsRecordActions({
         addBankAccount,
         updateBankAccount,
         deleteBankAccount,
+        getLocations,
+        addLocation,
+        updateLocation,
+        deleteLocation,
+        getNationalities,
+        addNationality,
+        updateNationality,
+        deleteNationality,
         searchAchievements,
         searchBanks,
         searchAccountTypes,

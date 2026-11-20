@@ -127,6 +127,33 @@ const createTablesSql = `
     FOREIGN KEY (contact_id) REFERENCES contact(contact_id)
   );
 
+  CREATE TABLE IF NOT EXISTS contact_location (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_id TEXT NOT NULL,
+    location_type TEXT NOT NULL DEFAULT '',
+    address TEXT,
+    city TEXT,
+    region TEXT,
+    country TEXT,
+    postal_code TEXT,
+    latitude REAL,
+    longitude REAL,
+    remote_id TEXT,
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (contact_id) REFERENCES contact(contact_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS contact_nationality (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_id TEXT NOT NULL,
+    country_code TEXT NOT NULL,
+    acquired_at TEXT,
+    note TEXT,
+    remote_id TEXT,
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (contact_id) REFERENCES contact(contact_id)
+  );
+
   -- Local changes waiting to be sent to the backend (filled by triggers, see OUTBOX_TABLES).
   CREATE TABLE IF NOT EXISTS sync_outbox (
     seq INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -173,6 +200,32 @@ const migrationsSql = [
     label TEXT,
     FOREIGN KEY (contact_id) REFERENCES contact(contact_id)
   )`,
+  // Locations and nationalities arrived after the first release (they sync with the server)
+  `CREATE TABLE IF NOT EXISTS contact_location (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_id TEXT NOT NULL,
+    location_type TEXT NOT NULL DEFAULT '',
+    address TEXT,
+    city TEXT,
+    region TEXT,
+    country TEXT,
+    postal_code TEXT,
+    latitude REAL,
+    longitude REAL,
+    remote_id TEXT,
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (contact_id) REFERENCES contact(contact_id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS contact_nationality (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_id TEXT NOT NULL,
+    country_code TEXT NOT NULL,
+    acquired_at TEXT,
+    note TEXT,
+    remote_id TEXT,
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (contact_id) REFERENCES contact(contact_id)
+  )`,
   "ALTER TABLE contact ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))",
   "ALTER TABLE contact_phone ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))",
   "ALTER TABLE contact_email ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))",
@@ -216,6 +269,8 @@ const remoteIdIndexesSql = [
   'CREATE UNIQUE INDEX IF NOT EXISTS uq_contact_url_remote ON contact_url(contact_id, remote_id)',
   'CREATE UNIQUE INDEX IF NOT EXISTS uq_identity_card_remote ON national_identity_card(contact_id, remote_id)',
   'CREATE UNIQUE INDEX IF NOT EXISTS uq_contact_bank_remote ON contact_bank_account(contact_id, remote_id)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS uq_contact_location_remote ON contact_location(contact_id, remote_id)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS uq_contact_nationality_remote ON contact_nationality(contact_id, remote_id)',
 ];
 
 // ── Sync outbox ──────────────────────────────────────────────────────────────
@@ -231,6 +286,8 @@ const OUTBOX_TABLES = [
   { table: 'contact_url', entity: 'url', key: 'id', contact: 'contact_id', remote: 'remote_id', hasRemoteId: true },
   { table: 'national_identity_card', entity: 'card', key: 'id', contact: 'contact_id', remote: 'remote_id', hasRemoteId: true },
   { table: 'contact_bank_account', entity: 'bank_account', key: 'id', contact: 'contact_id', remote: 'remote_id', hasRemoteId: true },
+  { table: 'contact_location', entity: 'location', key: 'id', contact: 'contact_id', remote: 'remote_id', hasRemoteId: true },
+  { table: 'contact_nationality', entity: 'nationality', key: 'id', contact: 'contact_id', remote: 'remote_id', hasRemoteId: true },
   { table: 'contact_keyword', entity: 'keyword', key: 'keyword', contact: 'contact_id', remote: 'keyword', hasRemoteId: false },
   { table: 'contact_relationship', entity: 'relationship', key: ['related_contact_id', 'type_id'], contact: 'contact_id', remote: 'related_contact_id', hasRemoteId: false },
   { table: 'contact_organization', entity: 'contact_organization', key: 'organization_id', contact: 'contact_id', remote: 'organization_id', hasRemoteId: false },
@@ -329,6 +386,7 @@ const SYNC_TABLES = [
   'contact', 'contact_phone', 'contact_email', 'contact_note',
   'contact_url', 'contact_bank_account', 'contact_relationship',
   'contact_keyword', 'national_identity_card', 'contact_organization',
+  'contact_location', 'contact_nationality',
 ];
 
 // ── Gender migration ─────────────────────────────────────────────────────────

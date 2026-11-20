@@ -11,6 +11,8 @@ export const USER_DATA_TABLES: readonly string[] = [
   'contact_note',
   'contact_url',
   'contact_bank_account',
+  'contact_location',
+  'contact_nationality',
   'sync_outbox',
   'organization',
   'contact',

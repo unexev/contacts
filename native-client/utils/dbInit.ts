@@ -90,6 +90,8 @@ export async function initializeDatabase(db: MinimalDB) {
       CREATE INDEX IF NOT EXISTS idx_contact_org_contact ON contact_organization(contact_id);
       CREATE INDEX IF NOT EXISTS idx_contact_org_org ON contact_organization(organization_id);
       CREATE INDEX IF NOT EXISTS idx_contact_bank_contact ON contact_bank_account(contact_id);
+      CREATE INDEX IF NOT EXISTS idx_contact_location_contact ON contact_location(contact_id);
+      CREATE INDEX IF NOT EXISTS idx_contact_nationality_contact ON contact_nationality(contact_id);
       CREATE INDEX IF NOT EXISTS idx_contact_relationship_contact ON contact_relationship(contact_id);
       CREATE INDEX IF NOT EXISTS idx_contact_relationship_related ON contact_relationship(related_contact_id);
       CREATE INDEX IF NOT EXISTS idx_organization_name ON organization(name);

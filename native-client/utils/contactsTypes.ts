@@ -2,6 +2,10 @@ import type { RelationshipStatus } from './syncMapping';
 
 export type { RelationshipStatus };
 
+import type { LocationValues } from './placeRecords';
+
+export type NationalityValues = { countryCode: string; acquiredAt: string | null; note: string | null };
+
 export interface Contact {
     contact_id: string;
     first_name: string;
@@ -96,6 +100,27 @@ export interface ContactBankAccount {
     label?: string;
 }
 
+export interface ContactLocation {
+    id: number;
+    contact_id: string;
+    location_type: string;
+    address: string | null;
+    city: string | null;
+    region: string | null;
+    country: string | null;
+    postal_code: string | null;
+    latitude: number | null;
+    longitude: number | null;
+}
+
+export interface ContactNationality {
+    id: number;
+    contact_id: string;
+    country_code: string;
+    acquired_at: string | null;
+    note: string | null;
+}
+
 export interface ContactInput {
     first_name: string;
     middle_name?: string;
@@ -153,6 +178,14 @@ export interface ContactsContextType {
     addBankAccount: (contactId: string, accountNumber: string, bankName?: string, accountType?: string, label?: string) => Promise<boolean>;
     updateBankAccount: (id: number, accountNumber: string, bankName?: string, accountType?: string, label?: string) => Promise<boolean>;
     deleteBankAccount: (id: number) => Promise<boolean>;
+    getLocations: (contactId: string) => Promise<ContactLocation[]>;
+    addLocation: (contactId: string, value: LocationValues) => Promise<boolean>;
+    updateLocation: (id: number, value: LocationValues) => Promise<boolean>;
+    deleteLocation: (id: number) => Promise<boolean>;
+    getNationalities: (contactId: string) => Promise<ContactNationality[]>;
+    addNationality: (contactId: string, value: NationalityValues) => Promise<boolean>;
+    updateNationality: (id: number, value: NationalityValues) => Promise<boolean>;
+    deleteNationality: (id: number) => Promise<boolean>;
     searchAchievements: (query: string) => Promise<string[]>;
     searchBanks: (query: string) => Promise<string[]>;
     searchAccountTypes: (query: string) => Promise<string[]>;

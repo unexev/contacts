@@ -136,3 +136,34 @@ test('backfill queues local rows that were never synced', async () => {
   const entities = raw.exec('SELECT entity FROM sync_outbox ORDER BY seq')[0].values.map(v => v[0]);
   assert.deepEqual(entities, ['contact', 'phone']);
 });
+
+test('locations and nationalities are pushed in the shapes the server reads', async () => {
+  const { raw, db } = makeDb();
+  raw.run("INSERT INTO contact (contact_id, first_name, surname) VALUES ('c1', 'A', 'B')");
+  raw.run("INSERT INTO contact_location (contact_id, location_type, address, city, latitude, longitude) VALUES ('c1', 'birth', 'Calle 1', 'Quito', -0.18, -78.47)");
+  raw.run("INSERT INTO contact_nationality (contact_id, country_code, acquired_at, note) VALUES ('c1', 'EC', '2001-02-03', NULL)");
+  const batch = await buildPushBatch(db, 100, ids);
+  const byEntity = Object.fromEntries(batch.items.map(i => [i.entity, i]));
+  assert.deepEqual(byEntity.location.data, {
+    location_type: 'birth', address: 'Calle 1', city: 'Quito', region: '', country: '', postal_code: '',
+    latitude: -0.18, longitude: -78.47,
+  });
+  assert.equal(byEntity.location.contact_id, 'c1');
+  assert.deepEqual(byEntity.nationality.data, {
+    country_code: 'EC', acquired_at: { String: '2001-02-03', Valid: true }, note: { String: '', Valid: false },
+  });
+  assert.equal(raw.exec('SELECT remote_id FROM contact_nationality')[0].values[0][0], byEntity.nationality.id);
+});
+
+test('deleting a synced location or nationality pushes a delete with its server id', async () => {
+  const { raw, db } = makeDb();
+  raw.run("INSERT INTO contact (contact_id, first_name, surname) VALUES ('c1', 'A', 'B')");
+  raw.run("INSERT INTO contact_location (contact_id, location_type, city, remote_id) VALUES ('c1', 'work', 'Quito', 'l9')");
+  raw.run("INSERT INTO contact_nationality (contact_id, country_code, remote_id) VALUES ('c1', 'EC', 'n9')");
+  raw.run('DELETE FROM sync_outbox');
+  raw.run("DELETE FROM contact_location WHERE remote_id = 'l9'");
+  raw.run("DELETE FROM contact_nationality WHERE remote_id = 'n9'");
+  const batch = await buildPushBatch(db, 100, ids);
+  assert.deepEqual(batch.items.map(i => [i.entity, i.op, i.id, i.contact_id]).sort(),
+    [['location', 'delete', 'l9', 'c1'], ['nationality', 'delete', 'n9', 'c1']]);
+});

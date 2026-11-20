@@ -118,3 +118,51 @@ test('rows of a contact that is missing locally are skipped instead of failing',
   assert.equal(all(raw, 'SELECT * FROM contact_relationship').length, 0);
   assert.equal(all(raw, 'SELECT * FROM contact_organization').length, 0);
 });
+
+test('a pull stores locations and nationalities with their server ids and leaves the outbox empty', async () => {
+  const { raw, db } = makeDb();
+  await applyPulledChanges(db, {
+    contacts: [contact()],
+    locations: [
+      { location_id: 'l1', contact_id: 'c1', location_type: 'residence', address: 'Av. Amazonas', city: 'Quito', region: '', country: 'EC', postal_code: '170101', latitude: -0.18, longitude: -78.47, updated_at: 1700000000000 },
+      { location_id: 'l2', contact_id: 'c1', location_type: '', address: '', city: 'Cuenca', region: '', country: '', postal_code: '', latitude: null, longitude: null },
+      { location_id: 'l3', contact_id: 'c1', location_type: 'work', address: '', city: '', region: '', country: '', postal_code: '', latitude: null, longitude: null },
+    ],
+    nationalities: [{ nationality_id: 'n1', contact_id: 'c1', country_code: 'EC', acquired_at: ns('2001-02-03'), note: ns('por nacimiento') }],
+  });
+  const locs = all(raw, 'SELECT remote_id, location_type, address, city, region, country, latitude, longitude FROM contact_location ORDER BY remote_id');
+  assert.deepEqual(locs[0], { remote_id: 'l1', location_type: 'residence', address: 'Av. Amazonas', city: 'Quito', region: null, country: 'EC', latitude: -0.18, longitude: -78.47 });
+  assert.equal(locs[1].city, 'Cuenca');
+  assert.equal(locs[1].location_type, '');
+  // A location with nothing filled in is not worth a row.
+  assert.equal(locs.length, 2);
+  assert.deepEqual(all(raw, 'SELECT remote_id, country_code, acquired_at, note FROM contact_nationality')[0],
+    { remote_id: 'n1', country_code: 'EC', acquired_at: '2001-02-03', note: 'por nacimiento' });
+  assert.deepEqual(all(raw, 'SELECT * FROM sync_outbox'), []);
+});
+
+test('pulled locations update in place, never adopt another location by type, and delete by server id', async () => {
+  const { raw, db } = makeDb();
+  await applyPulledChanges(db, { contacts: [contact()] });
+  // A location made on this device and not pushed yet.
+  raw.run("INSERT INTO contact_location (contact_id, location_type, city) VALUES ('c1', 'residence', 'Loja')");
+  const row = (over) => ({ location_id: 'l1', contact_id: 'c1', location_type: 'residence', address: '', city: 'Quito', region: '', country: '', postal_code: '', latitude: null, longitude: null, ...over });
+  await applyPulledChanges(db, { locations: [row({})] });
+  await applyPulledChanges(db, { locations: [row({ city: 'Guayaquil' })] });
+  const rows = all(raw, 'SELECT remote_id, city FROM contact_location ORDER BY id');
+  assert.deepEqual(rows, [{ remote_id: null, city: 'Loja' }, { remote_id: 'l1', city: 'Guayaquil' }]);
+  await applyPulledChanges(db, { locations: [{ ...row({}), deleted: true }] });
+  assert.deepEqual(all(raw, 'SELECT city FROM contact_location'), [{ city: 'Loja' }]);
+});
+
+test('deleting a contact on the server removes its locations and nationalities', async () => {
+  const { raw, db } = makeDb();
+  await applyPulledChanges(db, {
+    contacts: [contact()],
+    locations: [{ location_id: 'l1', contact_id: 'c1', location_type: 'work', address: 'X', city: '', region: '', country: '', postal_code: '', latitude: null, longitude: null }],
+    nationalities: [{ nationality_id: 'n1', contact_id: 'c1', country_code: 'EC', acquired_at: ns(null), note: ns(null) }],
+  });
+  await applyPulledChanges(db, { contacts: [contact({ deleted: true })] });
+  assert.deepEqual(all(raw, 'SELECT * FROM contact_location'), []);
+  assert.deepEqual(all(raw, 'SELECT * FROM contact_nationality'), []);
+});

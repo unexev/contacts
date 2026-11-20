@@ -49,6 +49,8 @@ const ID_TABLES: Record<string, string> = {
   url: "contact_url",
   card: "national_identity_card",
   bank_account: "contact_bank_account",
+  location: "contact_location",
+  nationality: "contact_nationality",
 };
 
 export const PUSH_BATCH_LIMIT = 100;
@@ -93,6 +95,19 @@ function dataFor(entity: string, row: Row): unknown {
         account_type: ns(row.account_type),
         label: ns(row.label),
       };
+    case "location":
+      return {
+        location_type: row.location_type ?? "",
+        address: row.address ?? "",
+        city: row.city ?? "",
+        region: row.region ?? "",
+        country: row.country ?? "",
+        postal_code: row.postal_code ?? "",
+        latitude: row.latitude ?? null,
+        longitude: row.longitude ?? null,
+      };
+    case "nationality":
+      return { country_code: row.country_code, acquired_at: ns(toIsoDate(row.acquired_at)), note: ns(row.note) };
     case "contact_organization":
       return { organization_id: row.organization_id, achievement: ns(row.achievement), date: ns(toIsoDate(row.date)) };
     case "organization":

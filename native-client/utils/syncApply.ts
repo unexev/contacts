@@ -27,12 +27,14 @@ export interface PulledChanges {
   relationships?: Row[];
   organizations?: Row[];
   contact_organizations?: Row[];
+  locations?: Row[];
+  nationalities?: Row[];
 }
 
 /** Child tables of a contact, emptied when the contact is deleted. */
 const CONTACT_CHILD_TABLES = [
   "contact_phone", "contact_email", "contact_note", "contact_url", "contact_keyword",
-  "national_identity_card", "contact_bank_account", "contact_organization",
+  "national_identity_card", "contact_bank_account", "contact_organization", "contact_location", "contact_nationality",
 ];
 
 const PULLED_BY_TABLE: Record<string, keyof PulledChanges> = {
@@ -42,6 +44,8 @@ const PULLED_BY_TABLE: Record<string, keyof PulledChanges> = {
   contact_url: "urls",
   national_identity_card: "identity_cards",
   contact_bank_account: "bank_accounts",
+  contact_location: "locations",
+  contact_nationality: "nationalities",
 };
 
 async function contactExists(db: ChildDb, id: string): Promise<boolean> {

@@ -22,6 +22,8 @@ export type {
     Contact,
     ContactBankAccount,
     ContactEmail,
+    ContactLocation,
+    ContactNationality,
     ContactInput,
     ContactKeyword,
     ContactNote,

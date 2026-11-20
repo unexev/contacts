@@ -56,6 +56,8 @@ export function createContactsCoreActions({
             await db.runAsync('DELETE FROM national_identity_card WHERE contact_id = ?', id);
             await db.runAsync('DELETE FROM contact_organization WHERE contact_id = ?', id);
             await db.runAsync('DELETE FROM contact_bank_account WHERE contact_id = ?', id);
+            await db.runAsync('DELETE FROM contact_location WHERE contact_id = ?', id);
+            await db.runAsync('DELETE FROM contact_nationality WHERE contact_id = ?', id);
             await db.runAsync('DELETE FROM contact WHERE contact_id = ?', id);
             await db.execAsync('COMMIT');
             return true;

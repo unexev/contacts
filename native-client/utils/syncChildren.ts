@@ -22,10 +22,19 @@ export interface ChildTable {
   hasLabel: boolean;
   /** Further columns copied from the pulled row (already in the local format). */
   extras?: { column: string; read: (row: Record<string, any>) => unknown }[];
+  /** Rows without a usable main value (locations may only have a city): decides if a pulled row is kept. */
+  hasContent?: (row: Record<string, any>) => boolean;
+  /** False when the main value says nothing about identity, so rows are matched by server id only. */
+  matchByValue?: boolean;
 }
 
 const text = (key: string) => (row: Record<string, any>) => nullStringValue(row[key]);
 const date = (key: string) => (row: Record<string, any>) => toIsoDate(nullStringValue(row[key]));
+
+const num = (key: string) => (row: Record<string, any>) => {
+  const n = row[key];
+  return typeof n === "number" && Number.isFinite(n) ? n : null;
+};
 
 export const CHILD_TABLES: ChildTable[] = [
   {
@@ -49,6 +58,26 @@ export const CHILD_TABLES: ChildTable[] = [
     extras: [
       { column: "bank_name", read: text("bank_name") },
       { column: "account_type", read: text("account_type") },
+    ],
+  },
+  {
+    table: "contact_nationality", column: "country_code", idKey: "nationality_id", hasLabel: false,
+    extras: [
+      { column: "acquired_at", read: date("acquired_at") },
+      { column: "note", read: text("note") },
+    ],
+  },
+  {
+    table: "contact_location", column: "location_type", idKey: "location_id", hasLabel: false, matchByValue: false,
+    hasContent: (row) => ["address", "city", "region", "country", "postal_code"].some((k) => String(row[k] ?? "").trim() !== ""),
+    extras: [
+      { column: "address", read: text("address") },
+      { column: "city", read: text("city") },
+      { column: "region", read: text("region") },
+      { column: "country", read: text("country") },
+      { column: "postal_code", read: text("postal_code") },
+      { column: "latitude", read: num("latitude") },
+      { column: "longitude", read: num("longitude") },
     ],
   },
 ];
@@ -76,7 +105,7 @@ async function applyDelete(db: ChildDb, t: ChildTable, row: PulledRow, remoteId:
   }
   // Legacy rows were never tagged with a remote id: match them by value.
   const value = row[t.column];
-  if (!value) return;
+  if (!value || t.matchByValue === false) return;
   await db.runAsync(
     `DELETE FROM ${t.table} WHERE contact_id = ? AND ${t.column} = ? AND remote_id IS NULL`,
     row.contact_id,
@@ -91,8 +120,8 @@ export async function applyChildRow(db: ChildDb, t: ChildTable, row: PulledRow):
     await applyDelete(db, t, row, remoteId);
     return;
   }
-  const value = row[t.column];
-  if (!value) return;
+  const value = row[t.column] ?? "";
+  if (t.hasContent ? !t.hasContent(row) : !value) return;
   // Rows whose parent contact is missing locally would violate the FK.
   if (!(await db.getFirstAsync("SELECT 1 FROM contact WHERE contact_id = ?", row.contact_id))) return;
 
@@ -109,7 +138,7 @@ export async function applyChildRow(db: ChildDb, t: ChildTable, row: PulledRow):
     );
   }
   // Adopt a legacy row (or, without a server id, the matching row) by value.
-  if (!target) {
+  if (!target && t.matchByValue !== false) {
     target = await db.getFirstAsync<{ id: number }>(
       `SELECT id FROM ${t.table} WHERE contact_id = ? AND ${t.column} = ? AND remote_id IS NULL`,
       row.contact_id,

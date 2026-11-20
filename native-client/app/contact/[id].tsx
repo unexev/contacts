@@ -6,6 +6,8 @@ import BottomTabBar from '../../components/BottomTabBar';
 import BankAccountCard from '../../components/contact/BankAccountCard';
 import ContactInfoCard from '../../components/contact/ContactInfoCard';
 import DetailInfoRow from '../../components/contact/DetailInfoRow';
+import LocationsCard from '../../components/contact/LocationsCard';
+import NationalitiesCard from '../../components/contact/NationalitiesCard';
 import KeywordsCard from '../../components/contact/KeywordsCard';
 import DocumentsCard from '../../components/contact/DocumentsCard';
 import EditContactModal from '../../components/contact/EditContactModal';
@@ -15,7 +17,7 @@ import RelationshipsCard from '../../components/contact/RelationshipsCard';
 import UrlsCard from '../../components/contact/UrlsCard';
 import ContactPhoto from '../../components/contact/ContactPhoto';
 import { useAuth } from '../../utils/authContext';
-import { ContactBankAccount, ContactEmail, ContactKeyword, ContactNote, ContactOrganization, ContactPhone, ContactUrl, IdentityCard, Relationship, useContacts } from '../../utils/context';
+import { ContactBankAccount, ContactEmail, ContactKeyword, ContactLocation, ContactNationality, ContactNote, ContactOrganization, ContactPhone, ContactUrl, IdentityCard, Relationship, useContacts } from '../../utils/context';
 import { useI18n } from '../../utils/i18n';
 import { listLabel } from '../../utils/listLabels';
 import { useResponsive } from '../../utils/responsive';
@@ -30,7 +32,7 @@ export default function ContactDetailScreen() {
   const { isDesktop, isTablet, r } = useResponsive();
   const { colors } = useTheme();
   const { apiSession } = useAuth();
-  const { getContact, getIdentityCards, getRelationships, getContactOrganizations, getContactPhones, getContactEmails, getContactKeywords, getBankAccounts, getContactNotes, getContactUrls, getMaritalStatuses, deleteContact } = useContacts();
+  const { getContact, getIdentityCards, getRelationships, getContactOrganizations, getContactPhones, getContactEmails, getContactKeywords, getBankAccounts, getLocations, getNationalities, getContactNotes, getContactUrls, getMaritalStatuses, deleteContact } = useContacts();
 
   const [contact, setContact] = useState<ContactDetail | null>(null);
   const [identityCards, setIdentityCards] = useState<IdentityCard[]>([]);
@@ -40,6 +42,8 @@ export default function ContactDetailScreen() {
   const [emails, setEmails] = useState<ContactEmail[]>([]);
   const [keywords, setKeywords] = useState<ContactKeyword[]>([]);
   const [bankAccounts, setBankAccounts] = useState<ContactBankAccount[]>([]);
+  const [locations, setLocations] = useState<ContactLocation[]>([]);
+  const [nationalities, setNationalities] = useState<ContactNationality[]>([]);
   const [notes, setNotes] = useState<ContactNote[]>([]);
   const [contactUrls, setContactUrls] = useState<ContactUrl[]>([]);
   const [maritalLabels, setMaritalLabels] = useState<Record<string, string>>({});
@@ -93,6 +97,8 @@ export default function ContactDetailScreen() {
       setEmails(await getContactEmails(contactId));
       setKeywords(await getContactKeywords(contactId));
       setBankAccounts(await getBankAccounts(contactId));
+      setLocations(await getLocations(contactId));
+      setNationalities(await getNationalities(contactId));
       setNotes(await getContactNotes(contactId));
       setContactUrls(await getContactUrls(contactId));
       const statuses = await getMaritalStatuses();
@@ -234,6 +240,8 @@ export default function ContactDetailScreen() {
         <RelationshipsCard contactId={contactId} initialRelationships={relationships} onNavigate={cid => router.push(`/contact/${cid}`)} />
         <OrganizationsCard contactId={contactId} birthdate={contact.birthdate} initialOrganizations={organizations} />
         <KeywordsCard contactId={contactId} initialKeywords={keywords} />
+        <NationalitiesCard contactId={contactId} initialNationalities={nationalities} />
+        <LocationsCard contactId={contactId} initialLocations={locations} />
         <BankAccountCard contactId={contactId} initialAccounts={bankAccounts} />
         <UrlsCard contactId={contactId} initialUrls={contactUrls} />
         <NotesCard contactId={contactId} initialNotes={notes} />
