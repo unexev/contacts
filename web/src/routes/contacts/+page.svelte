@@ -14,6 +14,7 @@
   import { loadView, saveView } from '$lib/viewState.js';
   import { getCached, setCached, isFresh, cacheGeneration } from '$lib/cache.svelte.js';
   import { calculateAge, formatAge, parseContactDate } from '$lib/date.js';
+  import { searchChips, showSearchChips } from '$lib/searchQuery.js';
 
   let debounceTimer = $state(null);
   let showFilters = $state(false);
@@ -241,6 +242,18 @@
     debounceTimer = setTimeout(loadContacts, 300);
   }
 
+  let searchInput = $state(null);
+
+  function clearSearch() {
+    clearTimeout(debounceTimer);
+    search.value = '';
+    loadContacts();
+    searchInput?.focus();
+  }
+
+  // Parts of the query shown as chips (age filters, several `&` parts).
+  let searchParts = $derived(showSearchChips(search.value) ? searchChips(search.value, t('contactsSearchAge')) : []);
+
   const TRI = [['', 'filterAll'], ['yes', 'filterWith'], ['no', 'filterWithout']];
   // Filters grouped by what they describe; the person's situation comes first
   // because it is what people filter by most.
@@ -285,6 +298,12 @@
   }
 
   function onWindowKeydown(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      closePanels();
+      searchInput?.focus();
+      return;
+    }
     if (e.key === 'Escape' && (showFilters || showSort)) closePanels();
   }
   function toggleGroup(name) {
@@ -367,11 +386,32 @@
     <input
       class="input"
       type="search"
+      bind:this={searchInput}
       placeholder={t('contactsSearch')}
+      aria-label={t('contactsSearch')}
+      aria-describedby="search-hint"
+      autocomplete="off"
+      spellcheck="false"
       value={search.value}
       oninput={(e) => onSearchInput(e.target.value)}
+      onkeydown={(e) => { if (e.key === 'Escape' && search.value) { e.stopPropagation(); clearSearch(); } }}
     />
+    <span id="search-hint" class="sr-only">{t('contactsSearchHint')}</span>
+    {#if search.value}
+      <button class="search-clear" onclick={clearSearch} title={t('contactsSearchClear')} aria-label={t('contactsSearchClear')}>
+        <X size={16} aria-hidden="true" />
+      </button>
+    {/if}
   </div>
+
+  {#if searchParts.length > 0}
+    <ul class="search-chips" aria-label={t('contactsSearchChips')}>
+      {#each searchParts as part, i}
+        {#if i > 0}<li class="search-chip-and" aria-hidden="true">&amp;</li>{/if}
+        <li class="search-chip">{part}</li>
+      {/each}
+    </ul>
+  {/if}
 
   <div class="list-toolbar">
     {#if firstLetter}<h2 class="letter-head-inline">{firstLetter}</h2>{/if}
@@ -828,6 +868,31 @@
     padding: 0;
     list-style: none;
   }
+
+  .search-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .search-chip {
+    min-height: 28px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    color: var(--accent-text);
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+
+  .search-chip-and { color: var(--text2); font-size: 0.8125rem; font-weight: 600; }
 
   .active-chip {
     min-height: 36px;
