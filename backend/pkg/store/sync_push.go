@@ -256,6 +256,17 @@ func (s *Store) UpsertOrganization(userID, orgID, name string) error {
 	return err
 }
 
+// SoftDeleteRelationship tombstones the link from contactID to relatedContactID.
+// An empty typeID removes every link between the two contacts.
+func (s *Store) SoftDeleteRelationship(userID, contactID, relatedContactID, typeID string) error {
+	_, err := s.pool.Exec(context.Background(),
+		`UPDATE contact_relationships SET deleted = 1, updated_at = $1
+		 WHERE user_id = $2 AND contact_id = $3 AND related_contact_id = $4 AND ($5 = '' OR type_id = $5)`,
+		time.Now().UnixMilli(), userID, contactID, relatedContactID, typeID,
+	)
+	return err
+}
+
 // SoftDeleteEntity marks an entity as deleted in the corresponding table
 func (s *Store) SoftDeleteEntity(table, idCol, userID, contactID, id string) error {
 	now := time.Now().UnixMilli()

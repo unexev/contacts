@@ -125,7 +125,37 @@ func (a *App) applyPushChange(userID string, c pushChange) (status string, code 
 	return a.applyPushUpsert(userID, c)
 }
 
+// parseRelationshipDelete reads a relationship delete: the change id is the
+// related contact and the optional data carries the link's type_id.
+func parseRelationshipDelete(c pushChange) (relatedID, typeID string, err error) {
+	if c.ContactID == "" || c.ID == "" {
+		return "", "", fmt.Errorf("contact_id and the related contact id are required")
+	}
+	if len(c.Data) > 0 && string(c.Data) != "null" {
+		var d struct {
+			TypeID string `json:"type_id"`
+		}
+		if err := json.Unmarshal(c.Data, &d); err != nil {
+			return "", "", fmt.Errorf("invalid relationship data")
+		}
+		typeID = d.TypeID
+	}
+	return c.ID, typeID, nil
+}
+
 func (a *App) applyPushDelete(userID string, c pushChange) (string, int, string) {
+	if c.Entity == "relationship" {
+		relatedID, typeID, err := parseRelationshipDelete(c)
+		if err != nil {
+			return pushInvalid, http.StatusBadRequest, err.Error()
+		}
+		if err := a.store.SoftDeleteRelationship(userID, c.ContactID, relatedID, typeID); err != nil {
+			log.Printf("sync push relationship delete error: %v", err)
+			return pushError, http.StatusInternalServerError, "failed to delete relationship"
+		}
+		return pushApplied, http.StatusOK, ""
+	}
+
 	tableMap := map[string][2]string{
 		"contact":               {"contacts", "contact_id"},
 		"phone":                 {"contact_phones", "phone_id"},
