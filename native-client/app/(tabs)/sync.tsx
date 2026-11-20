@@ -17,6 +17,10 @@ import { useI18n } from '../../utils/i18n';
 import { useResponsive } from '../../utils/responsive';
 import { useTheme } from '../../utils/theme';
 import { useRouter } from 'expo-router';
+import { requestApi } from '../../utils/apiClient';
+import {
+  exportedContactCount, exportFileName, importCounts, InvalidExportFile, mapDataFailure, parseExportFile,
+} from '../../utils/dataExport';
 
 const isWeb = Platform.OS === 'web';
 const DB_FILTERS = [{ name: 'SQLite', extensions: ['db', 'sqlite'] }];
@@ -44,7 +48,8 @@ export default function SyncScreen() {
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [loadingOp, setLoadingOp] = useState<string | null>(null);
   const [hasBackup, setHasBackup] = useState<boolean | null>(null);
-  const { user, driveToken, refreshDriveToken, signIn } = useAuth();
+  const { user, apiSession, driveToken, refreshDriveToken, signIn } = useAuth();
+  const [dataStatus, setDataStatus] = useState<{ text: string; error: boolean } | null>(null);
   const { fetchContacts, importVcf, syncing, syncEnabled, lastSyncAt, setSyncEnabled, syncNow } = useContacts();
   const { t, lang } = useI18n();
   const { isDesktop } = useResponsive();
@@ -105,6 +110,71 @@ export default function SyncScreen() {
     } catch (e) {
       console.error(e);
       setStatus(t.config.exportErrorPrefix + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setLoadingOp(null);
+    }
+  };
+
+  const handleServerExport = async () => {
+    try {
+      setLoadingOp('serverExport');
+      setDataStatus(null);
+      const res = await requestApi('/api/export', {}, { raw: true });
+      if (res.status < 200 || res.status >= 300 || !res.data) {
+        setDataStatus({ text: t.accountData[mapDataFailure(res.status)], error: true });
+        return;
+      }
+      const json = JSON.stringify(res.data, null, 2);
+      if (isWeb) {
+        const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = exportFileName();
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } else {
+        const dir = FileSystem.cacheDirectory ?? '';
+        const path = `${dir}${dir.endsWith('/') ? '' : '/'}${exportFileName()}`;
+        await FileSystem.writeAsStringAsync(path, json);
+        if (!(await Sharing.isAvailableAsync())) {
+          setDataStatus({ text: t.config.sharingUnavailable, error: true });
+          return;
+        }
+        await Sharing.shareAsync(path, { mimeType: 'application/json', dialogTitle: t.accountData.exportBtn, UTI: 'public.json' });
+      }
+      setDataStatus({ text: t.accountData.exportDone(exportedContactCount(res.data)), error: false });
+    } catch (e) {
+      console.error(e);
+      setDataStatus({ text: t.accountData.failed, error: true });
+    } finally {
+      setLoadingOp(null);
+    }
+  };
+
+  const handleServerImport = async () => {
+    try {
+      setLoadingOp('serverImport');
+      setDataStatus(null);
+      const asset = await pickDocument();
+      if (!asset) return;
+      const text = isWeb
+        ? await (asset.file ? asset.file.text() : (await fetch(asset.uri)).text())
+        : await FileSystem.readAsStringAsync(asset.uri);
+      const doc = parseExportFile(text);
+      const res = await requestApi('/api/import', { method: 'POST', body: JSON.stringify(doc) });
+      if (res.status < 200 || res.status >= 300) {
+        setDataStatus({ text: t.accountData[mapDataFailure(res.status)], error: true });
+        return;
+      }
+      // The server merged the file; pull it so this device shows the same contacts.
+      await syncNow();
+      await fetchContacts();
+      const { created, updated, skipped } = importCounts(res.data);
+      setDataStatus({ text: t.accountData.importDone(created, updated, skipped), error: false });
+    } catch (e) {
+      setDataStatus({ text: e instanceof InvalidExportFile ? t.accountData.invalid : t.accountData.failed, error: true });
     } finally {
       setLoadingOp(null);
     }
@@ -365,6 +435,40 @@ export default function SyncScreen() {
           </View>
         )}
       </View>
+
+      {/* Datos de la cuenta (servidor) */}
+      {apiSession && !isDesktopApp && (
+        <View style={[styles.card, { marginTop: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
+          <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.accountData.title}</Text>
+          <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t.accountData.desc}</Text>
+
+          <Pressable accessibilityRole="button" accessibilityLabel={t.accountData.exportBtn}
+            style={[styles.button, { backgroundColor: colors.accentFill }, !!loadingOp && styles.buttonDisabled]}
+            onPress={handleServerExport}
+            disabled={!!loadingOp}
+          >
+            {loadingOp === 'serverExport'
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.buttonText}>{t.accountData.exportBtn}</Text>}
+          </Pressable>
+
+          <Pressable accessibilityRole="button" accessibilityLabel={t.accountData.importBtn}
+            style={[styles.button, { backgroundColor: colors.successSolid }, !!loadingOp && styles.buttonDisabled]}
+            onPress={handleServerImport}
+            disabled={!!loadingOp}
+          >
+            {loadingOp === 'serverImport'
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.buttonText}>{t.accountData.importBtn}</Text>}
+          </Pressable>
+
+          {dataStatus && (
+            <View style={[styles.statusBox, { backgroundColor: dataStatus.error ? colors.statusErrorBg : colors.statusSuccessBg }]}>
+              <Text accessibilityLiveRegion="polite" accessibilityRole={dataStatus.error ? 'alert' : undefined} style={[styles.statusText, { color: colors.text }]}>{dataStatus.text}</Text>
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Google Drive */}
       {user && (

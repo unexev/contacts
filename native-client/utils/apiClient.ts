@@ -79,9 +79,15 @@ export async function refreshSession(): Promise<string | null> {
   return null;
 }
 
+/** The answer's `data`, or the whole body when `raw` (the export document keeps its format fields). */
+function unwrap(payload: any, raw: boolean) {
+  return raw || payload.data === undefined ? payload : payload.data;
+}
+
 export async function requestApi<T = any>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  { raw = false }: { raw?: boolean } = {}
 ): Promise<{ data?: T; error?: string; status: number }> {
   const headers = new Headers(options.headers || {});
   headers.set('Content-Type', 'application/json');
@@ -114,7 +120,7 @@ export async function requestApi<T = any>(
         });
         const retryPayload = await retryRes.json().catch(() => ({}));
         return {
-          data: retryPayload.data !== undefined ? retryPayload.data : retryPayload,
+          data: unwrap(retryPayload, raw),
           error: retryPayload.error,
           status: retryRes.status,
         };
@@ -130,7 +136,7 @@ export async function requestApi<T = any>(
           });
           const retryPayload = await retryRes.json().catch(() => ({}));
           resolve({
-            data: retryPayload.data !== undefined ? retryPayload.data : retryPayload,
+            data: unwrap(retryPayload, raw),
             error: retryPayload.error,
             status: retryRes.status,
           });
@@ -141,7 +147,7 @@ export async function requestApi<T = any>(
 
   const payload = await res.json().catch(() => ({}));
   return {
-    data: payload.data !== undefined ? payload.data : payload,
+    data: unwrap(payload, raw),
     error: payload.error,
     status: res.status,
   };

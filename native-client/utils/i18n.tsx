@@ -444,6 +444,18 @@ const translations = {
     contact: {
       deleteConfirm: (name: string) => `¿Eliminar ${name}?`,
     },
+    accountData: {
+      title: 'Datos de la cuenta',
+      desc: 'Descarga todos tus contactos del servidor en un archivo JSON, o carga uno exportado desde esta app. Importar añade los contactos nuevos y actualiza los que el archivo tenga más recientes; nunca borra nada.',
+      exportBtn: 'Exportar todo',
+      importBtn: 'Importar archivo',
+      exportDone: (n: number) => `Se exportaron ${n} contactos.`,
+      importDone: (created: number, updated: number, skipped: number) => `Importación lista: ${created} nuevos, ${updated} actualizados, ${skipped} omitidos.`,
+      invalid: 'El archivo no es una exportación válida de esta app.',
+      tooLarge: 'El archivo es demasiado grande.',
+      network: 'No se pudo conectar con el servidor.',
+      failed: 'No se pudo completar la operación. Inténtalo de nuevo.',
+    },
     accountPage: {
       title: 'Cuenta',
       intro: 'Cambia tu correo o tu contraseña. Tus otras sesiones se cerrarán cuando expire su acceso.',
@@ -871,6 +883,18 @@ const translations = {
       capricorn:   { name: 'Capricorn',   description: 'Ambitious, disciplined and responsible' },
       aquarius:    { name: 'Aquarius',    description: 'Innovative, independent and humanitarian' },
       pisces:      { name: 'Pisces',      description: 'Empathetic, creative and dreamy' },
+    },
+    accountData: {
+      title: 'Account data',
+      desc: 'Download all your contacts from the server as a JSON file, or load one exported from this app. Importing adds new contacts and updates those the file has newer; nothing is ever deleted.',
+      exportBtn: 'Export everything',
+      importBtn: 'Import file',
+      exportDone: (n: number) => `${n} contacts exported.`,
+      importDone: (created: number, updated: number, skipped: number) => `Import done: ${created} new, ${updated} updated, ${skipped} skipped.`,
+      invalid: 'The file is not a valid export from this app.',
+      tooLarge: 'The file is too large.',
+      network: 'Could not reach the server.',
+      failed: 'The operation could not be completed. Try again.',
     },
     accountPage: {
       title: 'Account',
