@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { parseView, serializeView, VIEW_STORAGE_KEY } from '../../utils/viewState';
 import ContactActionsMenu from '../../components/ContactActionsMenu';
 import { contactActions } from '../../utils/contactActions';
 import { Ionicons } from '@expo/vector-icons';
@@ -139,6 +141,8 @@ export default function HomeScreen() {
   // Query the current results belong to; differs from searchQuery while the debounced search runs.
   const [settledQuery, setSettledQuery] = React.useState('');
   const [actionsFor, setActionsFor] = React.useState<any>(null);
+  const [viewReady, setViewReady] = React.useState(false);
+  const [organizationsLoaded, setOrganizationsLoaded] = React.useState(false);
   const genderFilterOptions = React.useMemo(() => getGenderFilterOptions(t), [t]);
 
   React.useEffect(() => {
@@ -163,6 +167,7 @@ export default function HomeScreen() {
     ]);
     setOrgIds(ids);
     setOrganizations(orgs);
+    setOrganizationsLoaded(true);
   }, []);
 
   React.useEffect(() => {
@@ -186,6 +191,53 @@ export default function HomeScreen() {
     });
     return () => { cancelled = true; };
   }, [organizationFilter, contacts]);
+
+  // Restore the sort and filters of the last session (search text is not remembered).
+  React.useEffect(() => {
+    let cancelled = false;
+    AsyncStorage.getItem(VIEW_STORAGE_KEY)
+      .then(parseView, () => parseView(null))
+      .then(saved => {
+        if (cancelled) return;
+        setSortKey(saved.sortKey);
+        setGenderFilter(saved.genderFilter);
+        setBirthdateFilter(saved.birthdateFilter);
+        setCedulaFilter(saved.cedulaFilter);
+        setPhoneFilter(saved.phoneFilter);
+        setOrganizationFilter(saved.organizationFilter);
+        setMaritalStatusFilter(saved.maritalStatusFilter);
+        setRelationshipFilter(saved.relationshipFilter);
+        setChildrenFilter(saved.childrenFilter);
+        setViewReady(true);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Save it on every change, but only after restoring so the defaults never overwrite it.
+  React.useEffect(() => {
+    if (!viewReady) return;
+    AsyncStorage.setItem(VIEW_STORAGE_KEY, serializeView({
+      sortKey, genderFilter, birthdateFilter, cedulaFilter, phoneFilter, organizationFilter,
+      maritalStatusFilter, relationshipFilter, childrenFilter,
+    })).catch(() => {});
+  }, [viewReady, sortKey, genderFilter, birthdateFilter, cedulaFilter, phoneFilter, organizationFilter,
+    maritalStatusFilter, relationshipFilter, childrenFilter]);
+
+  // A remembered organization or marital status may no longer exist: drop it instead of
+  // showing an empty list with no way to tell why.
+  React.useEffect(() => {
+    if (organizationsLoaded && organizationFilter.mode === 'specific'
+      && !organizations.some(o => o.organization_id === organizationFilter.organizationId)) {
+      setOrganizationFilter({ mode: 'all' });
+    }
+  }, [organizationsLoaded, organizations, organizationFilter]);
+
+  React.useEffect(() => {
+    if (maritalStatuses.length > 0 && maritalStatusFilter.mode === 'specific'
+      && !maritalStatuses.some(m => m.status_id === maritalStatusFilter.statusId)) {
+      setMaritalStatusFilter({ mode: 'all' });
+    }
+  }, [maritalStatuses, maritalStatusFilter]);
 
   const showChips = React.useMemo(
     () => searchQuery.split('&').filter(p => p.trim()).length > 1 || parseSearchFilter(searchQuery).type === 'age',
