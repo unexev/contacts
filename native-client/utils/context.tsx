@@ -6,6 +6,7 @@ import { createContactsActions } from './contactsActions';
 import type { Contact, ContactsContextType } from './contactsTypes';
 import { syncNow as syncNowApi } from './apiSync';
 import { useAuth } from './authContext';
+import { PRIMARY_CONTACT_COLUMNS } from './contactActions';
 import { checkBackupExists, downloadDB } from './driveSync';
 import {
   getLastSyncAt, isAutoSyncEnabled, pullIfNeeded, pushNow,
@@ -49,7 +50,7 @@ export function ContactsProvider({ children }: { children: ReactNode }) {
 
     const fetchContacts = useCallback(async (): Promise<Contact[]> => {
         try {
-            const result = await db.getAllAsync<Contact>('SELECT *, rowid FROM contact ORDER BY first_name ASC;');
+            const result = await db.getAllAsync<Contact>(`SELECT c.*, c.rowid, ${PRIMARY_CONTACT_COLUMNS} FROM contact c ORDER BY c.first_name ASC;`);
             const normalized = result.map(normalizeContact);
             setContacts(normalized);
             return normalized;

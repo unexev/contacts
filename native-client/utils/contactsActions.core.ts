@@ -3,6 +3,7 @@ import { db } from './db';
 import { toUpper } from './contactUtils';
 import type { CreateContactsActionsParams } from './contactsActionsShared';
 import type { Contact, ContactInput, ContactsContextType } from './contactsTypes';
+import { PRIMARY_CONTACT_COLUMNS } from './contactActions';
 
 function generateId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -103,7 +104,7 @@ export function createContactsCoreActions({
             });
 
             const results = await db.getAllAsync<Contact>(
-                `SELECT c.*,
+                `SELECT c.*, ${PRIMARY_CONTACT_COLUMNS},
                     (SELECT co2.achievement FROM contact_organization co2
                      JOIN organization o2 ON co2.organization_id = o2.organization_id
                      WHERE co2.contact_id = c.contact_id AND (${matchCondition})

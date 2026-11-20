@@ -1,3 +1,5 @@
+import ContactActionsMenu from '../../components/ContactActionsMenu';
+import { contactActions } from '../../utils/contactActions';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
@@ -136,6 +138,7 @@ export default function HomeScreen() {
   const [searchResults, setSearchResults] = React.useState<ContactListItem[]>([]);
   // Query the current results belong to; differs from searchQuery while the debounced search runs.
   const [settledQuery, setSettledQuery] = React.useState('');
+  const [actionsFor, setActionsFor] = React.useState<any>(null);
   const genderFilterOptions = React.useMemo(() => getGenderFilterOptions(t), [t]);
 
   React.useEffect(() => {
@@ -615,7 +618,19 @@ export default function HomeScreen() {
                     </>
                   ) : null}
                 </View>
-                <Ionicons name="chevron-forward" size={17} color={colors.textTertiary} />
+                {contactActions(item.primary_phone, item.primary_email, !item.primary_phone_inactive).length > 0 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${t.contactList.moreActions}: ${item.first_name} ${item.surname}`}
+                    hitSlop={4}
+                    onPress={() => setActionsFor(item)}
+                    style={({ pressed }) => [styles.moreButton, pressed && { backgroundColor: colors.surface2 }]}
+                  >
+                    <Ionicons name="ellipsis-horizontal" size={20} color={colors.textSecondary} />
+                  </Pressable>
+                ) : (
+                  <Ionicons name="chevron-forward" size={17} color={colors.textTertiary} />
+                )}
               </Pressable>
             )}
             ListEmptyComponent={() => searchQuery.trim() && settledQuery !== searchQuery.trim() ? null : (
@@ -645,6 +660,15 @@ export default function HomeScreen() {
       </View>
 
       <AdBanner />
+
+      <ContactActionsMenu
+        visible={!!actionsFor}
+        name={actionsFor ? `${actionsFor.first_name ?? ''} ${actionsFor.surname ?? ''}`.trim() : ''}
+        phone={actionsFor?.primary_phone ?? ''}
+        email={actionsFor?.primary_email ?? ''}
+        canCall={!actionsFor?.primary_phone_inactive}
+        onClose={() => setActionsFor(null)}
+      />
 
       {/* Sort modal */}
       <Modal
@@ -1007,6 +1031,7 @@ const styles = StyleSheet.create({
   // Sort / filter modals
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   orgPickerWrapper: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8 },
+  moreButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: -8 },
   sortSheet: {
     width: '92%',
     maxWidth: 420,
