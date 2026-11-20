@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '../../utils/authContext';
+import { requestApi } from '../../utils/apiClient';
+import { mapDeleteFailure } from '../../utils/authApi';
 import { useResponsive } from '../../utils/responsive';
 import { ThemePref, useTheme } from '../../utils/theme';
 import { Lang, useI18n } from '../../utils/i18n';
@@ -35,6 +37,49 @@ export default function Config() {
       { text: t.config.signOut, style: 'destructive', onPress: () => void signOutUser() },
     ]);
   };
+  const [deleting, setDeleting] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const cancelDelete = () => {
+    setDeleting(false);
+    setDeletePassword('');
+    setDeleteError(null);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteBusy) return;
+    if (!deletePassword) {
+      setDeleteError(t.config.deletePasswordRequired);
+      return;
+    }
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      const res = await requestApi('/api/auth/me', {
+        method: 'DELETE',
+        body: JSON.stringify({ current_password: deletePassword }),
+      });
+      if (res.status >= 200 && res.status < 300) {
+        // The server data is gone; signing out also wipes this device's copy and the tokens.
+        await signOutUser();
+        return;
+      }
+      const reason = mapDeleteFailure(res.status);
+      setDeleteError(
+        reason === 'wrongPassword' ? t.config.deleteWrongPassword
+          : reason === 'wait' ? t.config.deleteWait
+          : reason === 'network' ? t.config.deleteNetwork
+          : t.config.deleteFailed
+      );
+    } catch {
+      setDeleteError(t.config.deleteFailed);
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   const [signInBusy, setSignInBusy] = useState(false);
   const [signInError, setSignInError] = useState<string | null>(null);
 
@@ -142,6 +187,56 @@ export default function Config() {
           <Pressable accessibilityRole="button" style={[styles.button, styles.buttonSignOut, { backgroundColor: colors.destructiveFill }]} onPress={handleSignOut}>
             <Text style={styles.buttonText}>{t.config.signOut}</Text>
           </Pressable>
+          {apiSession && (
+            <View style={[styles.deleteSection, { borderTopColor: colors.separator }]}>
+              <Text style={[styles.deleteTitle, { color: colors.destructiveText }]}>{t.config.deleteTitle}</Text>
+              <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t.config.deleteWarning}</Text>
+              {!deleting ? (
+                <Pressable
+                  accessibilityRole="button"
+                  style={[styles.deleteBtn, { borderColor: colors.destructive }]}
+                  onPress={() => setDeleting(true)}
+                >
+                  <Text style={[styles.deleteBtnText, { color: colors.destructiveText }]}>{t.config.deleteAction}</Text>
+                </Pressable>
+              ) : (
+                <>
+                  <Text style={[styles.cardDesc, { color: colors.text }]}>{t.config.deletePrompt}</Text>
+                  <TextInput
+                    style={[styles.deleteInput, { color: colors.text, borderColor: colors.textSecondary, backgroundColor: colors.bg }]}
+                    value={deletePassword}
+                    onChangeText={setDeletePassword}
+                    placeholder={t.config.deletePasswordLabel}
+                    placeholderTextColor={colors.textSecondary}
+                    accessibilityLabel={t.config.deletePasswordLabel}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="current-password"
+                    secureTextEntry
+                    editable={!deleteBusy}
+                    onSubmitEditing={handleDeleteAccount}
+                  />
+                  {deleteError && (
+                    <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={[styles.error, { color: colors.destructiveText }]}>{deleteError}</Text>
+                  )}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: deleteBusy, busy: deleteBusy }}
+                    style={[styles.button, { backgroundColor: colors.destructiveFill }, deleteBusy && styles.buttonDisabled]}
+                    onPress={handleDeleteAccount}
+                    disabled={deleteBusy}
+                  >
+                    {deleteBusy
+                      ? <ActivityIndicator color="#fff" />
+                      : <Text style={styles.buttonText}>{t.config.deleteConfirm}</Text>}
+                  </Pressable>
+                  <Pressable accessibilityRole="button" style={styles.deleteCancel} onPress={cancelDelete} disabled={deleteBusy}>
+                    <Text style={[styles.deleteBtnText, { color: colors.accent }]}>{t.config.cancel}</Text>
+                  </Pressable>
+                </>
+              )}
+            </View>
+          )}
         </View>
       )}
 
@@ -217,6 +312,12 @@ export default function Config() {
 }
 
 const styles = StyleSheet.create({
+  deleteSection: { marginTop: 16, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth },
+  deleteTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  deleteBtn: { borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center', minHeight: 44, justifyContent: 'center', marginTop: 8 },
+  deleteBtnText: { fontSize: 15, fontWeight: '600' },
+  deleteInput: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, fontSize: 16, marginVertical: 8 },
+  deleteCancel: { alignItems: 'center', paddingVertical: 10, minHeight: 44, justifyContent: 'center' },
   container: {
     flex: 1,
     backgroundColor: '#F2F2F7',

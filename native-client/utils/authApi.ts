@@ -135,3 +135,13 @@ export async function resendVerificationRequest(
   }
   return { ok: false, reason: 'failed' };
 }
+
+export type DeleteAccountError = 'wrongPassword' | 'wait' | 'network' | 'failed';
+
+/** Maps the DELETE /api/auth/me failure status (0 = network failure) to a reason. */
+export function mapDeleteFailure(status: number): DeleteAccountError {
+  if (status === 0) return 'network';
+  if (status === 401) return 'wrongPassword';
+  if (status === 429) return 'wait';
+  return 'failed';
+}

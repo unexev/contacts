@@ -8,6 +8,7 @@ import {
   registerRequest,
   mapAuthFailure,
   resendVerificationRequest,
+  mapDeleteFailure,
 } from '../utils/authApi.ts';
 
 function fakeFetch(status, body, { throws } = {}) {
@@ -123,4 +124,11 @@ test('resendVerificationRequest maps statuses', async () => {
   assert.deepEqual(await resendVerificationRequest(fakeFetch(409, {}), 'http://api', 'a@b.co', 'pw'), { ok: false, reason: 'done' });
   assert.deepEqual(await resendVerificationRequest(fakeFetch(500, {}), 'http://api', 'a@b.co', 'pw'), { ok: false, reason: 'failed' });
   assert.deepEqual(await resendVerificationRequest(fakeFetch(0, {}, { throws: true }), 'http://api', 'a@b.co', 'pw'), { ok: false, reason: 'failed' });
+});
+
+test('mapDeleteFailure maps account deletion statuses', () => {
+  assert.equal(mapDeleteFailure(0), 'network');
+  assert.equal(mapDeleteFailure(401), 'wrongPassword');
+  assert.equal(mapDeleteFailure(429), 'wait');
+  assert.equal(mapDeleteFailure(500), 'failed');
 });
