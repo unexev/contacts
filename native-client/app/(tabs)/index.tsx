@@ -44,6 +44,7 @@ import {
   SortKey,
   SORT_OPTIONS,
 } from '../../utils/contactList';
+import FilterPanel, { ActiveFilterChips, FILTER_OFF, selectedLabel, type FilterGroup, type FilterSection } from '../../components/FilterPanel';
 import { getContactIdsWithCedula } from '../../utils/cedulaFilter';
 import { getContactIdsWithPhone } from '../../utils/phoneFilter';
 import { normalizeChildrenCount, RELATIONSHIP_STATUSES, type RelationshipStatus } from '../../utils/syncMapping';
@@ -271,6 +272,136 @@ export default function HomeScreen() {
     return Array.from(map.entries()).map(([title, data]) => ({ title, data }));
   }, [filteredContacts, sortKey]);
 
+
+  const clearAllFilters = () => {
+    setGenderFilter(null);
+    setBirthdateFilter('all');
+    setCedulaFilter({ mode: 'all' });
+    setPhoneFilter({ mode: 'all' });
+    setOrganizationFilter({ mode: 'all' });
+    setMaritalStatusFilter({ mode: 'all' });
+    setRelationshipFilter(null);
+    setChildrenFilter({ mode: 'all' });
+  };
+
+  const openFilters = () => {
+    // The marital status options come from the database, so load them before opening.
+    getMaritalStatuses().then(setMaritalStatuses).catch(() => {});
+    setFilterModalVisible(true);
+  };
+
+  // Filters grouped by what they describe; the person's situation comes first.
+  const filterSections = React.useMemo<FilterSection[]>(() => {
+    const tri = (withLabel: string, withoutLabel: string, allLabel = t.contacts.all) => [
+      { key: 'all', label: allLabel },
+      { key: 'with', label: withLabel },
+      { key: 'without', label: withoutLabel },
+    ];
+    const person: FilterGroup[] = [
+      {
+        key: 'marital',
+        label: t.contacts.maritalFilter,
+        selectedKey: maritalStatusFilter.mode === 'specific' ? (maritalStatusFilter.statusId ?? 'all') : maritalStatusFilter.mode,
+        options: [
+          { key: 'all', label: t.contacts.all },
+          { key: 'with', label: t.contacts.maritalFilterWith },
+          ...maritalStatuses.map(s => ({ key: s.status_id, label: listLabel('marital', lang, s.status_id, s.marital_status) })),
+          { key: 'without', label: t.contacts.maritalFilterWithout },
+        ],
+        onSelect: key => setMaritalStatusFilter(
+          key === 'all' || key === 'with' || key === 'without' ? { mode: key } : { mode: 'specific', statusId: key },
+        ),
+      },
+      {
+        key: 'relationship',
+        label: t.contacts.relationshipStatus,
+        selectedKey: relationshipFilter ?? 'all',
+        options: [
+          { key: 'all', label: t.contacts.all },
+          { key: 'SINGLE', label: t.contacts.relationshipSingle },
+          { key: 'PARTNERED', label: t.contacts.relationshipPartnered },
+          { key: 'COHABITING', label: t.contacts.relationshipFilterCohabiting },
+          { key: 'UNSPECIFIED', label: t.common.unspecified },
+        ],
+        onSelect: key => setRelationshipFilter(key === 'all' ? null : (key as RelationshipStatusFilter)),
+      },
+      {
+        key: 'children',
+        label: t.contacts.children,
+        selectedKey: childrenFilter.mode,
+        options: tri(t.contacts.childrenFilterWith, t.contacts.childrenFilterWithout),
+        onSelect: key => setChildrenFilter({ mode: key as 'all' | 'with' | 'without' }),
+      },
+      {
+        key: 'gender',
+        label: t.contacts.gender,
+        selectedKey: genderFilter ?? 'all',
+        options: genderFilterOptions.map(o => ({ key: o.value ?? 'all', label: o.label })),
+        onSelect: key => setGenderFilter(key === 'all' ? null : (key as GenderFilter)),
+      },
+    ];
+    const data: FilterGroup[] = [
+      {
+        key: 'phone',
+        label: t.contacts.phoneFilter,
+        selectedKey: phoneFilter.mode,
+        options: tri(t.contacts.phoneFilterWith, t.contacts.phoneFilterWithout),
+        onSelect: key => setPhoneFilter({ mode: key as 'all' | 'with' | 'without' }),
+      },
+      {
+        key: 'doc',
+        label: t.contacts.docFilter,
+        selectedKey: cedulaFilter.mode,
+        options: tri(t.contacts.docFilterWith, t.contacts.docFilterWithout),
+        onSelect: key => setCedulaFilter({ mode: key as 'all' | 'with' | 'without' }),
+      },
+      {
+        key: 'birthdate',
+        label: t.contacts.birthdate,
+        selectedKey: birthdateFilter,
+        options: tri(t.contacts.birthdateWith, t.contacts.birthdateWithout, t.contacts.birthdateAll),
+        onSelect: key => setBirthdateFilter(key as 'all' | 'with' | 'without'),
+      },
+      {
+        key: 'organization',
+        label: t.contacts.orgFilter,
+        selectedKey: organizationFilter.mode,
+        options: [
+          ...tri(t.contacts.orgFilterWith, t.contacts.orgFilterWithout),
+          { key: 'specific', label: t.contacts.orgFilterSpecific },
+        ],
+        onSelect: key => setOrganizationFilter(prev => ({
+          mode: key as OrganizationFilter['mode'],
+          organizationId: key === 'specific' ? prev.organizationId : undefined,
+        })),
+        extra: organizationFilter.mode === 'specific' ? (
+          <View style={styles.orgPickerWrapper}>
+            <Dropdown
+              options={organizations.map(o => ({ label: o.name, value: o.organization_id }))}
+              value={organizationFilter.organizationId ?? null}
+              onSelect={(val) => setOrganizationFilter({ mode: 'specific', organizationId: val ?? undefined })}
+              placeholder={t.contacts.orgFilterSelectPlaceholder}
+            />
+          </View>
+        ) : undefined,
+      },
+    ];
+    return [
+      { title: t.contactList.filterSectionPerson, groups: person },
+      { title: t.contactList.filterSectionData, groups: data },
+    ];
+  }, [t, lang, maritalStatuses, maritalStatusFilter, relationshipFilter, childrenFilter, genderFilter, genderFilterOptions,
+      phoneFilter, cedulaFilter, birthdateFilter, organizationFilter, organizations]);
+
+  const activeFilterGroups = React.useMemo(
+    () => filterSections.flatMap(section => section.groups).filter(g => g.selectedKey !== FILTER_OFF),
+    [filterSections],
+  );
+  const activeFilterChips = activeFilterGroups.map(g => ({ key: g.key, text: `${g.label}: ${selectedLabel(g)}` }));
+  const removeFilter = (key: string) => {
+    filterSections.flatMap(section => section.groups).find(g => g.key === key)?.onSelect(FILTER_OFF);
+  };
+
   const formatBirthdate = (text: string) => {
     const digits = text.replace(/\D/g, '').slice(0, 8);
     let formatted = digits;
@@ -347,7 +478,7 @@ export default function HomeScreen() {
             <Pressable accessibilityRole="button" onPress={handleRefresh} hitSlop={8} accessibilityLabel={t.common.refresh}>
               <Ionicons name="refresh" size={20} color={colors.accent} />
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => setFilterModalVisible(true)} hitSlop={8} accessibilityLabel={t.contactList.filters}>
+            <Pressable accessibilityRole="button" onPress={openFilters} hitSlop={8} accessibilityLabel={t.contactList.filters}>
               <Ionicons name="filter" size={20} color={colors.accent} />
             </Pressable>
             <Pressable accessibilityRole="button" onPress={() => setSortModalVisible(true)} hitSlop={8} accessibilityLabel={t.contactList.sortBy}>
@@ -398,6 +529,12 @@ export default function HomeScreen() {
                 </View>
               </React.Fragment>
             ))}
+          </View>
+        )}
+
+        {activeFilterChips.length > 0 && (
+          <View style={[styles.appliedFilters, isDesktop && styles.activeFilterRowDesktop]}>
+            <ActiveFilterChips chips={activeFilterChips} removeLabel={t.contactList.filterRemove} onRemove={removeFilter} />
           </View>
         )}
 
@@ -538,196 +675,18 @@ export default function HomeScreen() {
         onRequestClose={() => setFilterModalVisible(false)}
       >
         <Pressable accessible={false} style={[styles.modalOverlay, { backgroundColor: colors.overlay }]} onPress={() => setFilterModalVisible(false)}>
-          <View style={[styles.actionSheet, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.actionSheetTitle, { color: colors.textSecondary }]}>{t.contactList.filters}</Text>
-
-            <Text style={[styles.filterSectionTitle, { color: colors.textSecondary }]}>{t.contacts.gender}</Text>
-            <View style={styles.filterChipRow}>
-              {genderFilterOptions.map(option => (
-                <Pressable accessibilityRole="button"
-                  key={String(option.value)}
-                  style={[styles.filterChip, genderFilter === option.value && [styles.filterChipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
-                  onPress={() => setGenderFilter(option.value)}
-                >
-                  <Text style={[styles.filterChipText, genderFilter === option.value && styles.filterChipTextActive]}>
-                    {option.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={[styles.filterSectionTitle, { color: colors.textSecondary }, { marginTop: 12 }]}>{t.contacts.birthdate}</Text>
-            <View style={styles.filterChipRow}>
-              {([
-                { key: 'all', label: t.contacts.birthdateAll },
-                { key: 'with', label: t.contacts.birthdateWith },
-                { key: 'without', label: t.contacts.birthdateWithout },
-              ] as const).map(opt => (
-                <Pressable accessibilityRole="button"
-                  key={opt.key}
-                  style={[styles.filterChip, birthdateFilter === opt.key && [styles.filterChipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
-                  onPress={() => setBirthdateFilter(opt.key)}
-                >
-                  <Text style={[styles.filterChipText, birthdateFilter === opt.key && styles.filterChipTextActive]}>
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={[styles.filterSectionTitle, { color: colors.textSecondary }, { marginTop: 12 }]}>{t.contacts.docFilter}</Text>
-            <View style={styles.filterChipRow}>
-              {([
-                { key: 'all', label: t.contacts.all },
-                { key: 'with', label: t.contacts.docFilterWith },
-                { key: 'without', label: t.contacts.docFilterWithout },
-              ] as const).map(opt => (
-                <Pressable accessibilityRole="button"
-                  key={opt.key}
-                  style={[styles.filterChip, cedulaFilter.mode === opt.key && [styles.filterChipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
-                  onPress={() => setCedulaFilter({ mode: opt.key })}
-                >
-                  <Text style={[styles.filterChipText, cedulaFilter.mode === opt.key && styles.filterChipTextActive]}>
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={[styles.filterSectionTitle, { color: colors.textSecondary }, { marginTop: 12 }]}>{t.contacts.phoneFilter}</Text>
-            <View style={styles.filterChipRow}>
-              {([
-                { key: 'all', label: t.contacts.all },
-                { key: 'with', label: t.contacts.phoneFilterWith },
-                { key: 'without', label: t.contacts.phoneFilterWithout },
-              ] as const).map(opt => (
-                <Pressable accessibilityRole="button"
-                  key={opt.key}
-                  style={[styles.filterChip, phoneFilter.mode === opt.key && [styles.filterChipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
-                  onPress={() => setPhoneFilter({ mode: opt.key })}
-                >
-                  <Text style={[styles.filterChipText, phoneFilter.mode === opt.key && styles.filterChipTextActive]}>
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={[styles.filterSectionTitle, { color: colors.textSecondary }, { marginTop: 12 }]}>{t.contacts.orgFilter}</Text>
-            <View style={styles.filterChipRow}>
-              {([
-                { key: 'all', label: t.contacts.all },
-                { key: 'with', label: t.contacts.orgFilterWith },
-                { key: 'without', label: t.contacts.orgFilterWithout },
-                { key: 'specific', label: t.contacts.orgFilterSpecific },
-              ] as const).map(opt => (
-                <Pressable accessibilityRole="button"
-                  key={opt.key}
-                  style={[styles.filterChip, organizationFilter.mode === opt.key && [styles.filterChipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
-                  onPress={() => setOrganizationFilter(prev => ({
-                    mode: opt.key,
-                    organizationId: opt.key === 'specific' ? prev.organizationId : undefined,
-                  }))}
-                >
-                  <Text style={[styles.filterChipText, organizationFilter.mode === opt.key && styles.filterChipTextActive]}>
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            {organizationFilter.mode === 'specific' && (
-              <View style={styles.orgPickerWrapper}>
-                <Dropdown
-                  options={organizations.map(o => ({ label: o.name, value: o.organization_id }))}
-                  value={organizationFilter.organizationId ?? null}
-                  onSelect={(val) => setOrganizationFilter({
-                    mode: 'specific',
-                    organizationId: val ?? undefined,
-                  })}
-                  placeholder={t.contacts.orgFilterSelectPlaceholder}
-                />
-              </View>
-            )}
-
-            <Text style={[styles.filterSectionTitle, { color: colors.textSecondary }, { marginTop: 12 }]}>{t.contacts.maritalFilter}</Text>
-            <View style={styles.filterChipRow}>
-              {([
-                { key: 'all', label: t.contacts.all },
-                { key: 'with', label: t.contacts.maritalFilterWith },
-                { key: 'without', label: t.contacts.maritalFilterWithout },
-                { key: 'specific', label: t.contacts.maritalFilterSpecific },
-              ] as const).map(opt => (
-                <Pressable accessibilityRole="button"
-                  key={opt.key}
-                  style={[styles.filterChip, maritalStatusFilter.mode === opt.key && [styles.filterChipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
-                  onPress={() => setMaritalStatusFilter(prev => ({
-                    mode: opt.key,
-                    statusId: opt.key === 'specific' ? prev.statusId : undefined,
-                  }))}
-                >
-                  <Text style={[styles.filterChipText, maritalStatusFilter.mode === opt.key && styles.filterChipTextActive]}>
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            {maritalStatusFilter.mode === 'specific' && (
-              <View style={styles.orgPickerWrapper}>
-                <Dropdown
-                  options={maritalStatuses.map(s => ({ label: listLabel('marital', lang, s.status_id, s.marital_status), value: s.status_id }))}
-                  value={maritalStatusFilter.statusId ?? null}
-                  onSelect={(val) => setMaritalStatusFilter({
-                    mode: 'specific',
-                    statusId: val ?? undefined,
-                  })}
-                  placeholder={t.contacts.maritalFilterSelectPlaceholder}
-                />
-              </View>
-            )}
-
-            <Text style={[styles.filterSectionTitle, { color: colors.textSecondary }, { marginTop: 12 }]}>{t.contacts.relationshipStatus}</Text>
-            <View style={styles.filterChipRow}>
-              {([
-                { key: null, label: t.contacts.all },
-                { key: 'SINGLE', label: t.contacts.relationshipSingle },
-                { key: 'PARTNERED', label: t.contacts.relationshipPartnered },
-                { key: 'COHABITING', label: t.contacts.relationshipFilterCohabiting },
-                { key: 'UNSPECIFIED', label: t.common.unspecified },
-              ] as const).map(opt => (
-                <Pressable accessibilityRole="button"
-                  accessibilityState={{ selected: relationshipFilter === opt.key }}
-                  key={opt.key ?? 'all'}
-                  hitSlop={{ top: 7, bottom: 7 }}
-                  style={[styles.filterChip, relationshipFilter === opt.key && [styles.filterChipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
-                  onPress={() => setRelationshipFilter(opt.key)}
-                >
-                  <Text style={[styles.filterChipText, relationshipFilter === opt.key && styles.filterChipTextActive]}>
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={[styles.filterSectionTitle, { color: colors.textSecondary }, { marginTop: 12 }]}>{t.contacts.children}</Text>
-            <View style={styles.filterChipRow}>
-              {([
-                { key: 'all', label: t.contacts.all },
-                { key: 'with', label: t.contacts.childrenFilterWith },
-                { key: 'without', label: t.contacts.childrenFilterWithout },
-              ] as const).map(opt => (
-                <Pressable accessibilityRole="button"
-                  accessibilityState={{ selected: childrenFilter.mode === opt.key }}
-                  key={opt.key}
-                  hitSlop={{ top: 7, bottom: 7 }}
-                  style={[styles.filterChip, childrenFilter.mode === opt.key && [styles.filterChipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
-                  onPress={() => setChildrenFilter({ mode: opt.key })}
-                >
-                  <Text style={[styles.filterChipText, childrenFilter.mode === opt.key && styles.filterChipTextActive]}>
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+          <View
+            style={[styles.filterSheet, { backgroundColor: colors.bg, borderColor: colors.border }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <FilterPanel
+              title={t.contactList.filters}
+              resultsLabel={`${filteredContacts.length} ${filteredContacts.length === 1 ? t.contactList.contact : t.contactList.contacts}`}
+              clearLabel={t.contactList.filtersClear}
+              canClear={activeFilterGroups.length > 0}
+              onClear={clearAllFilters}
+              sections={filterSections}
+            />
           </View>
         </Pressable>
       </Modal>
@@ -1089,6 +1048,15 @@ const styles = StyleSheet.create({
   filterChipText: { fontSize: 13, color: '#555' },
   filterChipTextActive: { color: '#fff', fontWeight: '600' },
   orgPickerWrapper: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8 },
+  filterSheet: {
+    width: '92%',
+    maxWidth: 520,
+    maxHeight: '85%',
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  appliedFilters: { marginHorizontal: 16, marginBottom: 8 },
 
   // Sheet (new contact modal)
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
