@@ -106,6 +106,7 @@ Density is handled with stacked white cards on a grey ground, short labels and h
 - One accent (system blue) for every interactive affordance.
 - Light and dark themes with parallel tokens; dark is a licensed feature.
 - Touch targets of at least 48px on every actionable element.
+- Quiet feedback: confirmations are brief toasts, loading is a skeleton, never a blocking dialog or a spinner over the data.
 
 ## Colors
 
@@ -188,6 +189,18 @@ Soft but restrained: 12px for cards, 10px for inputs and buttons, 14px for pill-
 ### Navigation
 - **Bottom tab bar:** surface background, hairline top border, three tabs (contacts, calendar, menu), 24px outline Ionicons plus 11px label, all in accent blue. Hidden on desktop web.
 
+### Toast
+Short confirmation ("Number copied", "Photo updated") for actions that need no decision. Inverted ground (Ink fill, Grouped Grey text), 12px radius, 14px/500 text, centered above the tab bar, gone after 2 seconds (8 for notices the user must read). Announced as a polite live region and never takes focus. Blocking dialogs stay only for choices: delete confirmations and errors.
+
+### Loading skeleton
+Placeholder rows shaped like the contact list (44px disc plus two rounded lines) in Hairline-tone blocks that pulse between 45% and 100% opacity. With reduce-motion on, the pulse stops and the rows stay at a fixed opacity. It replaces the list while it loads; a spinner is not used over content.
+
+### Contact avatar
+96px disc centered above the detail card: the photo (cover fit) or the initials in white 34px/600 on system blue. With an account it is a button that opens change / remove; without one it is a plain, inert disc. No badges, rings or status dots.
+
+### Quick actions sheet
+Opened from the ellipsis on a list row: call, WhatsApp, email and copy number, as a short card styled like the sort sheet. Only actions the contact can actually do are listed.
+
 ### Birthday Card (signature)
 Cream (#FFF8EE) ground with a soft amber border (38% opacity) in light, deep brown (#291D00) with a 22% amber border in dark. The only warm surface in the app.
 
@@ -199,10 +212,13 @@ Cream (#FFF8EE) ground with a soft amber border (38% opacity) in light, deep bro
 - **Do** build new surfaces from the existing card (12px, surface fill, 16px padding) and the filled input.
 - **Do** provide light and dark values for every new color token.
 - **Do** keep copy short and literal: "Add phone", "Save", not slogans.
+- **Do** confirm with a toast and reserve dialogs for decisions.
+- **Do** make every animation stop when reduce-motion is on.
 
 ### Don't:
 - **Don't** use CRM patterns: metric panels, endless tables, corporate blue headers.
 - **Don't** add social cues: avatars with badges, engagement counts, audience logic.
 - **Don't** use colored left or right stripe borders as alert accents.
 - **Don't** add custom fonts, gradients, or glass effects; the app should disappear.
+- **Don't** cover the data with a spinner or overlay while loading; show the skeleton.
 - **Don't** nest cards inside cards or repeat identical icon-heading-text card grids.

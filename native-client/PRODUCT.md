@@ -6,11 +6,11 @@ product
 
 ## Users
 
-Persona individual que gestiona su agenda personal de forma privada. Necesita guardar datos enriquecidos por contacto (documentos de identidad, cuentas bancarias, relaciones familiares, cumpleaños, notas libres) sin que esa información salga del dispositivo. Usa la app en momentos de consulta rápida o de registro cuidadoso, siempre desde la certeza de que sus datos son suyos.
+Persona individual que gestiona su agenda personal de forma privada. Necesita guardar datos enriquecidos por contacto (documentos de identidad, cuentas bancarias, relaciones familiares, nacionalidades, ubicaciones, cumpleaños, notas libres) sin que esa información salga del dispositivo salvo que decida sincronizarla. Usa la app en momentos de consulta rápida o de registro cuidadoso, siempre desde la certeza de que sus datos son suyos.
 
 ## Product Purpose
 
-Gestor de contactos 100% offline con modelo de datos más rico que cualquier agenda de sistema operativo. El usuario puede registrar todo lo que importa de una persona: datos civiles, documentos, finanzas, vínculos familiares, organizaciones y notas privadas. La base de datos nunca abandona el dispositivo sin una acción explícita. Éxito: el usuario confía en la app como su agenda definitiva y no siente necesidad de ninguna otra herramienta.
+Gestor de contactos offline-first con modelo de datos más rico que cualquier agenda de sistema operativo. El usuario puede registrar todo lo que importa de una persona: datos civiles, documentos, finanzas, vínculos familiares, nacionalidades, ubicaciones, organizaciones y notas privadas. Todo funciona sin conexión y sin cuenta (modo invitado). La base de datos nunca abandona el dispositivo sin una acción explícita: iniciar sesión para sincronizar con el servidor propio, exportar o hacer una copia en Drive. La foto del contacto es la única función que exige conexión, porque vive solo en el servidor. Éxito: el usuario confía en la app como su agenda definitiva y no siente necesidad de ninguna otra herramienta.
 
 ## Brand Personality
 
@@ -32,4 +32,4 @@ Privado, confiable, limpio. La app no llama la atención sobre sí misma; desapa
 
 ## Accessibility & Inclusion
 
-WCAG AA como mínimo: tamaños de toque correctos (≥44pt), contraste de texto adecuado. Sin requisitos especiales de reduced-motion o lector de pantalla por ahora.
+WCAG AA como mínimo: tamaños de toque correctos (≥44pt), contraste de texto adecuado. Respetar "reducir movimiento" en cualquier animación (el esqueleto de carga se queda quieto). Los avisos breves se anuncian a los lectores de pantalla sin quitar el foco, y todo control debe llevar rol y etiqueta accesibles.
