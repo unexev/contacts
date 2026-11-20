@@ -647,22 +647,34 @@ export default function HomeScreen() {
         onRequestClose={() => setSortModalVisible(false)}
       >
         <Pressable accessible={false} style={[styles.modalOverlay, { backgroundColor: colors.overlay }]} onPress={() => setSortModalVisible(false)}>
-          <View style={[styles.actionSheet, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.actionSheetTitle, { color: colors.textSecondary }]}>{t.contactList.sortBy}</Text>
-            {SORT_OPTIONS.map((opt, i) => (
-              <React.Fragment key={opt.key}>
-                {i > 0 && <View style={styles.actionSheetSeparator} />}
-                <Pressable accessibilityRole="button"
-                  style={({ pressed }) => [styles.actionSheetItem, pressed && { backgroundColor: '#F2F2F7' }]}
+          <View
+            style={[styles.sortSheet, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={[styles.sortHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.sortTitle, { color: colors.text }]} accessibilityRole="header">{t.contactList.sortBy}</Text>
+            </View>
+            {SORT_OPTIONS.map((opt, i) => {
+              const selected = sortKey === opt.key;
+              return (
+                <Pressable
+                  key={opt.key}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  style={({ pressed }) => [
+                    styles.sortOption,
+                    i < SORT_OPTIONS.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
+                    pressed && { backgroundColor: colors.surface2 },
+                  ]}
                   onPress={() => { setSortKey(opt.key); setSortModalVisible(false); }}
                 >
-                  <Text style={[styles.actionSheetItemText, { color: colors.text }, sortKey === opt.key && [styles.actionSheetItemActive, { color: colors.accent }]]}>
+                  <Text style={[styles.sortOptionText, { color: selected ? colors.accent : colors.text }, selected && styles.sortOptionTextSelected]}>
                     {(t.contactList as any)[opt.transKey]}
                   </Text>
-                  {sortKey === opt.key && <Ionicons name="checkmark" size={18} color={colors.accent} />}
+                  {selected && <Ionicons name="checkmark" size={18} color={colors.accent} />}
                 </Pressable>
-              </React.Fragment>
-            ))}
+              );
+            })}
           </View>
         </Pressable>
       </Modal>
@@ -983,71 +995,28 @@ const styles = StyleSheet.create({
   },
   fabDesktop: { right: 32, width: 60, height: 60, borderRadius: 30 },
 
-  // Action sheet (sort / filter modals)
+  // Sort / filter modals
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  actionSheet: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    marginHorizontal: 24,
-    padding: 0,
-    minWidth: 280,
-    maxWidth: 400,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
+  orgPickerWrapper: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8 },
+  sortSheet: {
+    width: '92%',
+    maxWidth: 420,
+    borderRadius: 12,
+    borderWidth: 1,
     overflow: 'hidden',
-    maxHeight: '80%',
   },
-  actionSheetTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6C6C70',
-    textAlign: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(60,60,67,0.15)',
-  },
-  actionSheetItem: {
+  sortHeader: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
+  sortTitle: { fontSize: 16, fontWeight: '600' },
+  sortOption: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-  },
-  actionSheetSeparator: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(60,60,67,0.15)',
-    marginHorizontal: 16,
-  },
-  actionSheetItemText: { fontSize: 17, color: '#000' },
-  actionSheetItemActive: { color: '#0066D6', fontWeight: '600' },
-
-  filterSectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#6C6C70',
-    marginTop: 8,
-    marginBottom: 8,
+    minHeight: 48,
     paddingHorizontal: 16,
-    letterSpacing: 0.5,
+    paddingVertical: 12,
   },
-  filterChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 4 },
-  filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(60,60,67,0.2)',
-    backgroundColor: '#F9F9F9',
-  },
-  filterChipActive: { backgroundColor: '#0066CC', borderColor: '#0066CC' },
-  filterChipText: { fontSize: 13, color: '#555' },
-  filterChipTextActive: { color: '#fff', fontWeight: '600' },
-  orgPickerWrapper: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8 },
+  sortOptionText: { flex: 1, fontSize: 15 },
+  sortOptionTextSelected: { fontWeight: '600' },
   filterSheet: {
     width: '92%',
     maxWidth: 520,
