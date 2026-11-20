@@ -44,11 +44,11 @@ export default function LoginScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: colors.accent }}
+      style={{ flex: 1, backgroundColor: colors.accentFill }}
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={[styles.card, { backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacityMedium }]}>
+      <View style={[styles.card, { backgroundColor: colors.surface, shadowOpacity: 0, elevation: 0, borderWidth: 1, borderColor: colors.border }]}>
         <Image source={require('../assets/images/icon.png')} style={styles.brandIcon} accessibilityIgnoresInvertColors />
 
         <Text style={[styles.title, { color: colors.text }]}>{t.login.title}</Text>

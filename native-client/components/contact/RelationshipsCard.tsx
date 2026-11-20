@@ -105,7 +105,7 @@ export default function RelationshipsCard({ contactId, initialRelationships, onN
                 <Text style={[styles.relType, { color: colors.textSecondary }]}>{listLabel('relationship', lang, rel.type_id, rel.label)}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" onPress={() => handleRemove(rel)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
-                <Ionicons name="close" size={20} color={colors.destructive} />
+                <Ionicons name="close" size={20} color={colors.destructiveText} />
               </Pressable>
             </View>
           ))

@@ -21,18 +21,18 @@ export default function BottomTabBar() {
   if (isDesktop && Platform.OS === 'web') return null;
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom, backgroundColor: colors.surface, borderTopColor: colors.separator }]}>
+    <View style={[styles.container, { paddingBottom: insets.bottom, backgroundColor: colors.surface, borderTopColor: colors.border }]}>
       <Pressable accessibilityRole="tab" accessibilityLabel={t.tabs.contacts} accessibilityState={{ selected: isContacts }} style={styles.tab} onPress={() => router.push('/(tabs)')}>
-        <Ionicons name="person-circle-outline" size={24} color={colors.accent} />
-        <Text maxFontSizeMultiplier={1.2} style={[styles.label, { color: colors.accent }]}>{t.tabs.contacts}</Text>
+        <Ionicons name="person-circle-outline" size={24} color={isContacts ? colors.accent : colors.textSecondary} />
+        <Text maxFontSizeMultiplier={1.2} style={[styles.label, { color: isContacts ? colors.accent : colors.textSecondary, fontWeight: isContacts ? '600' : '400' }]}>{t.tabs.contacts}</Text>
       </Pressable>
       <Pressable accessibilityRole="tab" accessibilityLabel={t.tabs.calendar} accessibilityState={{ selected: isCalendar }} style={styles.tab} onPress={() => router.push('/(tabs)/calendar')}>
-        <Ionicons name="calendar-outline" size={24} color={colors.accent} />
-        <Text maxFontSizeMultiplier={1.2} style={[styles.label, { color: colors.accent }]}>{t.tabs.calendar}</Text>
+        <Ionicons name="calendar-outline" size={24} color={isCalendar ? colors.accent : colors.textSecondary} />
+        <Text maxFontSizeMultiplier={1.2} style={[styles.label, { color: isCalendar ? colors.accent : colors.textSecondary, fontWeight: isCalendar ? '600' : '400' }]}>{t.tabs.calendar}</Text>
       </Pressable>
       <Pressable accessibilityRole="tab" accessibilityLabel={t.tabs.menu} accessibilityState={{ selected: isMenu }} style={styles.tab} onPress={() => router.push('/(tabs)/menu')}>
-        <Ionicons name="ellipsis-horizontal-circle-outline" size={24} color={colors.accent} />
-        <Text maxFontSizeMultiplier={1.2} style={[styles.label, { color: colors.accent }]}>{t.tabs.menu}</Text>
+        <Ionicons name="ellipsis-horizontal-circle-outline" size={24} color={isMenu ? colors.accent : colors.textSecondary} />
+        <Text maxFontSizeMultiplier={1.2} style={[styles.label, { color: isMenu ? colors.accent : colors.textSecondary, fontWeight: isMenu ? '600' : '400' }]}>{t.tabs.menu}</Text>
       </Pressable>
     </View>
   );
@@ -41,7 +41,7 @@ export default function BottomTabBar() {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 1,
   },
   tab: {
     flex: 1, alignItems: 'center', justifyContent: 'center',

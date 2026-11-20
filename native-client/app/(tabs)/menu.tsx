@@ -64,9 +64,8 @@ const styles = StyleSheet.create({
   innerDesktop: { maxWidth: 800, width: '100%' },
   menuItem: {
     backgroundColor: '#F7F8FA',
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
     paddingVertical: 14,
     paddingHorizontal: 14,
     flexDirection: 'row',

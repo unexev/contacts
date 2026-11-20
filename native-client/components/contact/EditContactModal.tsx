@@ -106,7 +106,7 @@ export default function EditContactModal({ visible, contact, onClose, onSaved }:
                 {(['MALE', 'FEMALE'] as const).map(g => (
                   <Pressable accessibilityRole="button"
                     key={g}
-                    style={[styles.genderChip, gender === g && [styles.genderChipSelected, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
+                    style={[styles.genderChip, { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border }, gender === g && [styles.genderChipSelected, { borderColor: colors.accentFill }, { backgroundColor: colors.accentFill }]]}
                     onPress={() => setGender(prev => prev === g ? null : g)}
                   >
                     <Text style={[styles.genderChipText, gender === g && styles.genderChipTextSelected]}>
@@ -137,7 +137,7 @@ export default function EditContactModal({ visible, contact, onClose, onSaved }:
                   <Pressable accessibilityRole="button"
                     accessibilityState={{ selected: relationshipStatus === rs }}
                     key={rs}
-                    style={[styles.genderChip, styles.relationshipChip, relationshipStatus === rs && [styles.genderChipSelected, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
+                    style={[styles.genderChip, { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border }, styles.relationshipChip, relationshipStatus === rs && [styles.genderChipSelected, { borderColor: colors.accentFill }, { backgroundColor: colors.accentFill }]]}
                     onPress={() => setRelationshipStatus(prev => prev === rs ? null : rs)}
                   >
                     <Text numberOfLines={2} style={[styles.genderChipText, styles.relationshipChipText, relationshipStatus === rs && styles.genderChipTextSelected]}>

@@ -74,7 +74,7 @@ export default function UrlsCard({ contactId, initialUrls }: Props) {
                 </Pressable>
               </View>
               <Pressable accessibilityRole="button" onPress={() => handleRemove(item)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
-                <Ionicons name="close" size={20} color={colors.destructive} />
+                <Ionicons name="close" size={20} color={colors.destructiveText} />
               </Pressable>
             </View>
           ))}

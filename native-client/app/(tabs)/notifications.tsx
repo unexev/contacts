@@ -185,10 +185,10 @@ export default function NotificationsScreen() {
       )}
 
       {/* Activar */}
-      <View style={[styles.card, { backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacity }]}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
         <View style={styles.toggleRow}>
           <View style={{ flex: 1, paddingRight: 12 }}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>{t.notificationsScreen.enabled}</Text>
+            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.notificationsScreen.enabled}</Text>
             <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t.notificationsScreen.enabledDesc}</Text>
           </View>
           <Switch
@@ -203,13 +203,13 @@ export default function NotificationsScreen() {
       </View>
 
       {/* Antelación */}
-      <View style={[styles.card, { backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacity }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>{t.notificationsScreen.daysBefore}</Text>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
+        <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.notificationsScreen.daysBefore}</Text>
         <View style={styles.chipRow}>
           {DAYS_OPTIONS.map(d => (
             <Pressable accessibilityRole="button"
               key={d}
-              style={[styles.chip, { backgroundColor: colors.fill, borderColor: colors.separator }, settings.daysBefore === d && [styles.chipActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}
+              style={[styles.chip, { backgroundColor: colors.fill, borderColor: colors.separator }, settings.daysBefore === d && [styles.chipActive, { borderColor: colors.accentFill }, { backgroundColor: colors.accentFill }]]}
               onPress={() => setSettings(prev => ({ ...prev, daysBefore: d }))}
             >
               <Text style={[styles.chipText, { color: colors.text }, settings.daysBefore === d && styles.chipTextActive]}>
@@ -221,8 +221,8 @@ export default function NotificationsScreen() {
       </View>
 
       {/* Hora */}
-      <View style={[styles.card, { backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacity }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>{t.notificationsScreen.time}</Text>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
+        <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.notificationsScreen.time}</Text>
         <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t.notificationsScreen.timeDesc}</Text>
         <View style={styles.timeRow}>
           <View style={styles.timeField}>
@@ -254,8 +254,8 @@ export default function NotificationsScreen() {
       </View>
 
       {/* Mensaje */}
-      <View style={[styles.card, { backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacity }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>{t.notificationsScreen.customMessage}</Text>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
+        <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.notificationsScreen.customMessage}</Text>
         <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t.notificationsScreen.messageHelp}</Text>
         <TextInput accessibilityLabel={t.notificationsScreen.customMessage}
           style={[styles.messageInput, { borderColor: colors.inputBorder }, { backgroundColor: colors.fill, borderColor: colors.inputBorder, color: colors.text }]}
@@ -269,7 +269,7 @@ export default function NotificationsScreen() {
 
       {/* Acciones */}
       <Pressable accessibilityRole="button" accessibilityLabel={t.notificationsScreen.scheduleBtn}
-        style={[styles.button, styles.buttonPrimary, { backgroundColor: colors.accent }, !!loadingOp && styles.buttonDisabled]}
+        style={[styles.button, styles.buttonPrimary, { backgroundColor: colors.accentFill }, !!loadingOp && styles.buttonDisabled]}
         onPress={handleSaveAndSchedule}
         disabled={!!loadingOp}
       >
@@ -279,7 +279,7 @@ export default function NotificationsScreen() {
       </Pressable>
 
       <Pressable accessibilityRole="button" accessibilityLabel={t.notificationsScreen.cancelAllBtn}
-        style={[styles.button, styles.buttonDanger, { backgroundColor: colors.destructive }, !!loadingOp && styles.buttonDisabled]}
+        style={[styles.button, styles.buttonDanger, { backgroundColor: colors.destructiveFill }, !!loadingOp && styles.buttonDisabled]}
         onPress={handleCancelAll}
         disabled={!!loadingOp}
       >
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  cardTitle: { fontSize: 17, fontWeight: '600', color: '#333', marginBottom: 6 },
+  cardTitle: { fontSize: 13, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 },
   cardDesc: { fontSize: 13, color: '#6C6C70', marginBottom: 12, lineHeight: 18 },
 
   toggleRow: { flexDirection: 'row', alignItems: 'center' },

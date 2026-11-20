@@ -325,8 +325,8 @@ export default function SyncScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.bg }]} contentContainerStyle={[styles.content, isDesktop && styles.contentDesktop]}>
       {/* Base de datos */}
-      <View style={[styles.card, { backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacity }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>{t.config.database}</Text>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
+        <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.config.database}</Text>
         <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t.config.databaseDesc}</Text>
 
         <Pressable accessibilityRole="button" accessibilityLabel={t.config.importVcfBtn}
@@ -340,7 +340,7 @@ export default function SyncScreen() {
         </Pressable>
 
         <Pressable accessibilityRole="button" accessibilityLabel={t.config.exportBtn}
-          style={[styles.button, styles.buttonExport, { backgroundColor: colors.accent }, !!loadingOp && styles.buttonDisabled]}
+          style={[styles.button, styles.buttonExport, { backgroundColor: colors.accentFill }, !!loadingOp && styles.buttonDisabled]}
           onPress={handleExport}
           disabled={!!loadingOp}
         >
@@ -368,8 +368,8 @@ export default function SyncScreen() {
 
       {/* Google Drive */}
       {user && (
-        <View style={[styles.card, { marginTop: 16, backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacity }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>{t.drive.title}</Text>
+        <View style={[styles.card, { marginTop: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
+          <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.drive.title}</Text>
           <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t.drive.desc}</Text>
           <Pressable accessibilityRole="button" accessibilityLabel={t.drive.upload}
             style={[styles.button, styles.buttonDrive, !!loadingOp && styles.buttonDisabled]}
@@ -404,8 +404,8 @@ export default function SyncScreen() {
 
       {/* Sincronización entre dispositivos */}
       {user && (
-        <View style={[styles.card, { marginTop: 16, backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacity }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>{t.sync.title}</Text>
+        <View style={[styles.card, { marginTop: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
+          <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.sync.title}</Text>
           <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t.sync.desc}</Text>
           <View style={styles.syncRow}>
             <Text style={[styles.syncLabel, { color: colors.text }]}>{t.sync.autoLabel}</Text>
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08, shadowRadius: 3, elevation: 2,
   },
-  cardTitle: { fontSize: 17, fontWeight: '600', color: '#333', marginBottom: 6 },
+  cardTitle: { fontSize: 13, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 },
   cardDesc: { fontSize: 14, color: '#6C6C70', marginBottom: 16, lineHeight: 20 },
   button: {
     paddingVertical: 14, borderRadius: 10, alignItems: 'center', marginBottom: 10,

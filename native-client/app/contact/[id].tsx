@@ -107,7 +107,7 @@ export default function ContactDetailScreen() {
   if (error || !contact) {
     return (
       <View style={styles.center}>
-        <Text style={[styles.errorText, { color: colors.destructive }]}>{error || t.detail.notFound}</Text>
+        <Text style={[styles.errorText, { color: colors.destructiveText }]}>{error || t.detail.notFound}</Text>
         <Link href="../" style={[styles.backLink, { color: colors.accent }]}>{t.detail.back}</Link>
       </View>
     );
@@ -163,6 +163,8 @@ export default function ContactDetailScreen() {
         headerTitle: `${contact.first_name ?? ''} ${contact.surname ?? ''}`.trim(),
         headerStyle: { backgroundColor: colors.bg },
         headerTintColor: colors.accent,
+        headerTitleStyle: { color: colors.text, fontWeight: '700' },
+        headerShadowVisible: false,
       }} />
 
       <ScrollView contentContainerStyle={[styles.content, isTablet && !isDesktop && styles.contentTablet, isDesktop && styles.contentDesktop]}>
@@ -185,15 +187,15 @@ export default function ContactDetailScreen() {
         </View>
 
         {/* Card detalles */}
-        <View style={[styles.card, { backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacity }]}>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
           <View style={styles.cardHeader}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>{t.detail.details}</Text>
+            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.detail.details}</Text>
             <View style={styles.cardActions}>
               <Pressable accessibilityRole="button" style={[styles.editButton, { borderColor: colors.accent }]} onPress={() => setEditVisible(true)} accessibilityLabel={t.common.edit}>
                 <Text style={[styles.editButtonText, { color: colors.accent }]}>{t.common.edit}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" style={[styles.deleteButton, { borderColor: colors.destructive }]} onPress={handleDelete} accessibilityLabel={t.common.delete}>
-                <Text style={[styles.deleteButtonText, { color: colors.destructive }]}>{t.common.delete}</Text>
+                <Text style={[styles.deleteButtonText, { color: colors.destructiveText }]}>{t.common.delete}</Text>
               </Pressable>
             </View>
           </View>
@@ -258,7 +260,7 @@ const styles = StyleSheet.create({
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   cardActions: { flexDirection: 'row', gap: 8 },
-  cardTitle: { fontSize: 17, fontWeight: '600', color: '#333' },
+  cardTitle: { fontSize: 13, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' },
 
   editButton: { paddingHorizontal: 12, paddingVertical: 12, borderRadius: 8, borderWidth: 1, borderColor: '#0066D6', minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   editButtonText: { color: '#0066D6', fontSize: 14, fontWeight: '600' },

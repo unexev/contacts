@@ -118,7 +118,7 @@ export default function CalendarScreen() {
       isDesktop && { maxWidth: 800, alignSelf: 'center' as const, width: '100%' },
       { backgroundColor: colors.bg },
     ]}>
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.separator }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <Pressable accessibilityRole="button" accessibilityLabel={t.common.prevMonth} onPress={prevMonth} style={styles.navBtn} hitSlop={10}>
           <Ionicons name="chevron-back" size={22} color={colors.text} />
         </Pressable>
@@ -128,7 +128,7 @@ export default function CalendarScreen() {
         </Pressable>
       </View>
 
-      <View style={[styles.dowRow, { backgroundColor: colors.surface, borderBottomColor: colors.separator }]}>
+      <View style={[styles.dowRow, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         {DAY_HEADERS(t.calendar).map(d => (
           <View key={d} style={[styles.dowCell, { width: cellSize }]}>
             <Text style={[styles.dowText, { color: colors.textSecondary }]}>{d}</Text>
@@ -152,7 +152,7 @@ export default function CalendarScreen() {
                   style={[
                     styles.cell,
                     { width: cellSize, height: cellSize },
-                    todayCell && { backgroundColor: colors.accent },
+                    todayCell && { backgroundColor: colors.accentFill },
                     hasBday && !todayCell && { backgroundColor: colors.cardBirthday, borderWidth: 1, borderColor: colors.cardBirthdayBorder },
                   ]}
                   onPress={() => openDay(day)}

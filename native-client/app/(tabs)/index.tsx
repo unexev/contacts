@@ -360,7 +360,7 @@ export default function HomeScreen() {
       <View style={styles.innerWrap}>
         {/* Search bar */}
         <View style={[styles.searchWrap, isDesktop && styles.searchWrapDesktop, { backgroundColor: colors.bg }]}>
-          <View style={[styles.searchContainer, isDesktop && styles.searchContainerDesktop, { backgroundColor: colors.fill, borderColor: searchFocused ? colors.accent : 'transparent' }]}>
+          <View style={[styles.searchContainer, isDesktop && styles.searchContainerDesktop, { backgroundColor: colors.surface2, borderColor: searchFocused ? colors.accentDecor : colors.border }]}>
             <Ionicons name="search" size={16} color={colors.placeholder} style={styles.searchIcon} />
             <TextInput
               ref={searchInputRef}
@@ -431,7 +431,7 @@ export default function HomeScreen() {
                   styles.contactItem,
                   isTablet && !isDesktop && styles.contactItemTablet,
                   isDesktop && styles.contactItemDesktop,
-                  { backgroundColor: pressed ? colors.bg : colors.surface },
+                  { backgroundColor: pressed ? colors.surface2 : colors.surface },
                 ]}
                 onPress={() => router.push(`/contact/${item.contact_id}`)}
               >
@@ -494,7 +494,7 @@ export default function HomeScreen() {
             contentContainerStyle={[styles.listContent, isDesktop && styles.listContentDesktop]}
           />
 
-          <Pressable accessibilityRole="button" style={[styles.fab, isDesktop && styles.fabDesktop, { backgroundColor: colors.accent, shadowColor: colors.accent }]} onPress={handleOpenModal} accessibilityLabel={t.contacts.newContact}>
+          <Pressable accessibilityRole="button" style={[styles.fab, isDesktop && styles.fabDesktop, { backgroundColor: colors.accentDecor, shadowColor: colors.accentDecor }]} onPress={handleOpenModal} accessibilityLabel={t.contacts.newContact}>
             <Ionicons name="add" size={24} color="#FFFFFF" />
           </Pressable>
         </View>
@@ -750,9 +750,9 @@ export default function HomeScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.firstName} <Text style={[styles.required, { color: colors.destructive }]}>{t.common.required}</Text></Text>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.firstName} <Text style={[styles.required, { color: colors.destructiveText }]}>{t.common.required}</Text></Text>
               <TextInput accessibilityLabel={t.contacts.firstNamePlaceholder}
-                style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
+                style={[styles.input, { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border, color: colors.text }]}
                 placeholder={t.contacts.firstNamePlaceholder}
                 value={firstName}
                 onChangeText={setFirstName}
@@ -761,16 +761,16 @@ export default function HomeScreen() {
 
               <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.middleName}</Text>
               <TextInput accessibilityLabel={t.contacts.middleNamePlaceholder}
-                style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
+                style={[styles.input, { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border, color: colors.text }]}
                 placeholder={t.contacts.middleNamePlaceholder}
                 value={middleName}
                 onChangeText={setMiddleName}
                 placeholderTextColor={colors.placeholder}
               />
 
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.surname} <Text style={[styles.required, { color: colors.destructive }]}>{t.common.required}</Text></Text>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.surname} <Text style={[styles.required, { color: colors.destructiveText }]}>{t.common.required}</Text></Text>
               <TextInput accessibilityLabel={t.contacts.surnamePlaceholder}
-                style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
+                style={[styles.input, { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border, color: colors.text }]}
                 placeholder={t.contacts.surnamePlaceholder}
                 value={surname}
                 onChangeText={setSurname}
@@ -782,7 +782,7 @@ export default function HomeScreen() {
                 {(['MALE', 'FEMALE'] as const).map(g => (
                   <Pressable accessibilityRole="button"
                     key={g}
-                    style={[styles.genderChip, gender === g && [styles.genderChipSelected, { backgroundColor: colors.accent }]]}
+                    style={[styles.genderChip, { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border }, gender === g && [styles.genderChipSelected, { backgroundColor: colors.accentFill }]]}
                     onPress={() => setGender(prev => prev === g ? null : g)}
                   >
                     <Text style={[styles.genderChipText, gender === g && styles.genderChipTextSelected]}>
@@ -794,7 +794,7 @@ export default function HomeScreen() {
 
               <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.birthdate}</Text>
               <TextInput accessibilityLabel={t.contacts.birthdatePlaceholder}
-                style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
+                style={[styles.input, { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border, color: colors.text }]}
                 placeholder={t.contacts.birthdatePlaceholder}
                 value={birthdate}
                 onChangeText={formatBirthdate}
@@ -817,7 +817,7 @@ export default function HomeScreen() {
                   <Pressable accessibilityRole="button"
                     accessibilityState={{ selected: relationshipStatus === rs }}
                     key={rs}
-                    style={[styles.genderChip, styles.relationshipChip, relationshipStatus === rs && [styles.genderChipSelected, { backgroundColor: colors.accent }]]}
+                    style={[styles.genderChip, { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border }, styles.relationshipChip, relationshipStatus === rs && [styles.genderChipSelected, { backgroundColor: colors.accentFill }]]}
                     onPress={() => setRelationshipStatus(prev => prev === rs ? null : rs)}
                   >
                     <Text numberOfLines={2} style={[styles.genderChipText, styles.relationshipChipText, relationshipStatus === rs && styles.genderChipTextSelected]}>
@@ -829,7 +829,7 @@ export default function HomeScreen() {
 
               <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.children}</Text>
               <TextInput accessibilityLabel={t.contacts.children}
-                style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
+                style={[styles.input, { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border, color: colors.text }]}
                 placeholder={t.contacts.childrenPlaceholder}
                 value={childrenCount}
                 onChangeText={v => setChildrenCount(v.replace(/\D/g, '').slice(0, 2))}
@@ -839,7 +839,7 @@ export default function HomeScreen() {
               />
 
               <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: hasDoc }} style={styles.docToggle} onPress={() => setHasDoc(v => !v)}>
-                <View style={[styles.docToggleBox, hasDoc && [styles.docToggleBoxActive, { borderColor: colors.accent }, { backgroundColor: colors.accent }]]}>
+                <View style={[styles.docToggleBox, hasDoc && [styles.docToggleBoxActive, { borderColor: colors.accentFill }, { backgroundColor: colors.accentFill }]]}>
                   {hasDoc && <Ionicons name="checkmark" size={14} color={colors.surface} />}
                 </View>
                 <Text style={styles.docToggleLabel}>{t.contacts.hasDoc}</Text>
@@ -856,7 +856,7 @@ export default function HomeScreen() {
 
                   <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.docNumber}</Text>
                   <TextInput accessibilityLabel={t.contacts.docNumberPlaceholder}
-                    style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
+                    style={[styles.input, { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border, color: colors.text }]}
                     placeholder={t.contacts.docNumberPlaceholder}
                     value={cardNumber}
                     onChangeText={setCardNumber}
@@ -869,10 +869,10 @@ export default function HomeScreen() {
             </ScrollView>
 
             <View style={styles.sheetActions}>
-              <Pressable accessibilityRole="button" style={[styles.btn, styles.btnCancel, { backgroundColor: colors.surface }]} onPress={() => setModalVisible(false)}>
+              <Pressable accessibilityRole="button" style={[styles.btn, styles.btnCancel, { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border }]} onPress={() => setModalVisible(false)}>
                 <Text style={[styles.btnCancelText, { color: colors.text }]}>{t.common.cancel}</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" style={[styles.btn, styles.btnSave, { backgroundColor: colors.accent }]} onPress={handleSaveContact}>
+              <Pressable accessibilityRole="button" style={[styles.btn, styles.btnSave, { backgroundColor: colors.accentFill }]} onPress={handleSaveContact}>
                 <Text style={styles.btnSaveText}>{t.common.save}</Text>
               </Pressable>
             </View>
@@ -904,10 +904,10 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 12,
     minHeight: 48,
-    borderWidth: 2,
+    borderWidth: 1,
   },
   searchContainerDesktop: { maxWidth: 600 },
   searchIcon: { marginRight: 8 },
@@ -993,7 +993,7 @@ const styles = StyleSheet.create({
   },
   contactItemPressed: { backgroundColor: '#F2F2F7' },
   contactInfo: { flex: 1, justifyContent: 'center' },
-  contactName: { fontSize: 17, color: '#000', letterSpacing: -0.2 },
+  contactName: { fontSize: 16, fontWeight: '500', color: '#000' },
   contactNameDesktop: { fontSize: 18 },
   contactSecondary: { fontSize: 13, color: '#6C6C70', marginTop: 1 },
   contactSecondaryBlue: { fontSize: 13, color: '#0066D6', marginTop: 1 },
@@ -1020,7 +1020,7 @@ const styles = StyleSheet.create({
     width: 56, height: 56, borderRadius: 28,
     alignItems: 'center', justifyContent: 'center',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35, shadowRadius: 8, elevation: 6,
+    shadowOpacity: 0.4, shadowRadius: 16, elevation: 6,
   },
   fabDesktop: { right: 32, width: 60, height: 60, borderRadius: 30 },
 
@@ -1085,7 +1085,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(60,60,67,0.2)',
     backgroundColor: '#F9F9F9',
   },
-  filterChipActive: { backgroundColor: '#0066D6', borderColor: '#0066D6' },
+  filterChipActive: { backgroundColor: '#0066CC', borderColor: '#0066CC' },
   filterChipText: { fontSize: 13, color: '#555' },
   filterChipTextActive: { color: '#fff', fontWeight: '600' },
   orgPickerWrapper: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8 },

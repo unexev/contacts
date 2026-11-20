@@ -133,7 +133,7 @@ export default function BankAccountCard({ contactId, initialAccounts }: Props) {
                 <Text style={[styles.editBtnText, { color: colors.accent }]}>{t.common.edit}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" onPress={() => handleRemove(acc)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
-                <Ionicons name="close" size={20} color={colors.destructive} />
+                <Ionicons name="close" size={20} color={colors.destructiveText} />
               </Pressable>
             </View>
           ))}

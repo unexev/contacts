@@ -17,6 +17,9 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
+        headerShadowVisible: false,
+        headerStyle: { backgroundColor: colors.bg },
+        headerTitleStyle: { color: colors.text, fontWeight: '700' },
         tabBarPosition: isDesktop && isWeb ? 'top' : 'bottom',
         // Bar height is fixed; letting labels follow the system font scale clips them.
         tabBarAllowFontScaling: false,
@@ -25,13 +28,13 @@ export default function TabsLayout() {
         tabBarStyle: isDesktop && isWeb ? {
           ...styles.tabBarTop,
           backgroundColor: colors.surface,
-          borderBottomColor: colors.separator,
+          borderBottomColor: colors.border,
           paddingTop: insets.top,
         } : {
           ...styles.tabBarBottom,
           minHeight: 56,
           backgroundColor: colors.surface,
-          borderTopColor: colors.separator,
+          borderTopColor: colors.border,
         },
         tabBarLabelStyle: isDesktop && isWeb
           ? { fontSize: 13, fontWeight: '600' }

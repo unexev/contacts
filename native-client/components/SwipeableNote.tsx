@@ -48,7 +48,7 @@ export function SwipeableNote({ note, onPress, onDelete }: Props) {
         }}
       >
         <Reanimated.View style={[styleAnimation, styles.rightAction]}>
-          <Ionicons name="trash" size={24} color={colors.destructive} />
+          <Ionicons name="trash" size={24} color={colors.destructiveText} />
         </Reanimated.View>
       </Pressable>
     );

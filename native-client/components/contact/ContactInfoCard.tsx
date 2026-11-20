@@ -244,7 +244,7 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
                 <Text style={[styles.editBtnText, { color: colors.accent }]}>{t.common.edit}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" onPress={() => handleRemovePhone(p)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
-                <Ionicons name="close" size={20} color={colors.destructive} />
+                <Ionicons name="close" size={20} color={colors.destructiveText} />
               </Pressable>
             </View>
           ))
@@ -289,7 +289,7 @@ export default function ContactInfoCard({ contactId, initialPhones, initialEmail
                 <Text style={[styles.editBtnText, { color: colors.accent }]}>{t.common.edit}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" onPress={() => handleRemoveEmail(e)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
-                <Ionicons name="close" size={20} color={colors.destructive} />
+                <Ionicons name="close" size={20} color={colors.destructiveText} />
               </Pressable>
             </View>
           ))

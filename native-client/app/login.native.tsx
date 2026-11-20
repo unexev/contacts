@@ -76,14 +76,14 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.accent }}
+      style={{ flex: 1, backgroundColor: colors.accentFill }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
     <ScrollView
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={[styles.card, { backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacityMedium }]}>
+      <View style={[styles.card, { backgroundColor: colors.surface, shadowOpacity: 0, elevation: 0, borderWidth: 1, borderColor: colors.border }]}>
         <Image source={require('../assets/images/icon.png')} style={styles.brandIcon} accessibilityIgnoresInvertColors />
         <Text style={[styles.title, { color: colors.text }]}>{t.login.title}</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t.login.subtitle}</Text>

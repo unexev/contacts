@@ -90,8 +90,8 @@ export default function Config() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.bg }]} contentContainerStyle={[styles.content, isDesktop && styles.contentDesktop]}>
       {/* Idioma */}
-      <View style={[styles.card, { marginBottom: 16, backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacity }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>{t.config.language}</Text>
+      <View style={[styles.card, { marginBottom: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
+        <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.config.language}</Text>
         <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t.config.languageDesc}</Text>
         <View style={styles.langRow}>
           {LANGUAGES.map(l => (
@@ -109,15 +109,15 @@ export default function Config() {
 
       {/* Cuenta — invitado */}
       {!user && (
-        <View style={[styles.card, { marginBottom: 16, backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacity }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>
+        <View style={[styles.card, { marginBottom: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
+          <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>
             {t.config.account}
           </Text>
           <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>
             {t.config.accountGuestDesc}
           </Text>
           <Pressable accessibilityRole="button" accessibilityLabel={t.config.signInWithGoogle}
-            style={[styles.button, styles.buttonUpgrade, { backgroundColor: colors.accent }, signInBusy && styles.buttonDisabled]}
+            style={[styles.button, styles.buttonUpgrade, { backgroundColor: colors.accentFill }, signInBusy && styles.buttonDisabled]}
             onPress={handleGuestSignIn}
             disabled={signInBusy}
           >
@@ -125,21 +125,21 @@ export default function Config() {
               ? <ActivityIndicator color="#fff" />
               : <Text style={styles.buttonText}>{t.config.signInWithGoogle}</Text>}
           </Pressable>
-          {signInError && <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={[styles.error, { color: colors.destructive }]}>{signInError}</Text>}
+          {signInError && <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={[styles.error, { color: colors.destructiveText }]}>{signInError}</Text>}
         </View>
       )}
 
       {/* Cuenta */}
       {(user || apiSession) && (
-        <View style={[styles.card, { marginBottom: 16, backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacity }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>{t.config.account}</Text>
+        <View style={[styles.card, { marginBottom: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
+          <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.config.account}</Text>
           <View style={styles.accountRow}>
             {user && <Text style={[styles.accountEmail, { color: colors.text }]}>{user.email}</Text>}
             <Text style={[styles.accountLicense, { color: colors.textSecondary }]}>
               {licensed ? t.config.activeLicense : t.config.freePlan}
             </Text>
           </View>
-          <Pressable accessibilityRole="button" style={[styles.button, styles.buttonSignOut, { backgroundColor: colors.destructive }]} onPress={handleSignOut}>
+          <Pressable accessibilityRole="button" style={[styles.button, styles.buttonSignOut, { backgroundColor: colors.destructiveFill }]} onPress={handleSignOut}>
             <Text style={styles.buttonText}>{t.config.signOut}</Text>
           </Pressable>
         </View>
@@ -147,8 +147,8 @@ export default function Config() {
 
       {/* Upgrade — solo Android, solo si no tiene licencia */}
       {user && !licensed && isRCAvailable && (
-        <View style={[styles.card, { marginBottom: 16, backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacity }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>
+        <View style={[styles.card, { marginBottom: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
+          <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>
             {t.config.removeAds}
           </Text>
           <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>
@@ -156,7 +156,7 @@ export default function Config() {
           </Text>
 
           <Pressable accessibilityRole="button" accessibilityLabel={offering ? `${t.config.buy} — ${offering.product.priceString}` : t.config.loading}
-            style={[styles.button, styles.buttonUpgrade, { backgroundColor: colors.accent }, (purchasing || !offering) && styles.buttonDisabled]}
+            style={[styles.button, styles.buttonUpgrade, { backgroundColor: colors.accentFill }, (purchasing || !offering) && styles.buttonDisabled]}
             onPress={handlePurchase}
             disabled={purchasing || !offering}
           >
@@ -185,8 +185,8 @@ export default function Config() {
 
       {/* Modo oscuro */}
       {user && (
-        <View style={[styles.card, { marginBottom: 16, backgroundColor: colors.surface, shadowOpacity: colors.shadowOpacity }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>
+        <View style={[styles.card, { marginBottom: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
+          <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>
             {t.config.darkMode}
           </Text>
           {licensed ? (
@@ -243,9 +243,10 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardTitle: {
-    fontSize: 17,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#333',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
     marginBottom: 6,
   },
   cardDesc: {

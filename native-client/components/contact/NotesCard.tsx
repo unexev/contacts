@@ -63,7 +63,7 @@ export default function NotesCard({ contactId, initialNotes }: Props) {
             <View key={note.id} style={[styles.row, i === notes.length - 1 && styles.lastRow]}>
               <Text style={styles.noteText}>{note.note}</Text>
               <Pressable accessibilityRole="button" onPress={() => handleRemove(note)} style={s.removeBtn} accessibilityLabel={t.common.delete}>
-                <Ionicons name="close" size={20} color={colors.destructive} />
+                <Ionicons name="close" size={20} color={colors.destructiveText} />
               </Pressable>
             </View>
           ))}
