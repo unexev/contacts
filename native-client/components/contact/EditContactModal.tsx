@@ -1,3 +1,4 @@
+import { toDisplayDate } from '../../utils/dates';
 import React, { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,7 +41,7 @@ export default function EditContactModal({ visible, contact, onClose, onSaved }:
       setFirstName(contact.first_name);
       setMiddleName(contact.middle_name ?? '');
       setSurname(contact.surname);
-      setBirthdate(contact.birthdate ?? '');
+      setBirthdate(toDisplayDate(contact.birthdate));
       setGender((contact.gender as 'MALE' | 'FEMALE') ?? null);
       setStatusId(contact.status_id ?? null);
       setRelationshipStatus(normalizeRelationshipStatus(contact.relationship_status));

@@ -1,8 +1,9 @@
+import { toIsoDate } from './dates';
 export interface VCardParsed {
   first_name: string;
   middle_name?: string;
   surname: string;
-  birthdate?: string; // DD/MM/YYYY
+  birthdate?: string; // ISO YYYY-MM-DD
   phones: { phone: string; label?: string }[];
   emails: { email: string; label?: string }[];
   notes: string[];
@@ -21,14 +22,14 @@ function toTitleCase(s: string): string {
   return s.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 }
 
-/** Convierte YYYYMMDD o YYYY-MM-DD a DD/MM/YYYY */
+/** Convierte YYYYMMDD o YYYY-MM-DD a ISO YYYY-MM-DD */
 function parseBday(raw: string): string | undefined {
   const clean = raw.replace(/-/g, '').trim();
   if (clean.length === 8) {
     const y = clean.slice(0, 4);
     const m = clean.slice(4, 6);
     const d = clean.slice(6, 8);
-    if (!isNaN(Number(y + m + d))) return `${d}/${m}/${y}`;
+    if (!isNaN(Number(y + m + d))) return toIsoDate(`${y}-${m}-${d}`) ?? undefined;
   }
   return undefined;
 }

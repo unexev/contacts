@@ -31,7 +31,10 @@ function makeDb({ legacy = false } = {}) {
     raw.exec(`CREATE TABLE contact (contact_id TEXT PRIMARY KEY, first_name TEXT, surname TEXT);
       CREATE TABLE contact_phone (id INTEGER PRIMARY KEY AUTOINCREMENT, contact_id TEXT NOT NULL, phone TEXT NOT NULL, label TEXT, updated_at TEXT);
       CREATE TABLE contact_email (id INTEGER PRIMARY KEY AUTOINCREMENT, contact_id TEXT NOT NULL, email TEXT NOT NULL, label TEXT, updated_at TEXT);
-      CREATE TABLE contact_note (id INTEGER PRIMARY KEY AUTOINCREMENT, contact_id TEXT NOT NULL, note TEXT NOT NULL, updated_at TEXT);`);
+      CREATE TABLE contact_note (id INTEGER PRIMARY KEY AUTOINCREMENT, contact_id TEXT NOT NULL, note TEXT NOT NULL, updated_at TEXT);
+      CREATE TABLE contact_url (id INTEGER PRIMARY KEY AUTOINCREMENT, contact_id TEXT NOT NULL, url TEXT NOT NULL, label TEXT, updated_at TEXT);
+      CREATE TABLE national_identity_card (id INTEGER PRIMARY KEY AUTOINCREMENT, contact_id TEXT NOT NULL, doc_type TEXT NOT NULL, card_number TEXT NOT NULL, updated_at TEXT);
+      CREATE TABLE contact_bank_account (id INTEGER PRIMARY KEY AUTOINCREMENT, contact_id TEXT NOT NULL, account_number TEXT NOT NULL, updated_at TEXT);`);
   } else {
     raw.exec(schema.createTablesSql);
     for (const sql of schema.remoteIdIndexesSql) raw.exec(sql);
@@ -188,7 +191,7 @@ test('legacy databases migrate through the dbInit statements and keep their rows
     try { raw.exec(sql); } catch (_) {}
   }
   for (const sql of schema.remoteIdIndexesSql) raw.exec(sql);
-  for (const t of ['contact_phone', 'contact_email', 'contact_note']) {
+  for (const t of ['contact_phone', 'contact_email', 'contact_note', 'contact_url', 'national_identity_card', 'contact_bank_account']) {
     const cols = raw.exec(`PRAGMA table_info(${t})`)[0].values.map(r => r[1]);
     assert.ok(cols.includes('remote_id'), t);
   }

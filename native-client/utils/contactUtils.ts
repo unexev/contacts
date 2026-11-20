@@ -1,6 +1,8 @@
+// The explicit extension lets `node --test` resolve this file; tsconfig does not allow it.
+// @ts-ignore TS5097
+import { parseDate } from './dates.ts';
 import { T } from './i18n';
 
-export const DOC_TYPES = ['Passport', 'ID Card', "Driver's License", 'Other'];
 
 /** Normaliza texto para almacenamiento en BD: recorta y convierte a MAYÚSCULAS. Retorna null si está vacío. */
 export function toUpper(s: string | null | undefined): string | null {
@@ -15,11 +17,11 @@ export function toDisplay(s: string | null | undefined): string {
   return lower.charAt(0).toUpperCase() + lower.slice(1);
 }
 
-export const DOCS_WITH_DATES = ["Driver's License", 'Passport'];
+export const DOCS_WITH_DATES = ['drivers_license', 'passport'];
 
 export const EXCLUDED_FIELDS = [
   'contact_id', 'first_name', 'middle_name', 'surname',
-  'status_id', 'gender', 'relationship_status', 'children_count', 'created_at', 'updated_at',
+  'status_id', 'gender', 'relationship_status', 'children_count', 'deceased', 'created_at', 'updated_at',
 ];
 
 export interface ContactDetail {
@@ -44,13 +46,10 @@ const ZODIAC_SYMBOLS: Record<ZodiacKey, string> = {
   sagittarius: '♐', capricorn: '♑', aquarius: '♒', pisces: '♓',
 };
 
-export function getZodiacKey(birthdate?: string): ZodiacKey | null {
-  if (!birthdate) return null;
-  const parts = birthdate.split('/');
-  if (parts.length !== 3) return null;
-  const day = parseInt(parts[0]);
-  const month = parseInt(parts[1]);
-  if (isNaN(day) || isNaN(month) || month < 1 || month > 12 || day < 1) return null;
+export function getZodiacKey(birthdate?: string | null): ZodiacKey | null {
+  const parsed = parseDate(birthdate);
+  if (!parsed) return null;
+  const { day, month } = parsed;
   const md = month * 100 + day;
   if (md >= 1222 || md <= 119) return 'capricorn';
   if (md <= 218) return 'aquarius';
@@ -66,7 +65,7 @@ export function getZodiacKey(birthdate?: string): ZodiacKey | null {
   return 'sagittarius';
 }
 
-export function getZodiacSymbol(birthdate?: string): string | null {
+export function getZodiacSymbol(birthdate?: string | null): string | null {
   const key = getZodiacKey(birthdate);
   return key ? ZODIAC_SYMBOLS[key] : null;
 }
@@ -80,12 +79,11 @@ export function formatDate(text: string, setter: (v: string) => void) {
 }
 
 export function edadEnFecha(birthdate: string, targetDate: string): { years: number; months: number; days: number } | null {
-  const bp = birthdate.split('/');
-  const tp = targetDate.split('/');
-  if (bp.length !== 3 || tp.length !== 3) return null;
-  const [bd, bm, by] = bp.map(Number);
-  const [td, tm, ty] = tp.map(Number);
-  if (!bd || !bm || !by || !td || !tm || !ty) return null;
+  const b = parseDate(birthdate);
+  const t = parseDate(targetDate);
+  if (!b || !t) return null;
+  const { day: bd, month: bm, year: by } = b;
+  const { day: td, month: tm, year: ty } = t;
 
   let years = ty - by;
   let months = tm - bm;
@@ -106,12 +104,8 @@ export function edadEnFecha(birthdate: string, targetDate: string): { years: num
 export const MONTH_NAMES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 export const MONTH_NAMES_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-export function parseBirthdate(birthdate: string): { day: number; month: number; year: number } | null {
-  const parts = birthdate.split('/');
-  if (parts.length !== 3) return null;
-  const [d, m, y] = parts.map(Number);
-  if (!d || !m || !y) return null;
-  return { day: d, month: m, year: y };
+export function parseBirthdate(birthdate: string | null | undefined): { day: number; month: number; year: number } | null {
+  return parseDate(birthdate);
 }
 
 export function displayName(c: { first_name: string; middle_name?: string | null; surname: string }): string {
@@ -130,10 +124,9 @@ export function formatBirthdate(birthdate: string | null | undefined, lang: 'es'
 
 export function calcularEdad(birthdate: string | null | undefined, age: T['age']): string | null {
   if (!birthdate) return null;
-  const parts = birthdate.split('/');
-  if (parts.length !== 3) return null;
-  const [day, month, year] = parts.map(Number);
-  if (!day || !month || !year) return null;
+  const parsed = parseDate(birthdate);
+  if (!parsed) return null;
+  const { day, month, year } = parsed;
 
   const hoy = new Date();
   const nacimiento = new Date(year, month - 1, day);

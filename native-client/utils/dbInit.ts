@@ -8,7 +8,10 @@
  */
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { createTablesSql, migrationsSql, remoteIdIndexesSql, seedSql } = require('./dbSchema');
+const {
+  createTablesSql, migrationsSql, remoteIdIndexesSql, seedSql,
+  outboxTriggerStatements, outboxSeedSql, normalizeDataStatements,
+} = require('./dbSchema');
 
 interface MinimalDB {
   execAsync(sql: string): Promise<void>;
@@ -94,6 +97,18 @@ export async function initializeDatabase(db: MinimalDB) {
   } catch (_) {}
 
   await db.execAsync(seedSql);
+
+  // Bring rows from older versions (or old backups) to the backend's formats.
+  for (const sql of normalizeDataStatements() as string[]) {
+    try { await db.execAsync(sql); } catch (e) { logWarn('Data normalization skipped:', e); }
+  }
+
+  // Change tracking for backend sync. A crash mid-pull must not leave it muted.
+  try {
+    await db.execAsync(outboxSeedSql);
+    await db.execAsync("UPDATE sync_state SET v = 0 WHERE k = 'applying'");
+    for (const sql of outboxTriggerStatements() as string[]) await db.execAsync(sql);
+  } catch (e) { logWarn('Outbox setup failed:', e); }
 
   // Verificar integridad de la base de datos
   try {

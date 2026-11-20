@@ -5,6 +5,8 @@
 // The explicit extension lets `node --test` resolve this file; tsconfig does not allow it.
 // @ts-ignore TS5097
 import { msToSqliteDatetime, nullStringValue } from "./syncMapping.ts";
+// @ts-ignore TS5097
+import { toIsoDate } from "./dates.ts";
 
 export interface ChildDb {
   getFirstAsync<T>(sql: string, ...params: unknown[]): Promise<T | null>;
@@ -18,12 +20,37 @@ export interface ChildTable {
   /** Server id key in the pulled row. */
   idKey: string;
   hasLabel: boolean;
+  /** Further columns copied from the pulled row (already in the local format). */
+  extras?: { column: string; read: (row: Record<string, any>) => unknown }[];
 }
 
+const text = (key: string) => (row: Record<string, any>) => nullStringValue(row[key]);
+const date = (key: string) => (row: Record<string, any>) => toIsoDate(nullStringValue(row[key]));
+
 export const CHILD_TABLES: ChildTable[] = [
-  { table: "contact_phone", column: "phone", idKey: "phone_id", hasLabel: true },
+  {
+    table: "contact_phone", column: "phone", idKey: "phone_id", hasLabel: true,
+    extras: [{ column: "is_active", read: (row) => (row.is_active === false ? 0 : 1) }],
+  },
   { table: "contact_email", column: "email", idKey: "email_id", hasLabel: true },
   { table: "contact_note", column: "note", idKey: "note_id", hasLabel: false },
+  { table: "contact_url", column: "url", idKey: "url_id", hasLabel: true },
+  {
+    table: "national_identity_card", column: "card_number", idKey: "card_id", hasLabel: false,
+    extras: [
+      { column: "doc_type", read: (row) => row.doc_type || "other" },
+      { column: "issue_date", read: date("issue_date") },
+      { column: "expiry_date", read: date("expiry_date") },
+      { column: "country_code", read: text("country_code") },
+    ],
+  },
+  {
+    table: "contact_bank_account", column: "account_number", idKey: "bank_account_id", hasLabel: true,
+    extras: [
+      { column: "bank_name", read: text("bank_name") },
+      { column: "account_type", read: text("account_type") },
+    ],
+  },
 ];
 
 type PulledRow = Record<string, any>;
@@ -71,6 +98,7 @@ export async function applyChildRow(db: ChildDb, t: ChildTable, row: PulledRow):
 
   const updatedAt = msToSqliteDatetime(row.updated_at);
   const label = t.hasLabel ? nullStringValue(row.label) : null;
+  const extras = t.extras ?? [];
 
   let target: { id: number } | null = null;
   if (remoteId) {
@@ -91,10 +119,12 @@ export async function applyChildRow(db: ChildDb, t: ChildTable, row: PulledRow):
 
   if (target) {
     const labelSet = t.hasLabel ? ", label = ?" : "";
+    const extraSet = extras.map((e) => `, ${e.column} = ?`).join("");
     const params: unknown[] = [value, remoteId, updatedAt];
     if (t.hasLabel) params.push(label);
+    for (const e of extras) params.push(e.read(row));
     await db.runAsync(
-      `UPDATE ${t.table} SET ${t.column} = ?, remote_id = ?, updated_at = COALESCE(?, datetime('now'))${labelSet} WHERE id = ?`,
+      `UPDATE ${t.table} SET ${t.column} = ?, remote_id = ?, updated_at = COALESCE(?, datetime('now'))${labelSet}${extraSet} WHERE id = ?`,
       ...params,
       target.id,
     );
@@ -103,10 +133,13 @@ export async function applyChildRow(db: ChildDb, t: ChildTable, row: PulledRow):
 
   const labelColumn = t.hasLabel ? ", label" : "";
   const labelMark = t.hasLabel ? ", ?" : "";
+  const extraColumns = extras.map((e) => `, ${e.column}`).join("");
+  const extraMarks = extras.map(() => ", ?").join("");
   const params: unknown[] = [row.contact_id, value, remoteId, updatedAt];
   if (t.hasLabel) params.push(label);
+  for (const e of extras) params.push(e.read(row));
   await db.runAsync(
-    `INSERT INTO ${t.table} (contact_id, ${t.column}, remote_id, updated_at${labelColumn}) VALUES (?, ?, ?, COALESCE(?, datetime('now'))${labelMark})`,
+    `INSERT INTO ${t.table} (contact_id, ${t.column}, remote_id, updated_at${labelColumn}${extraColumns}) VALUES (?, ?, ?, COALESCE(?, datetime('now'))${labelMark}${extraMarks})`,
     ...params,
   );
 }

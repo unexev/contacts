@@ -1,3 +1,4 @@
+import { toIsoDate } from './dates';
 import { db } from './db';
 import { toUpper } from './contactUtils';
 import type { CreateContactsActionsParams } from './contactsActionsShared';
@@ -22,7 +23,7 @@ export function createContactsCoreActions({
             const id = generateId();
             await db.runAsync(
                 'INSERT INTO contact (contact_id, first_name, middle_name, surname, birthdate, gender, status_id, relationship_status, children_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                id, toUpper(data.first_name), toUpper(data.middle_name), toUpper(data.surname), data.birthdate ?? null, data.gender ?? null, data.status_id ?? null,
+                id, toUpper(data.first_name), toUpper(data.middle_name), toUpper(data.surname), toIsoDate(data.birthdate), data.gender ?? null, data.status_id ?? null,
                 data.relationship_status ?? null, data.children_count ?? null
             );
             return { contact_id: id, ...data };
@@ -69,7 +70,7 @@ export function createContactsCoreActions({
             await db.runAsync(
                 `UPDATE contact SET first_name = ?, middle_name = ?, surname = ?, birthdate = ?, gender = ?, status_id = ?,
                     relationship_status = ?, children_count = ?, updated_at = datetime('now') WHERE contact_id = ?`,
-                toUpper(data.first_name), toUpper(data.middle_name), toUpper(data.surname), data.birthdate ?? null, data.gender ?? null, data.status_id ?? null,
+                toUpper(data.first_name), toUpper(data.middle_name), toUpper(data.surname), toIsoDate(data.birthdate), data.gender ?? null, data.status_id ?? null,
                 data.relationship_status ?? null, data.children_count ?? null, id
             );
             return true;

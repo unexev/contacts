@@ -1,7 +1,11 @@
 /**
  * Pure birthday selection used by the desktop/browser notifications.
- * Birthdates are stored as `dd/mm/yyyy`. Kept free of platform imports so it can be tested in Node.
+ * Birthdates are stored as ISO `yyyy-mm-dd` (legacy `dd/mm/yyyy` is still read). Kept free of platform imports so it can be tested in Node.
  */
+
+// The explicit extension lets `node --test` resolve this file; tsconfig does not allow it.
+// @ts-ignore TS5097
+import { parseDate } from './dates.ts';
 
 export interface BirthdayContact {
   contact_id: string;
@@ -11,14 +15,8 @@ export interface BirthdayContact {
 }
 
 function dayMonth(birthdate: string): { day: number; month: number } | null {
-  const parts = birthdate.split('/');
-  if (parts.length !== 3) return null;
-  const day = Number(parts[0]);
-  const month = Number(parts[1]);
-  if (!Number.isInteger(day) || !Number.isInteger(month) || day < 1 || day > 31 || month < 1 || month > 12) {
-    return null;
-  }
-  return { day, month };
+  const parsed = parseDate(birthdate);
+  return parsed ? { day: parsed.day, month: parsed.month } : null;
 }
 
 function isLeapYear(year: number): boolean {

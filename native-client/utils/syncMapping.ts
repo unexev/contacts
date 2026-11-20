@@ -3,6 +3,10 @@
  * No react-native / expo imports so it can run under `node --test`.
  */
 
+// The explicit extension lets `node --test` resolve this file; tsconfig does not allow it.
+// @ts-ignore TS5097
+import { toIsoDate } from './dates.ts';
+
 export type LocalGender = 'MALE' | 'FEMALE';
 
 /** Marital status ids seeded locally (see dbSchema seedSql); `contact.status_id` has a FK to them. */
@@ -71,20 +75,6 @@ export function nullStringValue(value: unknown): string | null {
   return trimmed === '' ? null : trimmed;
 }
 
-const LOCAL_BIRTHDATE = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
-
-/** The backend stores birthdates as ISO `YYYY-MM-DD`; the app stores and parses `DD/MM/YYYY`. */
-export function isoToLocalBirthdate(value: string | null | undefined): string | null {
-  const v = (value ?? '').trim();
-  if (LOCAL_BIRTHDATE.test(v)) return v;
-  const m = /^(\d{4})-(\d{2})-(\d{2})(?:$|[T ])/.exec(v);
-  if (!m) return null;
-  const [year, month, day] = [Number(m[1]), Number(m[2]), Number(m[3])];
-  const date = new Date(Date.UTC(year, month - 1, day));
-  const real = year >= 1 && date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
-  return real ? `${m[3]}/${m[2]}/${m[1]}` : null;
-}
-
 export interface BackendContact {
   contact_id: string;
   first_name: string;
@@ -95,6 +85,7 @@ export interface BackendContact {
   status_id?: string | null;
   relationship_status?: string | null;
   children_count?: number | null;
+  deceased?: boolean;
   updated_at?: number;
 }
 
@@ -104,11 +95,12 @@ export function mapContactRow(c: BackendContact) {
     first_name: c.first_name,
     middle_name: c.middle_name || null,
     surname: c.surname,
-    birthdate: isoToLocalBirthdate(c.birthdate),
+    birthdate: toIsoDate(c.birthdate),
     gender: normalizeGender(c.gender),
     status_id: normalizeStatusId(c.status_id),
     relationship_status: normalizeRelationshipStatus(c.relationship_status),
     children_count: normalizeChildrenCount(c.children_count),
+    deceased: c.deceased ? 1 : 0,
     updated_at: msToSqliteDatetime(c.updated_at),
   };
 }
@@ -131,12 +123,16 @@ export function toNullInt64(value: number | null | undefined): NullInt64 {
  * straight into Go `sql.Null*` fields, so plain values or null would be rejected.
  */
 export function contactPushNullFields(c: {
+  middle_name?: string | null;
+  birthdate?: string | null;
   gender?: string | null;
   status_id?: string | null;
   relationship_status?: string | null;
   children_count?: number | null;
 }) {
   return {
+    middle_name: toNullString(c.middle_name),
+    birthdate: toNullString(toIsoDate(c.birthdate)),
     gender: toNullString(c.gender),
     status_id: toNullString(c.status_id),
     relationship_status: toNullString(normalizeRelationshipStatus(c.relationship_status)),

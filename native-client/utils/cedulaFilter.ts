@@ -7,7 +7,7 @@ import { db } from './db';
 export async function getContactIdsWithCedula(): Promise<Set<string>> {
   try {
     const rows = await db.getAllAsync<{ contact_id: string }>(
-      "SELECT DISTINCT contact_id FROM national_identity_card WHERE doc_type = 'Cédula'"
+      "SELECT DISTINCT contact_id FROM national_identity_card WHERE doc_type = 'national_id'"
     );
     return new Set(rows.map(r => r.contact_id));
   } catch (e) {

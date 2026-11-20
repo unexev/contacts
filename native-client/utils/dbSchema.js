@@ -16,6 +16,7 @@ const createTablesSql = `
     status_id TEXT,
     relationship_status TEXT CHECK(relationship_status IN ('SINGLE', 'PARTNERED', 'COHABITING')),
     children_count INTEGER CHECK(children_count >= 0),
+    deceased INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (status_id) REFERENCES marital_status (status_id)
   );
@@ -25,6 +26,7 @@ const createTablesSql = `
     contact_id TEXT NOT NULL,
     phone TEXT NOT NULL,
     label TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
     remote_id TEXT,
     updated_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (contact_id) REFERENCES contact(contact_id)
@@ -47,6 +49,8 @@ const createTablesSql = `
     card_number TEXT NOT NULL,
     issue_date TEXT,
     expiry_date TEXT,
+    country_code TEXT,
+    remote_id TEXT,
     updated_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (contact_id) REFERENCES contact (contact_id)
   );
@@ -106,6 +110,7 @@ const createTablesSql = `
     contact_id TEXT NOT NULL,
     url TEXT NOT NULL,
     label TEXT,
+    remote_id TEXT,
     updated_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (contact_id) REFERENCES contact(contact_id)
   );
@@ -117,9 +122,22 @@ const createTablesSql = `
     account_number TEXT NOT NULL,
     account_type TEXT,
     label TEXT,
+    remote_id TEXT,
     updated_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (contact_id) REFERENCES contact(contact_id)
   );
+
+  -- Local changes waiting to be sent to the backend (filled by triggers, see OUTBOX_TABLES).
+  CREATE TABLE IF NOT EXISTS sync_outbox (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity TEXT NOT NULL,
+    local_key TEXT NOT NULL,
+    remote_key TEXT,
+    contact_id TEXT,
+    op TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS sync_state (k TEXT PRIMARY KEY, v INTEGER NOT NULL);
 
   CREATE INDEX IF NOT EXISTS idx_contact_phone_contact ON contact_phone(contact_id);
   CREATE INDEX IF NOT EXISTS idx_contact_email_contact ON contact_email(contact_id);
@@ -168,6 +186,13 @@ const migrationsSql = [
   "ALTER TABLE contact_phone ADD COLUMN remote_id TEXT",
   "ALTER TABLE contact_email ADD COLUMN remote_id TEXT",
   "ALTER TABLE contact_note ADD COLUMN remote_id TEXT",
+  // Server ids for the remaining synced children (phone/email/note already have one)
+  "ALTER TABLE contact_phone ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1",
+  "ALTER TABLE contact_url ADD COLUMN remote_id TEXT",
+  "ALTER TABLE national_identity_card ADD COLUMN remote_id TEXT",
+  "ALTER TABLE contact_bank_account ADD COLUMN remote_id TEXT",
+  "ALTER TABLE national_identity_card ADD COLUMN country_code TEXT",
+  "ALTER TABLE contact ADD COLUMN deceased INTEGER NOT NULL DEFAULT 0",
   // Real-life situation, independent of the legal status_id; NULL means unknown
   "ALTER TABLE contact ADD COLUMN relationship_status TEXT CHECK(relationship_status IN ('SINGLE', 'PARTNERED', 'COHABITING'))",
   'ALTER TABLE contact ADD COLUMN children_count INTEGER CHECK(children_count >= 0)',
@@ -188,7 +213,95 @@ const remoteIdIndexesSql = [
   'CREATE UNIQUE INDEX IF NOT EXISTS uq_contact_phone_remote ON contact_phone(contact_id, remote_id)',
   'CREATE UNIQUE INDEX IF NOT EXISTS uq_contact_email_remote ON contact_email(contact_id, remote_id)',
   'CREATE UNIQUE INDEX IF NOT EXISTS uq_contact_note_remote ON contact_note(contact_id, remote_id)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS uq_contact_url_remote ON contact_url(contact_id, remote_id)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS uq_identity_card_remote ON national_identity_card(contact_id, remote_id)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS uq_contact_bank_remote ON contact_bank_account(contact_id, remote_id)',
 ];
+
+// ── Sync outbox ──────────────────────────────────────────────────────────────
+// Triggers record every local change in `sync_outbox`; the push step turns the
+// pending entries into /api/sync/push items. While `sync_state.applying` is 1
+// (pull in progress, id write-back) the triggers stay silent.
+
+const OUTBOX_TABLES = [
+  { table: 'contact', entity: 'contact', key: 'contact_id', contact: 'contact_id', remote: 'contact_id', hasRemoteId: false },
+  { table: 'contact_phone', entity: 'phone', key: 'id', contact: 'contact_id', remote: 'remote_id', hasRemoteId: true },
+  { table: 'contact_email', entity: 'email', key: 'id', contact: 'contact_id', remote: 'remote_id', hasRemoteId: true },
+  { table: 'contact_note', entity: 'note', key: 'id', contact: 'contact_id', remote: 'remote_id', hasRemoteId: true },
+  { table: 'contact_url', entity: 'url', key: 'id', contact: 'contact_id', remote: 'remote_id', hasRemoteId: true },
+  { table: 'national_identity_card', entity: 'card', key: 'id', contact: 'contact_id', remote: 'remote_id', hasRemoteId: true },
+  { table: 'contact_bank_account', entity: 'bank_account', key: 'id', contact: 'contact_id', remote: 'remote_id', hasRemoteId: true },
+  { table: 'contact_keyword', entity: 'keyword', key: 'keyword', contact: 'contact_id', remote: 'keyword', hasRemoteId: false },
+  { table: 'contact_relationship', entity: 'relationship', key: ['related_contact_id', 'type_id'], contact: 'contact_id', remote: 'related_contact_id', hasRemoteId: false },
+  { table: 'contact_organization', entity: 'contact_organization', key: 'organization_id', contact: 'contact_id', remote: 'organization_id', hasRemoteId: false },
+  { table: 'organization', entity: 'organization', key: 'organization_id', contact: null, remote: 'organization_id', hasRemoteId: false },
+];
+
+function keyExpr(t, ref) {
+  const cols = Array.isArray(t.key) ? t.key : [t.key];
+  return cols.map((c) => `${ref}.${c}`).join(" || '|' || ");
+}
+
+/** One statement per trigger (the adapters run them one by one). */
+function outboxTriggerStatements() {
+  const idle = "(SELECT v FROM sync_state WHERE k = 'applying') = 0";
+  const out = [];
+  for (const t of OUTBOX_TABLES) {
+    const contactNew = t.contact ? `NEW.${t.contact}` : 'NULL';
+    const contactOld = t.contact ? `OLD.${t.contact}` : 'NULL';
+    const insert = (ref, contact, op) =>
+      `INSERT INTO sync_outbox (entity, local_key, remote_key, contact_id, op) VALUES ('${t.entity}', ${keyExpr(t, ref)}, ${ref}.${t.remote}, ${contact}, '${op}');`;
+    out.push(`CREATE TRIGGER IF NOT EXISTS ob_${t.table}_ins AFTER INSERT ON ${t.table} WHEN ${idle} BEGIN ${insert('NEW', contactNew, 'upsert')} END`);
+    out.push(`CREATE TRIGGER IF NOT EXISTS ob_${t.table}_upd AFTER UPDATE ON ${t.table} WHEN ${idle} BEGIN ${insert('NEW', contactNew, 'upsert')} END`);
+    // Rows that never reached the server have nothing to delete there.
+    const delWhen = t.hasRemoteId ? `${idle} AND OLD.remote_id IS NOT NULL` : idle;
+    out.push(`CREATE TRIGGER IF NOT EXISTS ob_${t.table}_del AFTER DELETE ON ${t.table} WHEN ${delWhen} BEGIN ${insert('OLD', contactOld, 'delete')} END`);
+  }
+  return out;
+}
+
+/**
+ * Statements that queue every local row for upload: used on the first sync of
+ * an account, so data created before signing in (guest mode) reaches the server.
+ */
+function outboxBackfillStatements() {
+  return OUTBOX_TABLES.map((t) => {
+    const key = (Array.isArray(t.key) ? t.key : [t.key]).join(" || '|' || ");
+    const contact = t.contact ?? 'NULL';
+    const where = t.hasRemoteId ? ' WHERE remote_id IS NULL' : '';
+    return `INSERT INTO sync_outbox (entity, local_key, remote_key, contact_id, op) SELECT '${t.entity}', ${key}, ${t.remote}, ${contact}, 'upsert' FROM ${t.table}${where}`;
+  });
+}
+
+const outboxSeedSql = "INSERT OR IGNORE INTO sync_state (k, v) VALUES ('applying', 0)";
+
+// ── Data normalization ───────────────────────────────────────────────────────
+// Local data follows the backend's conventions: ISO dates and doc_type codes.
+// These statements upgrade rows written by older versions (or merged from an
+// old backup) and are idempotent, so they run on every initialization.
+const ISO_DATE_COLUMNS = [
+  ['contact', 'birthdate'],
+  ['national_identity_card', 'issue_date'],
+  ['national_identity_card', 'expiry_date'],
+  ['contact_organization', 'date'],
+];
+
+const LEGACY_DOC_TYPES = {
+  national_id: ['Cédula', 'Cedula', 'ID Card'],
+  passport: ['Pasaporte', 'Passport'],
+  drivers_license: ['Licencia de conducir', "Driver's License"],
+  other: ['Other', 'Otro'],
+};
+
+function normalizeDataStatements() {
+  const out = ISO_DATE_COLUMNS.map(([table, col]) =>
+    `UPDATE ${table} SET ${col} = substr(${col}, 7, 4) || '-' || substr(${col}, 4, 2) || '-' || substr(${col}, 1, 2) WHERE ${col} LIKE '__/__/____'`);
+  for (const [code, legacy] of Object.entries(LEGACY_DOC_TYPES)) {
+    const list = legacy.map((v) => `'${v.replace(/'/g, "''")}'`).join(', ');
+    out.push(`UPDATE national_identity_card SET doc_type = '${code}' WHERE doc_type IN (${list})`);
+  }
+  return out;
+}
 
 const seedSql = `
   INSERT OR IGNORE INTO marital_status (status_id, marital_status) VALUES
@@ -410,6 +523,11 @@ function computeSyncSignature(getFirst) {
 
 module.exports = {
   createTablesSql,
+  normalizeDataStatements,
+  OUTBOX_TABLES,
+  outboxTriggerStatements,
+  outboxSeedSql,
+  outboxBackfillStatements,
   migrationsSql,
   remoteIdIndexesSql,
   seedSql,

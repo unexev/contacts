@@ -18,12 +18,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AdBanner from '../../components/AdBanner';
 import Dropdown from '../../components/Dropdown';
+import { toDisplayDate } from '../../utils/dates';
+import { DEFAULT_DOC_TYPE, DOCUMENT_TYPES } from '../../utils/docTypes';
 import {
   applyAgeFilter,
   CedulaFilter,
   ContactListItem,
-  DOC_TYPES,
-  DOC_TYPES_KEYS,
   filterContactsByCedula,
   filterContactsByChildren,
   filterContactsByGender,
@@ -121,7 +121,7 @@ export default function HomeScreen() {
   const [maritalStatuses, setMaritalStatuses] = useState<MaritalStatus[]>([]);
 
   const [hasDoc, setHasDoc] = useState(false);
-  const [docType, setDocType] = useState<string>(DOC_TYPES[0]);
+  const [docType, setDocType] = useState<string>(DEFAULT_DOC_TYPE);
   const [cardNumber, setCardNumber] = useState('');
 
   const router = useRouter();
@@ -422,7 +422,7 @@ export default function HomeScreen() {
     setRelationshipStatus('SINGLE');
     setChildrenCount('0');
     setHasDoc(false);
-    setDocType(DOC_TYPES[0]);
+    setDocType(DEFAULT_DOC_TYPE);
     setCardNumber('');
     setModalVisible(true);
   };
@@ -592,7 +592,7 @@ export default function HomeScreen() {
                       ) : null}
                       {item.organization_date ? (
                         <Text style={[styles.contactSecondaryLight, { color: colors.accent }]}>
-                          {item.organization_date}
+                          {toDisplayDate(item.organization_date)}
                           {(() => {
                             if (!item.birthdate) return '';
                             const e = edadEnFecha(item.birthdate, item.organization_date);
@@ -820,7 +820,7 @@ export default function HomeScreen() {
                 <>
                   <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t.contacts.docType}</Text>
                   <Dropdown
-                    options={DOC_TYPES.map((d, i) => ({ label: (t.contactList as any)[DOC_TYPES_KEYS[i]], value: d }))}
+                    options={DOCUMENT_TYPES.map(d => ({ label: (t.contactList as any)[d.labelKey], value: d.value }))}
                     value={docType}
                     onSelect={v => v && setDocType(v)}
                   />

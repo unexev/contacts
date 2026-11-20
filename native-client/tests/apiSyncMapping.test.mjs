@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  normalizeGender, normalizeStatusId, msToSqliteDatetime, mapContactRow, nullStringValue, isoToLocalBirthdate,
+  normalizeGender, normalizeStatusId, msToSqliteDatetime, mapContactRow, nullStringValue,
   normalizeRelationshipStatus, normalizeChildrenCount, contactPushNullFields,
 } from '../utils/syncMapping.ts';
 
@@ -38,8 +38,8 @@ test('mapContactRow produces the local contact columns', () => {
   });
   assert.deepEqual(row, {
     contact_id: 'c1', first_name: 'Ann', middle_name: null, surname: 'Lee',
-    birthdate: '02/01/1990', gender: 'FEMALE', status_id: null,
-    relationship_status: null, children_count: null, updated_at: '2023-11-14 22:13:20',
+    birthdate: '1990-01-02', gender: 'FEMALE', status_id: null,
+    relationship_status: null, children_count: null, deceased: 0, updated_at: '2023-11-14 22:13:20',
   });
 });
 
@@ -54,19 +54,9 @@ test('nullStringValue accepts plain strings and rejects empty or unusable values
   for (const v of [null, undefined, '', '   ', 42, {}, { Valid: true }]) assert.equal(nullStringValue(v), null, String(v));
 });
 
-test('isoToLocalBirthdate converts ISO dates to the local DD/MM/YYYY format', () => {
-  assert.equal(isoToLocalBirthdate('1990-03-14'), '14/03/1990');
-  assert.equal(isoToLocalBirthdate('2000-01-09T00:00:00Z'), '09/01/2000');
-});
-
-test('isoToLocalBirthdate keeps values already in local format and drops invalid ones', () => {
-  assert.equal(isoToLocalBirthdate('14/03/1990'), '14/03/1990');
-  for (const v of [null, undefined, '', 'not a date', '1990-13-40', '0000-00-00']) assert.equal(isoToLocalBirthdate(v), null, String(v));
-});
-
-test('mapContactRow stores the birthdate in the local format', () => {
+test('mapContactRow stores the birthdate as ISO', () => {
   const r = mapContactRow({ contact_id: 'c1', first_name: 'ANA', surname: 'GARCIA', birthdate: '1990-03-14' });
-  assert.equal(r.birthdate, '14/03/1990');
+  assert.equal(r.birthdate, '1990-03-14');
 });
 
 test('normalizeRelationshipStatus keeps only the known values', () => {
@@ -94,13 +84,17 @@ test('mapContactRow keeps the relationship status and children count', () => {
 });
 
 test('contactPushNullFields encodes values in the Go sql.Null shapes', () => {
-  assert.deepEqual(contactPushNullFields({ gender: 'MALE', status_id: 'soltero', relationship_status: 'SINGLE', children_count: 2 }), {
+  assert.deepEqual(contactPushNullFields({ middle_name: 'Ray', birthdate: '09/03/2001', gender: 'MALE', status_id: 'soltero', relationship_status: 'SINGLE', children_count: 2 }), {
+    middle_name: { String: 'Ray', Valid: true },
+    birthdate: { String: '2001-03-09', Valid: true },
     gender: { String: 'MALE', Valid: true },
     status_id: { String: 'soltero', Valid: true },
     relationship_status: { String: 'SINGLE', Valid: true },
     children_count: { Int64: 2, Valid: true },
   });
   assert.deepEqual(contactPushNullFields({ children_count: 0 }), {
+    middle_name: { String: '', Valid: false },
+    birthdate: { String: '', Valid: false },
     gender: { String: '', Valid: false },
     status_id: { String: '', Valid: false },
     relationship_status: { String: '', Valid: false },

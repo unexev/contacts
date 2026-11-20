@@ -1,3 +1,4 @@
+import { parseDate } from './dates';
 import { Platform } from 'react-native';
 import { birthdaysTomorrow } from './birthdays';
 import { db, isTauri, waitForDbReady } from './db';
@@ -97,12 +98,8 @@ export async function requestNotificationPermissions(): Promise<boolean> {
 }
 
 function parseBirthdate(birthdate: string): { day: number; month: number } | null {
-    const parts = birthdate.split('/');
-    if (parts.length !== 3) return null;
-    const day = parseInt(parts[0]);
-    const month = parseInt(parts[1]);
-    if (isNaN(day) || isNaN(month) || day < 1 || day > 31 || month < 1 || month > 12) return null;
-    return { day, month };
+    const parsed = parseDate(birthdate);
+    return parsed ? { day: parsed.day, month: parsed.month } : null;
 }
 
 /**

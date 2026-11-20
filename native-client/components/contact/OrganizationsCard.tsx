@@ -1,3 +1,4 @@
+import { dateSortKey, toDisplayDate } from '../../utils/dates';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -43,7 +44,7 @@ export default function OrganizationsCard({ contactId, birthdate, initialOrganiz
     setEditingId(org.id);
     setOrgName(org.organization_name);
     setAchievement(org.achievement);
-    setDate(org.date ?? '');
+    setDate(toDisplayDate(org.date));
     setSuggestions([]);
     setAchievementSuggestions([]);
     setModalVisible(true);
@@ -123,9 +124,7 @@ export default function OrganizationsCard({ contactId, birthdate, initialOrganiz
             if (!a.date && !b.date) return 0;
             if (!a.date) return 1;
             if (!b.date) return -1;
-            const [ad, am, ay] = a.date.split('/').map(Number);
-            const [bd, bm, by] = b.date.split('/').map(Number);
-            return new Date(ay, am - 1, ad).getTime() - new Date(by, bm - 1, bd).getTime();
+            return (dateSortKey(a.date) ?? 0) - (dateSortKey(b.date) ?? 0);
           }).map(org => (
             <View key={org.id} style={styles.orgRow}>
               <View style={styles.orgInfo}>
@@ -133,7 +132,7 @@ export default function OrganizationsCard({ contactId, birthdate, initialOrganiz
                 {org.achievement ? <Text style={styles.orgAchievement}>{org.achievement}</Text> : null}
                 {org.date ? (
                   <Text style={[styles.orgDate, { color: colors.textSecondary }]}>
-                    {org.date}
+                    {toDisplayDate(org.date)}
                     {(() => {
                       if (!birthdate) return '';
                       const e = edadEnFecha(birthdate, org.date);

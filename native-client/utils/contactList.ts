@@ -1,3 +1,6 @@
+// The explicit extension lets `node --test` resolve this file; tsconfig does not allow it.
+// @ts-ignore TS5097
+import { dateSortKey, parseDate } from './dates.ts';
 export interface ContactListItem {
   contact_id: string;
   first_name: string;
@@ -40,8 +43,6 @@ export type SearchFilter =
 
 type AgeOp = Extract<SearchFilter, { type: 'age' }>['op'];
 
-export const DOC_TYPES = ['Passport', 'ID Card', "Driver's License", 'Other'] as const;
-export const DOC_TYPES_KEYS = ['docPassport', 'docIdCard', 'docDriversLicense', 'docOther'] as const;
 
 export const SORT_OPTIONS: { key: SortKey; transKey: string }[] = [
   { key: 'first_name', transKey: 'sortFirstName' },
@@ -63,11 +64,9 @@ export function getGenderFilterOptions(t: any): { value: GenderFilter; label: st
 
 export function parseBirthdateToAge(birthdate?: string | null): number | null {
   if (!birthdate) return null;
-  const parts = birthdate.split('/');
-  if (parts.length !== 3) return null;
-
-  const [d, m, y] = parts.map(Number);
-  if (!d || !m || !y) return null;
+  const parsed = parseDate(birthdate);
+  if (!parsed) return null;
+  const { day: d, month: m, year: y } = parsed;
 
   const today = new Date();
   let age = today.getFullYear() - y;
@@ -77,11 +76,9 @@ export function parseBirthdateToAge(birthdate?: string | null): number | null {
 
 export function formatFullAge(birthdate?: string | null): string | null {
   if (!birthdate) return null;
-  const parts = birthdate.split('/');
-  if (parts.length !== 3) return null;
-
-  const [d, m, y] = parts.map(Number);
-  if (!d || !m || !y) return null;
+  const parsed = parseDate(birthdate);
+  if (!parsed) return null;
+  const { day: d, month: m, year: y } = parsed;
 
   const today = new Date();
   let years = today.getFullYear() - y;
@@ -183,7 +180,7 @@ export function filterContactsByGender(list: ContactListItem[], genderFilter: Ge
 /**
  * Filtra la lista de contactos según si poseen o no una cédula registrada.
  * `cedulaIds` es el conjunto de contact_id que tienen al menos una fila
- * en la tabla national_identity_card con doc_type = 'Cédula'.
+ * en la tabla national_identity_card con doc_type = 'national_id'.
  */
 export function filterContactsByCedula(
   list: ContactListItem[],
@@ -300,11 +297,5 @@ export function filterContactsByMaritalStatus(
 }
 
 function birthdateToSortKey(birthdate?: string | null): number | null {
-  if (!birthdate) return null;
-  const parts = birthdate.split('/');
-  if (parts.length !== 3) return null;
-
-  const [d, m, y] = parts.map(Number);
-  if (!d || !m || !y) return null;
-  return y * 10000 + m * 100 + d;
+  return dateSortKey(birthdate);
 }

@@ -11,12 +11,13 @@ export const USER_DATA_TABLES: readonly string[] = [
   'contact_note',
   'contact_url',
   'contact_bank_account',
+  'sync_outbox',
   'organization',
   'contact',
 ];
 
 /** Seed/lookup tables that must survive a reset. */
-export const REFERENCE_TABLES: readonly string[] = ['marital_status', 'relationship_type'];
+export const REFERENCE_TABLES: readonly string[] = ['marital_status', 'relationship_type', 'sync_state'];
 
 export function buildLocalDataResetStatements(): string[] {
   return USER_DATA_TABLES.map((table) => `DELETE FROM ${table}`);

@@ -1,3 +1,5 @@
+import { toDisplayDate } from '../../utils/dates';
+import { DEFAULT_DOC_TYPE, DOCUMENT_TYPES, docTypeLabelKey } from '../../utils/docTypes';
 import { Ionicons } from '@expo/vector-icons';
 import { copyToClipboard } from '../../utils/clipboard';
 import React, { useState } from 'react';
@@ -5,8 +7,7 @@ import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, St
 import Dropdown from '../Dropdown';
 import { IdentityCard, useContacts } from '../../utils/context';
 import { useI18n } from '../../utils/i18n';
-import { DOC_TYPES_KEYS } from '../../utils/contactList';
-import { DOC_TYPES, DOCS_WITH_DATES, formatDate } from '../../utils/contactUtils';
+import { DOCS_WITH_DATES, formatDate } from '../../utils/contactUtils';
 import { useSharedStyles } from './contactStyles';
 import AddButtonLabel from './AddButtonLabel';
 import { useTheme } from '../../utils/theme';
@@ -25,14 +26,14 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
   const [cards, setCards] = useState<IdentityCard[]>(initialCards);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [docType, setDocType] = useState(DOC_TYPES[0]);
+  const [docType, setDocType] = useState<string>(DEFAULT_DOC_TYPE);
   const [cardNumber, setCardNumber] = useState('');
   const [issueDate, setIssueDate] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
 
   const openAddModal = () => {
     setEditingId(null);
-    setDocType(DOC_TYPES[0]);
+    setDocType(DEFAULT_DOC_TYPE);
     setCardNumber('');
     setIssueDate('');
     setExpiryDate('');
@@ -43,8 +44,8 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
     setEditingId(doc.id);
     setDocType(doc.doc_type);
     setCardNumber(doc.card_number);
-    setIssueDate(doc.issue_date ?? '');
-    setExpiryDate(doc.expiry_date ?? '');
+    setIssueDate(toDisplayDate(doc.issue_date));
+    setExpiryDate(toDisplayDate(doc.expiry_date));
     setModalVisible(true);
   };
 
@@ -67,7 +68,7 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
   const handleRemove = (doc: IdentityCard) => {
     Alert.alert(
       t.documents.deleteTitle,
-      t.documents.deleteConfirm(doc.doc_type, doc.card_number),
+      t.documents.deleteConfirm((t.contactList as any)[docTypeLabelKey(doc.doc_type)], doc.card_number),
       [
         { text: t.common.cancel, style: 'cancel' },
         {
@@ -98,12 +99,12 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
           {cards.map(doc => (
             <View key={doc.id} style={styles.docRow}>
               <View style={styles.docInfo}>
-                <Text style={[styles.docType, { color: colors.textSecondary }]}>{doc.doc_type}</Text>
+                <Text style={[styles.docType, { color: colors.textSecondary }]}>{(t.contactList as any)[docTypeLabelKey(doc.doc_type)]}</Text>
                 <Text style={styles.docNumber}>
-                  {doc.doc_type === t.contactList.docDriversLicense ? `${t.documents.licenseType}: ` : ''}{doc.card_number}
+                  {doc.doc_type === 'drivers_license' ? `${t.documents.licenseType}: ` : ''}{doc.card_number}
                 </Text>
-                {doc.issue_date ? <Text style={styles.docDate}>{t.documents.issuedLabel} {doc.issue_date}</Text> : null}
-                {doc.expiry_date ? <Text style={styles.docDate}>{t.documents.expiryLabel} {doc.expiry_date}</Text> : null}
+                {doc.issue_date ? <Text style={styles.docDate}>{t.documents.issuedLabel} {toDisplayDate(doc.issue_date)}</Text> : null}
+                {doc.expiry_date ? <Text style={styles.docDate}>{t.documents.expiryLabel} {toDisplayDate(doc.expiry_date)}</Text> : null}
               </View>
               <Pressable accessibilityRole="button" accessibilityLabel={t.contactInfo.phoneActions.copyToClipboard}
                 style={styles.editBtn}
@@ -133,15 +134,15 @@ export default function DocumentsCard({ contactId, initialCards }: Props) {
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={s.fieldLabel}>{t.documents.docType}</Text>
               <Dropdown
-                options={DOC_TYPES.map((d, i) => ({ label: (t.contactList as any)[DOC_TYPES_KEYS[i]], value: d }))}
+                options={DOCUMENT_TYPES.map(d => ({ label: (t.contactList as any)[d.labelKey], value: d.value }))}
                 value={docType}
                 onSelect={v => v && setDocType(v)}
               />
 
-              <Text style={s.fieldLabel}>{docType === t.contactList.docDriversLicense ? t.documents.licenseType : t.documents.number} <Text style={s.required}>{t.common.required}</Text></Text>
-              <TextInput accessibilityLabel={docType === t.contactList.docDriversLicense ? t.documents.licenseType : t.documents.number}
+              <Text style={s.fieldLabel}>{docType === 'drivers_license' ? t.documents.licenseType : t.documents.number} <Text style={s.required}>{t.common.required}</Text></Text>
+              <TextInput accessibilityLabel={docType === 'drivers_license' ? t.documents.licenseType : t.documents.number}
                 style={s.input} value={cardNumber} onChangeText={setCardNumber}
-                placeholder={docType === t.contactList.docDriversLicense ? t.documents.licenseType : t.documents.number} placeholderTextColor={colors.placeholder}
+                placeholder={docType === 'drivers_license' ? t.documents.licenseType : t.documents.number} placeholderTextColor={colors.placeholder}
                 autoCapitalize="characters"
               />
 

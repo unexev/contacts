@@ -1,3 +1,4 @@
+import { toIsoDate } from './dates';
 import { db } from './db';
 import { toDisplay, toUpper } from './contactUtils';
 import { toTitleDisplay } from './textFormat';
@@ -66,15 +67,9 @@ export function createContactsRecordActions({
         contactId: string, docType: string, cardNumber: string, issueDate?: string, expiryDate?: string
     ): Promise<boolean> => {
         try {
-            if (docType === 'Cédula') {
-                const existing = await db.getFirstAsync<{ id: number }>(
-                    "SELECT id FROM national_identity_card WHERE contact_id = ? AND doc_type = 'Cédula'", contactId
-                );
-                if (existing) return false;
-            }
             await db.runAsync(
                 'INSERT INTO national_identity_card (contact_id, doc_type, card_number, issue_date, expiry_date) VALUES (?, ?, ?, ?, ?)',
-                contactId, docType, toUpper(cardNumber), issueDate ?? null, expiryDate ?? null
+                contactId, docType, toUpper(cardNumber), toIsoDate(issueDate), toIsoDate(expiryDate)
             );
             return true;
         } catch (e) {
@@ -89,7 +84,7 @@ export function createContactsRecordActions({
         try {
             await db.runAsync(
                 'UPDATE national_identity_card SET doc_type = ?, card_number = ?, issue_date = ?, expiry_date = ? WHERE id = ?',
-                docType, toUpper(cardNumber), issueDate ?? null, expiryDate ?? null, id
+                docType, toUpper(cardNumber), toIsoDate(issueDate), toIsoDate(expiryDate), id
             );
             return true;
         } catch (e) { console.error(e); return false; }
@@ -139,7 +134,7 @@ export function createContactsRecordActions({
             if (!org) return false;
             await db.runAsync(
                 'INSERT INTO contact_organization (contact_id, organization_id, achievement, date) VALUES (?, ?, ?, ?)',
-                contactId, org.organization_id, toUpper(achievement), date ?? null
+                contactId, org.organization_id, toUpper(achievement), toIsoDate(date)
             );
             return true;
         } catch (e) {
@@ -161,7 +156,7 @@ export function createContactsRecordActions({
             if (!org) return false;
             await db.runAsync(
                 'UPDATE contact_organization SET organization_id = ?, achievement = ?, date = ? WHERE id = ?',
-                org.organization_id, toUpper(achievement), date ?? null, id
+                org.organization_id, toUpper(achievement), toIsoDate(date), id
             );
             return true;
         } catch (e) { console.error(e); return false; }
@@ -279,7 +274,7 @@ export function createContactsRecordActions({
                 const id = generateId();
                 await db.runAsync(
                     'INSERT INTO contact (contact_id, first_name, middle_name, surname, birthdate) VALUES (?, ?, ?, ?, ?)',
-                    id, toUpper(card.first_name), toUpper(card.middle_name), toUpper(card.surname), card.birthdate ?? null
+                    id, toUpper(card.first_name), toUpper(card.middle_name), toUpper(card.surname), toIsoDate(card.birthdate)
                 );
 
                 for (const p of card.phones) {
@@ -297,7 +292,7 @@ export function createContactsRecordActions({
                 if (card.identity_card) {
                     await db.runAsync(
                         'INSERT INTO national_identity_card (contact_id, doc_type, card_number) VALUES (?, ?, ?)',
-                        id, 'Cédula', toUpper(card.identity_card.card_number)
+                        id, 'national_id', toUpper(card.identity_card.card_number)
                     );
                 }
                 if (card.org) {
@@ -310,7 +305,7 @@ export function createContactsRecordActions({
                     if (org) {
                         await db.runAsync(
                             'INSERT INTO contact_organization (contact_id, organization_id, achievement, date) VALUES (?, ?, ?, ?)',
-                            id, org.organization_id, toUpper(card.org.achievement), card.org.date ?? null
+                            id, org.organization_id, toUpper(card.org.achievement), toIsoDate(card.org.date)
                         );
                     }
                 }
