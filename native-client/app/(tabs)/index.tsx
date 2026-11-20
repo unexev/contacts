@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AdBanner from '../../components/AdBanner';
 import Dropdown from '../../components/Dropdown';
+import DeceasedToggle from '../../components/contact/DeceasedToggle';
 import { toDisplayDate } from '../../utils/dates';
 import { DEFAULT_DOC_TYPE, DOCUMENT_TYPES } from '../../utils/docTypes';
 import {
@@ -118,6 +119,7 @@ export default function HomeScreen() {
   // New contacts start as single with no children; the user changes it when known.
   const [relationshipStatus, setRelationshipStatus] = useState<RelationshipStatus | null>('SINGLE');
   const [childrenCount, setChildrenCount] = useState('0');
+  const [deceased, setDeceased] = useState(false);
   const [maritalStatuses, setMaritalStatuses] = useState<MaritalStatus[]>([]);
 
   const [hasDoc, setHasDoc] = useState(false);
@@ -421,6 +423,7 @@ export default function HomeScreen() {
     setSelectedStatusId(null);
     setRelationshipStatus('SINGLE');
     setChildrenCount('0');
+    setDeceased(false);
     setHasDoc(false);
     setDocType(DEFAULT_DOC_TYPE);
     setCardNumber('');
@@ -448,6 +451,7 @@ export default function HomeScreen() {
         status_id: selectedStatusId ?? undefined,
         relationship_status: relationshipStatus,
         children_count: children,
+        deceased,
       });
 
       if (newContact) {
@@ -577,6 +581,9 @@ export default function HomeScreen() {
                   <Text style={[styles.contactName, isDesktop && styles.contactNameDesktop, { color: colors.text }]} numberOfLines={1}>
                     {`${item.first_name ?? ''} ${item.middle_name ?? ''} ${item.surname ?? ''}`.replace(/\s+/g, ' ').trim()}
                   </Text>
+                  {!!item.deceased && (
+                    <Text style={[styles.contactSecondary, { color: colors.destructiveText }]}>{t.contacts.deceased}</Text>
+                  )}
                   {(sortKey === 'age_asc' || sortKey === 'age_desc') && (
                     <Text style={[styles.contactSecondary, { color: colors.textSecondary }]}>
                       {calcularEdad(item.birthdate, t.age) ?? t.contactList.ageNotRecorded}
@@ -808,6 +815,8 @@ export default function HomeScreen() {
                 keyboardType="number-pad"
                 maxLength={2}
               />
+
+              <DeceasedToggle value={deceased} onChange={setDeceased} />
 
               <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: hasDoc }} style={styles.docToggle} onPress={() => setHasDoc(v => !v)}>
                 <View style={[styles.docToggleBox, hasDoc && [styles.docToggleBoxActive, { borderColor: colors.accentFill }, { backgroundColor: colors.accentFill }]]}>

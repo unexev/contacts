@@ -9,6 +9,7 @@ import { ContactDetail, formatDate } from '../../utils/contactUtils';
 import { useSharedStyles } from './contactStyles';
 import { listLabel } from '../../utils/listLabels';
 import { useTheme } from '../../utils/theme';
+import DeceasedToggle from './DeceasedToggle';
 import { normalizeChildrenCount, normalizeRelationshipStatus, RELATIONSHIP_STATUSES, type RelationshipStatus } from '../../utils/syncMapping';
 
 interface Props {
@@ -33,6 +34,7 @@ export default function EditContactModal({ visible, contact, onClose, onSaved }:
   const [statusId, setStatusId] = useState<string | null>(null);
   const [relationshipStatus, setRelationshipStatus] = useState<RelationshipStatus | null>(null);
   const [childrenCount, setChildrenCount] = useState('');
+  const [deceased, setDeceased] = useState(false);
   const [maritalStatuses, setMaritalStatuses] = useState<MaritalStatus[]>([]);
 
   useEffect(() => {
@@ -46,6 +48,7 @@ export default function EditContactModal({ visible, contact, onClose, onSaved }:
       setStatusId(contact.status_id ?? null);
       setRelationshipStatus(normalizeRelationshipStatus(contact.relationship_status));
       setChildrenCount(contact.children_count == null ? '' : String(contact.children_count));
+      setDeceased(!!contact.deceased);
     }
   }, [visible, contact]);
 
@@ -68,6 +71,7 @@ export default function EditContactModal({ visible, contact, onClose, onSaved }:
       status_id: statusId ?? undefined,
       relationship_status: relationshipStatus,
       children_count: children,
+      deceased,
     });
     if (ok) {
       const updated = await getContact(contact!.contact_id);
@@ -155,6 +159,8 @@ export default function EditContactModal({ visible, contact, onClose, onSaved }:
                 placeholder={t.contacts.childrenPlaceholder} placeholderTextColor={colors.placeholder}
                 keyboardType="number-pad" maxLength={2}
               />
+
+              <DeceasedToggle value={deceased} onChange={setDeceased} />
 
             </ScrollView>
 

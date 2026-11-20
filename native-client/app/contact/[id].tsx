@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Link, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -171,6 +172,12 @@ export default function ContactDetailScreen() {
 
         {/* Encabezado */}
         <View style={styles.headerContainer}>
+          {!!contact.deceased && (
+            <View style={styles.deceasedRow} accessibilityRole="text">
+              <Ionicons name="skull-outline" size={20} color={colors.destructiveText} />
+              <Text style={[styles.deceasedText, { color: colors.destructiveText }]}>{t.contacts.deceased}</Text>
+            </View>
+          )}
           {(() => {
             const key = getZodiacKey(contact.birthdate);
             if (!key) return null;
@@ -248,6 +255,8 @@ const styles = StyleSheet.create({
   contentDesktop: { paddingHorizontal: 32, paddingVertical: 28 },
 
   headerContainer: { alignItems: 'center', marginBottom: 24 },
+  deceasedRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  deceasedText: { fontSize: 15, fontWeight: '600' },
   zodiacRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   zodiacSymbol: { fontSize: 20 },
   zodiacName: { fontSize: 13, fontWeight: '700', color: '#555' },

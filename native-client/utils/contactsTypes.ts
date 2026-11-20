@@ -103,6 +103,7 @@ export interface ContactInput {
     relationship_status?: RelationshipStatus | null;
     /** null = unknown; 0 means "no children". */
     children_count?: number | null;
+    deceased?: boolean;
 }
 
 export interface ContactsContextType {

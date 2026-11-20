@@ -22,9 +22,9 @@ export function createContactsCoreActions({
         try {
             const id = generateId();
             await db.runAsync(
-                'INSERT INTO contact (contact_id, first_name, middle_name, surname, birthdate, gender, status_id, relationship_status, children_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                'INSERT INTO contact (contact_id, first_name, middle_name, surname, birthdate, gender, status_id, relationship_status, children_count, deceased) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 id, toUpper(data.first_name), toUpper(data.middle_name), toUpper(data.surname), toIsoDate(data.birthdate), data.gender ?? null, data.status_id ?? null,
-                data.relationship_status ?? null, data.children_count ?? null
+                data.relationship_status ?? null, data.children_count ?? null, data.deceased ? 1 : 0
             );
             return { contact_id: id, ...data };
         } catch (e) {
@@ -69,9 +69,9 @@ export function createContactsCoreActions({
         try {
             await db.runAsync(
                 `UPDATE contact SET first_name = ?, middle_name = ?, surname = ?, birthdate = ?, gender = ?, status_id = ?,
-                    relationship_status = ?, children_count = ?, updated_at = datetime('now') WHERE contact_id = ?`,
+                    relationship_status = ?, children_count = ?, deceased = ?, updated_at = datetime('now') WHERE contact_id = ?`,
                 toUpper(data.first_name), toUpper(data.middle_name), toUpper(data.surname), toIsoDate(data.birthdate), data.gender ?? null, data.status_id ?? null,
-                data.relationship_status ?? null, data.children_count ?? null, id
+                data.relationship_status ?? null, data.children_count ?? null, data.deceased ? 1 : 0, id
             );
             return true;
         } catch (e) {
