@@ -1,6 +1,8 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput } from 'react-native';
 import { useAuth } from '../utils/authContext';
+import { API_BASE } from '../utils/apiClient';
+import { resendVerificationRequest } from '../utils/authApi';
 import { useI18n } from '../utils/i18n';
 import { useTheme } from '../utils/theme';
 
@@ -19,6 +21,8 @@ export default function EmailLoginForm({ onError }: EmailLoginFormProps) {
   const [name, setName] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [busy, setBusy] = React.useState(false);
+  const [pendingVerify, setPendingVerify] = React.useState(false);
+  const [resendNote, setResendNote] = React.useState<string | null>(null);
 
   const handleSubmit = async () => {
     if (busy) return;
@@ -28,7 +32,12 @@ export default function EmailLoginForm({ onError }: EmailLoginFormProps) {
       const result = registerMode
         ? await registerWithPassword(email, name, password)
         : await loginWithPassword(email, password);
-      if (!result.ok) onError(t.login[result.errorKey]);
+      if (!result.ok && result.errorKey === 'authVerificationRequired') {
+        setResendNote(null);
+        setPendingVerify(true);
+      } else if (!result.ok) {
+        onError(t.login[result.errorKey]);
+      }
     } catch {
       // Storing the session can still throw after a successful request.
       onError(t.login.authGeneric);
@@ -42,8 +51,56 @@ export default function EmailLoginForm({ onError }: EmailLoginFormProps) {
     setRegisterMode((m) => !m);
   };
 
+  const handleResend = async () => {
+    if (busy) return;
+    setBusy(true);
+    setResendNote(null);
+    try {
+      const r = await resendVerificationRequest(fetch, API_BASE, email, password);
+      setResendNote(
+        r.ok ? t.login.verifyResent
+          : r.reason === 'wait' ? t.login.verifyResendWait
+          : r.reason === 'done' ? t.login.verifyAlreadyDone
+          : t.login.verifyResendFailed
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const inputStyle = [styles.input, { color: colors.text, borderColor: colors.textSecondary, backgroundColor: colors.bg }];
   const submitLabel = registerMode ? t.login.createAccount : t.login.signInWithEmail;
+
+  if (pendingVerify) {
+    return (
+      <>
+        <Text style={[styles.verifyTitle, { color: colors.text }]}>{t.login.verifyTitle}</Text>
+        <Text style={[styles.verifyText, { color: colors.textSecondary }]}>{t.login.verifyBody}</Text>
+        <Text style={[styles.verifyText, { color: colors.text, fontWeight: '600' }]}>{email.trim()}</Text>
+        <Text style={[styles.verifyText, { color: colors.textSecondary }]}>{t.login.verifySpamHint}</Text>
+        {resendNote && (
+          <Text style={[styles.verifyText, { color: colors.text }]} accessibilityLiveRegion="polite">{resendNote}</Text>
+        )}
+        <Pressable
+          style={[styles.primaryBtn, { backgroundColor: colors.accentFill }, busy && styles.btnDisabled]}
+          onPress={handleResend}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel={t.login.verifyResend}
+          accessibilityState={{ disabled: busy, busy }}
+        >
+          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>{t.login.verifyResend}</Text>}
+        </Pressable>
+        <Pressable
+          style={styles.toggleBtn}
+          onPress={() => { setPendingVerify(false); setRegisterMode(false); setResendNote(null); }}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.toggleBtnText, { color: colors.accent }]}>{t.login.verifyBack}</Text>
+        </Pressable>
+      </>
+    );
+  }
 
   return (
     <>
@@ -110,6 +167,8 @@ export default function EmailLoginForm({ onError }: EmailLoginFormProps) {
 }
 
 const styles = StyleSheet.create({
+  verifyTitle: { fontSize: 20, fontWeight: '700', marginBottom: 8, textAlign: 'center' },
+  verifyText: { fontSize: 15, marginBottom: 8, textAlign: 'center' },
   input: { width: '100%', borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, fontSize: 16, marginBottom: 10 },
   primaryBtn: { borderRadius: 12, paddingVertical: 14, paddingHorizontal: 24, width: '100%', alignItems: 'center', marginBottom: 6, minHeight: 44, justifyContent: 'center' },
   btnDisabled: { opacity: 0.6 },

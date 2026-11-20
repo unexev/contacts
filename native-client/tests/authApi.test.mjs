@@ -7,6 +7,7 @@ import {
   loginRequest,
   registerRequest,
   mapAuthFailure,
+  resendVerificationRequest,
 } from '../utils/authApi.ts';
 
 function fakeFetch(status, body, { throws } = {}) {
@@ -98,4 +99,28 @@ test('malformed success envelope is a generic failure', async () => {
   assert.deepEqual(res, { ok: false, errorKey: 'authGeneric' });
   const res2 = await loginRequest(fakeFetch(200, undefined), 'http://api', 'a@b.co', 'Test1234!');
   assert.deepEqual(res2, { ok: false, errorKey: 'authGeneric' });
+});
+
+test('403 on login asks the user to confirm their email', async () => {
+  const res = await loginRequest(fakeFetch(403, { error: 'email not verified' }), 'http://api', 'a@b.co', 'Test1234!');
+  assert.deepEqual(res, { ok: false, errorKey: 'authVerificationRequired' });
+});
+
+test('register answering verification_required is not a generic failure', async () => {
+  const res = await registerRequest(
+    fakeFetch(201, { data: { verification_required: true, user: { id: 'u1' } } }),
+    'http://api', 'a@b.co', 'A', 'Test1234!'
+  );
+  assert.deepEqual(res, { ok: false, errorKey: 'authVerificationRequired' });
+});
+
+test('resendVerificationRequest maps statuses', async () => {
+  const f = fakeFetch(200, {});
+  assert.deepEqual(await resendVerificationRequest(f, 'http://api', ' a@b.co ', 'pw'), { ok: true });
+  assert.equal(f.calls[0].url, 'http://api/api/auth/resend-verification');
+  assert.deepEqual(JSON.parse(f.calls[0].init.body), { email: 'a@b.co', password: 'pw' });
+  assert.deepEqual(await resendVerificationRequest(fakeFetch(429, {}), 'http://api', 'a@b.co', 'pw'), { ok: false, reason: 'wait' });
+  assert.deepEqual(await resendVerificationRequest(fakeFetch(409, {}), 'http://api', 'a@b.co', 'pw'), { ok: false, reason: 'done' });
+  assert.deepEqual(await resendVerificationRequest(fakeFetch(500, {}), 'http://api', 'a@b.co', 'pw'), { ok: false, reason: 'failed' });
+  assert.deepEqual(await resendVerificationRequest(fakeFetch(0, {}, { throws: true }), 'http://api', 'a@b.co', 'pw'), { ok: false, reason: 'failed' });
 });

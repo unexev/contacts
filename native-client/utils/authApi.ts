@@ -14,6 +14,7 @@ export type AuthErrorKey =
   | 'authEmailTaken'
   | 'authRequestInvalid'
   | 'authRateLimited'
+  | 'authVerificationRequired'
   | 'authNetwork'
   | 'authGeneric';
 
@@ -58,6 +59,7 @@ export function mapAuthFailure(status: number): AuthErrorKey {
   if (status === 409) return 'authEmailTaken';
   if (status === 400) return 'authRequestInvalid';
   if (status === 429) return 'authRateLimited';
+  if (status === 403) return 'authVerificationRequired';
   return 'authGeneric';
 }
 
@@ -79,6 +81,8 @@ async function post(fetchFn: FetchLike, apiBase: string, path: string, payload: 
 
   const body = await res.json().catch(() => null);
   const data = body?.data;
+  // Register answers 2xx without tokens while the email still needs confirming.
+  if (data?.verification_required) return { ok: false, errorKey: 'authVerificationRequired' };
   if (!data || typeof data.token !== 'string' || typeof data.refresh_token !== 'string') {
     return { ok: false, errorKey: 'authGeneric' };
   }
@@ -106,4 +110,28 @@ export async function registerRequest(
   const invalid = validateEmail(email) ?? validateName(name) ?? validatePassword(password);
   if (invalid) return { ok: false, errorKey: invalid };
   return post(fetchFn, apiBase, '/api/auth/register', { email: email.trim(), name: name.trim(), password });
+}
+
+export type ResendResult = { ok: true } | { ok: false; reason: 'wait' | 'done' | 'failed' };
+
+/** Asks the backend to email a new confirmation link (public: email + password prove ownership). */
+export async function resendVerificationRequest(
+  fetchFn: FetchLike,
+  apiBase: string,
+  email: string,
+  password: string
+): Promise<ResendResult> {
+  try {
+    const res = await fetchFn(`${apiBase}/api/auth/resend-verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), password }),
+    });
+    if (res.status >= 200 && res.status < 300) return { ok: true };
+    if (res.status === 429) return { ok: false, reason: 'wait' };
+    if (res.status === 409) return { ok: false, reason: 'done' };
+  } catch {
+    // fall through to generic failure
+  }
+  return { ok: false, reason: 'failed' };
 }
