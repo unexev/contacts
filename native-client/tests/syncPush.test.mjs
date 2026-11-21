@@ -43,6 +43,9 @@ test('a new contact with children becomes upserts with fresh server ids written 
   raw.run("INSERT INTO national_identity_card (contact_id, doc_type, card_number, issue_date, country_code) VALUES ('c1', 'passport', 'X1', '2020-01-02', 'EC')");
   const batch = await buildPushBatch(db, 100, ids);
   const byEntity = Object.fromEntries(batch.items.map(i => [i.entity, i]));
+  // The creation time travels with the contact (epoch ms), so offline-created contacts keep it.
+  assert.equal(typeof byEntity.contact.data.created_at, 'number');
+  delete byEntity.contact.data.created_at;
   assert.deepEqual(byEntity.contact.data, {
     first_name: 'ANA', surname: 'LEE', deceased: true,
     middle_name: { String: 'M', Valid: true }, birthdate: { String: '1990-03-14', Valid: true },

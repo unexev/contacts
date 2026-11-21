@@ -4,7 +4,7 @@
  */
 // The explicit extension lets `node --test` resolve these files; tsconfig does not allow it.
 // @ts-ignore TS5097
-import { contactPushNullFields, toNullString } from "./syncMapping.ts";
+import { contactPushNullFields, sqliteDatetimeToMs, toNullString } from "./syncMapping.ts";
 // @ts-ignore TS5097
 import { toIsoDate } from "./dates.ts";
 
@@ -70,6 +70,8 @@ function dataFor(entity: string, row: Row): unknown {
         first_name: row.first_name,
         surname: row.surname,
         deceased: !!row.deceased,
+        // The server keeps the first value it sees, so offline-created contacts keep their real creation time.
+        ...(sqliteDatetimeToMs(row.created_at as string) ? { created_at: sqliteDatetimeToMs(row.created_at as string) } : {}),
         ...contactPushNullFields(row as any),
       };
     case "phone":

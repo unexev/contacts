@@ -161,10 +161,14 @@ function expoSqliteMergeTarget(localDb: SQLite.SQLiteDatabase, remoteDb: SQLite.
     },
     writeContact: (row: Row) => {
       localDb.runSync(
-        `INSERT OR REPLACE INTO contact (contact_id, first_name, middle_name, surname, birthdate, gender, status_id, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO contact (contact_id, first_name, middle_name, surname, birthdate, gender, status_id, updated_at, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(contact_id) DO UPDATE SET
+           first_name = excluded.first_name, middle_name = excluded.middle_name, surname = excluded.surname,
+           birthdate = excluded.birthdate, gender = excluded.gender, status_id = excluded.status_id,
+           updated_at = excluded.updated_at, created_at = COALESCE(excluded.created_at, contact.created_at)`,
         [row.contact_id, row.first_name, row.middle_name, row.surname,
-          row.birthdate, row.gender, row.status_id, row.updated_at] as SQLite.SQLiteBindValue[]
+          row.birthdate, row.gender, row.status_id, row.updated_at, (row.created_at ?? null)] as SQLite.SQLiteBindValue[]
       );
     },
   };

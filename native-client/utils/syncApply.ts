@@ -64,15 +64,16 @@ async function applyContact(db: ChildDb, c: Row) {
   const r = mapContactRow(c as any);
   await db.runAsync(
     `INSERT INTO contact (contact_id, first_name, middle_name, surname, birthdate, gender, status_id,
-       relationship_status, children_count, deceased, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
+       relationship_status, children_count, deceased, updated_at, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')), COALESCE(?, datetime('now')))
      ON CONFLICT(contact_id) DO UPDATE SET
        first_name = excluded.first_name, middle_name = excluded.middle_name, surname = excluded.surname,
        birthdate = excluded.birthdate, gender = excluded.gender, status_id = excluded.status_id,
        relationship_status = excluded.relationship_status, children_count = excluded.children_count,
-       deceased = excluded.deceased, updated_at = excluded.updated_at`,
+       deceased = excluded.deceased, updated_at = excluded.updated_at,
+       created_at = COALESCE(?, contact.created_at)`,
     r.contact_id, r.first_name, r.middle_name, r.surname, r.birthdate, r.gender, r.status_id,
-    r.relationship_status, r.children_count, r.deceased, r.updated_at,
+    r.relationship_status, r.children_count, r.deceased, r.updated_at, r.created_at, r.created_at,
   );
 }
 

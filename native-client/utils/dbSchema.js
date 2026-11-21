@@ -18,6 +18,7 @@ const createTablesSql = `
     children_count INTEGER CHECK(children_count >= 0),
     deceased INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT DEFAULT (datetime('now')),
+    created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (status_id) REFERENCES marital_status (status_id)
   );
 
@@ -227,6 +228,8 @@ const migrationsSql = [
     FOREIGN KEY (contact_id) REFERENCES contact(contact_id)
   )`,
   "ALTER TABLE contact ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))",
+  // Creation time (what "recently added" sorts by); old rows stay NULL until the next full pull fills them.
+  "ALTER TABLE contact ADD COLUMN created_at TEXT",
   "ALTER TABLE contact_phone ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))",
   "ALTER TABLE contact_email ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))",
   "ALTER TABLE national_identity_card ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))",

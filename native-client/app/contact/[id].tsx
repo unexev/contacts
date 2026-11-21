@@ -174,7 +174,7 @@ export default function ContactDetailScreen() {
         ? t.contacts.relationshipSingle
         : contact.relationship_status === 'PARTNERED' ? t.contacts.relationshipPartnered : t.contacts.relationshipCohabiting,
     } : null,
-    contact.children_count !== null && contact.children_count !== undefined ? {
+    typeof contact.children_count === 'number' && contact.children_count > 0 ? {
       key: 'children',
       label: t.contacts.children,
       value: String(contact.children_count),

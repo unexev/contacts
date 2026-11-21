@@ -23,7 +23,7 @@ export function createContactsCoreActions({
         try {
             const id = generateId();
             await db.runAsync(
-                'INSERT INTO contact (contact_id, first_name, middle_name, surname, birthdate, gender, status_id, relationship_status, children_count, deceased) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                'INSERT INTO contact (contact_id, first_name, middle_name, surname, birthdate, gender, status_id, relationship_status, children_count, deceased, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime(\'now\'))',
                 id, toUpper(data.first_name), toUpper(data.middle_name), toUpper(data.surname), toIsoDate(data.birthdate), data.gender ?? null, data.status_id ?? null,
                 data.relationship_status ?? null, data.children_count ?? null, data.deceased ? 1 : 0
             );

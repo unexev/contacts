@@ -60,6 +60,13 @@ export function msToSqliteDatetime(ms: number | null | undefined): string | null
   return new Date(ms).toISOString().slice(0, 19).replace('T', ' ');
 }
 
+/** Inverse of msToSqliteDatetime: local `datetime('now')` text (UTC) back to epoch milliseconds. */
+export function sqliteDatetimeToMs(text: string | null | undefined): number | null {
+  if (!text) return null;
+  const ms = Date.parse(`${text.trim().replace(' ', 'T')}Z`);
+  return Number.isFinite(ms) ? ms : null;
+}
+
 /**
  * The backend serializes Go `sql.NullString` columns (such as phone/email labels) as `{ String, Valid }`.
  * Returns the trimmed text, or null when the value is empty, invalid or not a string-like shape.
@@ -87,6 +94,7 @@ export interface BackendContact {
   children_count?: number | null;
   deceased?: boolean;
   updated_at?: number;
+  created_at?: number;
 }
 
 export function mapContactRow(c: BackendContact) {
@@ -102,6 +110,7 @@ export function mapContactRow(c: BackendContact) {
     children_count: normalizeChildrenCount(c.children_count),
     deceased: c.deceased ? 1 : 0,
     updated_at: msToSqliteDatetime(c.updated_at),
+    created_at: msToSqliteDatetime(c.created_at),
   };
 }
 

@@ -12,6 +12,7 @@ import { applyPulledChanges, hasPulledRows } from "./syncApply";
 import { buildPushBatch, clearOutbox, settledSeqs } from "./syncPush";
 
 const CURSOR_KEY = "contacts_sync_cursor";
+const CREATED_AT_FLAG = "contacts_created_at_pulled";
 /** Legacy key of the old in-memory queue; cleared on sign-out. */
 const LEGACY_QUEUE_KEY = "contacts_pending_sync_queue";
 
@@ -59,6 +60,10 @@ export async function pullChanges(): Promise<{
   changed: boolean;
   error?: string;
 }> {
+  // Contacts synced before `created_at` existed locally need one full pull to learn their creation time.
+  if (!(await AsyncStorage.getItem(CREATED_AT_FLAG))) {
+    await AsyncStorage.removeItem(CURSOR_KEY);
+  }
   const cursorStr = await AsyncStorage.getItem(CURSOR_KEY);
   const since = cursorStr ? parseInt(cursorStr, 10) : 0;
 
@@ -83,6 +88,7 @@ export async function pullChanges(): Promise<{
     }
 
     if (cursor) await AsyncStorage.setItem(CURSOR_KEY, String(cursor));
+    await AsyncStorage.setItem(CREATED_AT_FLAG, "1");
     return { changed: hasPulledRows(changes) };
   } catch (err: any) {
     console.warn("[apiSync] Error applying changes locally:", err);

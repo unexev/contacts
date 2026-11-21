@@ -39,7 +39,7 @@ test('mapContactRow produces the local contact columns', () => {
   assert.deepEqual(row, {
     contact_id: 'c1', first_name: 'Ann', middle_name: null, surname: 'Lee',
     birthdate: '1990-01-02', gender: 'FEMALE', status_id: null,
-    relationship_status: null, children_count: null, deceased: 0, updated_at: '2023-11-14 22:13:20',
+    relationship_status: null, children_count: null, deceased: 0, updated_at: '2023-11-14 22:13:20', created_at: null,
   });
 });
 

@@ -352,7 +352,7 @@ export function createContactsRecordActions({
             try {
                 const id = generateId();
                 await db.runAsync(
-                    'INSERT INTO contact (contact_id, first_name, middle_name, surname, birthdate) VALUES (?, ?, ?, ?, ?)',
+                    'INSERT INTO contact (contact_id, first_name, middle_name, surname, birthdate, created_at) VALUES (?, ?, ?, ?, ?, datetime(\'now\'))',
                     id, toUpper(card.first_name), toUpper(card.middle_name), toUpper(card.surname), toIsoDate(card.birthdate)
                 );
 

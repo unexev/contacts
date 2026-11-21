@@ -166,3 +166,16 @@ test('deleting a contact on the server removes its locations and nationalities',
   assert.deepEqual(all(raw, 'SELECT * FROM contact_location'), []);
   assert.deepEqual(all(raw, 'SELECT * FROM contact_nationality'), []);
 });
+
+test('the creation time is stored on pull and survives later edits', async () => {
+  const { raw, db } = makeDb();
+  const created = Date.UTC(2024, 0, 2, 3, 4, 5);
+  await applyPulledChanges(db, { contacts: [contact({ created_at: created, updated_at: created })] });
+  assert.equal(all(raw, 'SELECT created_at FROM contact WHERE contact_id = "c1"')[0].created_at, '2024-01-02 03:04:05');
+  // A later edit reaches the device with a newer updated_at; creation time must not move.
+  await applyPulledChanges(db, { contacts: [contact({ created_at: created, updated_at: created + 86400000, first_name: 'Anita' })] });
+  // An answer without created_at must not wipe it either.
+  await applyPulledChanges(db, { contacts: [contact({ updated_at: created + 2 * 86400000 })] });
+  const row = all(raw, 'SELECT first_name, created_at FROM contact WHERE contact_id = "c1"')[0];
+  assert.equal(row.created_at, '2024-01-02 03:04:05');
+});

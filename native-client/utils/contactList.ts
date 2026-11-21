@@ -147,13 +147,24 @@ export function applyAgeFilter(contacts: ContactListItem[], op: AgeOp, value: nu
   });
 }
 
+function createdMs(c: ContactListItem): number {
+  const text = typeof c.created_at === 'string' ? c.created_at.trim() : '';
+  const ms = text ? Date.parse(`${text.replace(' ', 'T')}Z`) : NaN;
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function byName(a: ContactListItem, b: ContactListItem): number {
+  return (a.first_name ?? '').localeCompare(b.first_name ?? '') || (a.surname ?? '').localeCompare(b.surname ?? '');
+}
+
 export function sortContacts(list: ContactListItem[], key: SortKey): ContactListItem[] {
   return [...list].sort((a, b) => {
     if (key === 'first_name') return (a.first_name ?? '').localeCompare(b.first_name ?? '');
     if (key === 'surname') return (a.surname ?? '').localeCompare(b.surname ?? '');
 
-    if (key === 'insertion_desc') return (b.rowid ?? 0) - (a.rowid ?? 0);
-    if (key === 'insertion_asc') return (a.rowid ?? 0) - (b.rowid ?? 0);
+    // Creation time, not last edit (same rule as the web). Contacts with no known creation time count as the oldest.
+    if (key === 'insertion_desc') return createdMs(b) - createdMs(a) || byName(a, b);
+    if (key === 'insertion_asc') return createdMs(a) - createdMs(b) || byName(a, b);
 
     const aKey = birthdateToSortKey(a.birthdate);
     const bKey = birthdateToSortKey(b.birthdate);
