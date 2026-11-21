@@ -29,7 +29,7 @@ GoogleSignin.configure({
 
 export default function LoginScreen() {
   const { t } = useI18n();
-  const { isAuthenticated, loading, continueAsGuest, setDriveToken } = useAuth();
+  const { isAuthenticated, loading, continueAsGuest, setDriveToken, loginWithGoogleIdToken } = useAuth();
   const router = useRouter();
   const { colors } = useTheme();
   const [busy, setBusy] = React.useState(false);
@@ -51,6 +51,11 @@ export default function LoginScreen() {
       const credential = GoogleAuthProvider.credential(idToken, tokens.accessToken);
       await signInWithCredential(auth, credential);
       setDriveToken(tokens.accessToken);
+      // The same Google account also gets a backend session (sync, photos). If the server is
+      // unreachable or Google sign-in is not enabled there, the app keeps working locally.
+      loginWithGoogleIdToken(idToken).then((r) => {
+        if (!r.ok) console.warn('[auth] backend google login failed:', r.errorKey);
+      }).catch((err) => console.warn('[auth] backend google login error:', err));
     } catch (e: any) {
       if (e.code === statusCodes.SIGN_IN_CANCELLED) {
         // usuario canceló, no mostrar error

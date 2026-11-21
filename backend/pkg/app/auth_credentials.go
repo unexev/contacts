@@ -124,6 +124,11 @@ func (a *App) updateCredentials(w http.ResponseWriter, r *http.Request) {
 		errResp(w, http.StatusInternalServerError, "failed to verify credentials")
 		return
 	}
+	if hash == "" {
+		// Accounts created with Google have no password to check or change.
+		errResp(w, http.StatusConflict, "this account signs in with Google")
+		return
+	}
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.CurrentPassword)) != nil {
 		errResp(w, http.StatusUnauthorized, "invalid credentials")
 		return
@@ -188,8 +193,10 @@ func (a *App) deleteAccount(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetUser(r)
 	var req struct {
 		CurrentPassword string `json:"current_password"`
+		// IDToken confirms the deletion for accounts that have no password.
+		IDToken string `json:"id_token"`
 	}
-	if err := decodeJSON(r, &req); err != nil || req.CurrentPassword == "" {
+	if err := decodeJSON(r, &req); err != nil || (req.CurrentPassword == "" && req.IDToken == "") {
 		errResp(w, http.StatusBadRequest, "current password is required")
 		return
 	}
@@ -208,7 +215,12 @@ func (a *App) deleteAccount(w http.ResponseWriter, r *http.Request) {
 		errResp(w, http.StatusInternalServerError, "failed to verify credentials")
 		return
 	}
-	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.CurrentPassword)) != nil {
+	if hash == "" {
+		if !a.confirmGoogleOwner(r, claims, req.IDToken) {
+			errResp(w, http.StatusUnauthorized, "invalid credentials")
+			return
+		}
+	} else if bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.CurrentPassword)) != nil {
 		errResp(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}

@@ -2,6 +2,7 @@
   import { A, api, setToken } from '$lib/api.svelte.js';
   import { t } from '$lib/i18n.svelte.js';
   import LangSwitch from '$lib/components/LangSwitch.svelte';
+  import GoogleButton from '$lib/components/GoogleButton.svelte';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import VerifyEmailNotice from '$lib/components/VerifyEmailNotice.svelte';
   import { friendlyError } from '$lib/errors.js';
@@ -87,6 +88,8 @@
         {loading ? '...' : t('loginButton')}
       </button>
     </form>
+
+    <GoogleButton onerror={(m) => (error = m)} />
 
     <p class="login-footer">
       {t('loginNoAccount')}

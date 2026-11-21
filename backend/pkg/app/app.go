@@ -12,6 +12,7 @@ import (
 	"contacts/pkg/auth"
 	"contacts/pkg/config"
 	"contacts/pkg/docvalidate"
+	"contacts/pkg/googleid"
 	"contacts/pkg/mailer"
 	"contacts/pkg/model"
 	"contacts/pkg/noteval"
@@ -34,6 +35,8 @@ type App struct {
 
 	userState func(userID string) (exists, verified bool, err error) // nil uses the store
 
+	google googleid.Verifier // nil when Google sign-in is not configured
+
 	mailer mailer.Sender // nil when email is not configured
 	apiURL string        // public URL of this backend, for links in emails
 	appURL string        // public URL of the web app, for redirects
@@ -51,6 +54,11 @@ func WithRefreshTokens(ttl, grace time.Duration) Option {
 	}
 }
 
+// WithGoogleVerifier replaces the Google ID token verifier (tests).
+func WithGoogleVerifier(v googleid.Verifier) Option {
+	return func(a *App) { a.google = v }
+}
+
 func New(s *store.Store, a *auth.Manager, opts ...Option) *App {
 	cfg, _ := config.Load(false)
 	app := &App{
@@ -64,6 +72,9 @@ func New(s *store.Store, a *auth.Manager, opts ...Option) *App {
 		app.mailer = m
 		app.apiURL = cfg.APIURL
 		app.appURL = cfg.AppURL
+	}
+	if v := googleid.New(cfg.GoogleClientIDs); v != nil {
+		app.google = v
 	}
 	if sc := storage.New(cfg.SupabaseURL, cfg.SupabaseServiceKey, cfg.SupabaseBucket); sc.Configured() {
 		app.photos = sc
@@ -84,6 +95,7 @@ func (a *App) Handler() http.Handler {
 	r.Route("/api", func(r chi.Router) {
 		r.Post("/auth/register", a.register)
 		r.Post("/auth/login", a.login)
+		r.Post("/auth/google", a.googleLogin)
 		r.Post("/auth/refresh", a.refresh)
 		r.Post("/auth/logout", a.logout)
 		r.Get("/auth/verify-email", a.verifyEmail)
@@ -406,10 +418,22 @@ func (a *App) me(w http.ResponseWriter, r *http.Request) {
 		errResp(w, http.StatusInternalServerError, "failed to load user")
 		return
 	}
+	sub, err := a.store.GoogleSubByID(claims.UserID)
+	if err != nil {
+		errResp(w, http.StatusInternalServerError, "failed to load user")
+		return
+	}
+	hash, err := a.store.GetPasswordHashByID(claims.UserID)
+	if err != nil {
+		errResp(w, http.StatusInternalServerError, "failed to load user")
+		return
+	}
 	dataResp(w, http.StatusOK, struct {
 		model.User
 		EmailVerified bool `json:"email_verified"`
-	}{user, verified})
+		GoogleLinked  bool `json:"google_linked"`
+		HasPassword   bool `json:"has_password"`
+	}{user, verified, sub != "", hash != ""})
 }
 
 // --- contacts ---

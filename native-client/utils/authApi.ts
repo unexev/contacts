@@ -100,6 +100,12 @@ export async function loginRequest(
   return post(fetchFn, apiBase, '/api/auth/login', { email: email.trim(), password });
 }
 
+/** Exchanges a Google ID token for a backend session (the account is created or linked by email). */
+export async function googleLoginRequest(fetchFn: FetchLike, apiBase: string, idToken: string): Promise<AuthResult> {
+  if (!idToken) return { ok: false, errorKey: 'authRequestInvalid' };
+  return post(fetchFn, apiBase, '/api/auth/google', { id_token: idToken });
+}
+
 export async function registerRequest(
   fetchFn: FetchLike,
   apiBase: string,

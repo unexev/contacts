@@ -5,6 +5,7 @@ import {
   validatePassword,
   validateName,
   loginRequest,
+  googleLoginRequest,
   registerRequest,
   mapAuthFailure,
   resendVerificationRequest,
@@ -164,4 +165,21 @@ test('readCredentialsResponse separates a new session from a pending confirmatio
   assert.deepEqual(readCredentialsResponse({ token: 't', refresh_token: 'r' }), { kind: 'session', token: 't', refreshToken: 'r' });
   assert.deepEqual(readCredentialsResponse({}), { kind: 'invalid' });
   assert.deepEqual(readCredentialsResponse(undefined), { kind: 'invalid' });
+});
+
+test('googleLoginRequest posts the id token and parses the session', async () => {
+  const f = fakeFetch(200, { data: { token: 'a', refresh_token: 'r', user: { email: 'a@b.co' } } });
+  const res = await googleLoginRequest(f, 'http://api', 'google-id-token');
+  assert.equal(f.calls[0].url, 'http://api/api/auth/google');
+  assert.deepEqual(JSON.parse(f.calls[0].init.body), { id_token: 'google-id-token' });
+  assert.deepEqual(res, { ok: true, session: { token: 'a', refreshToken: 'r', user: { email: 'a@b.co' } } });
+});
+
+test('googleLoginRequest rejects an empty token without calling the server and maps failures', async () => {
+  const f = fakeFetch(200, {});
+  assert.deepEqual(await googleLoginRequest(f, 'http://api', ''), { ok: false, errorKey: 'authRequestInvalid' });
+  assert.equal(f.calls.length, 0);
+  assert.deepEqual(await googleLoginRequest(fakeFetch(401, {}), 'http://api', 'x'), { ok: false, errorKey: 'authInvalidCredentials' });
+  assert.deepEqual(await googleLoginRequest(fakeFetch(503, {}), 'http://api', 'x'), { ok: false, errorKey: 'authGeneric' });
+  assert.deepEqual(await googleLoginRequest(fakeFetch(0, {}, { throws: true }), 'http://api', 'x'), { ok: false, errorKey: 'authNetwork' });
 });

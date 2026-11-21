@@ -192,9 +192,4 @@ export interface ContactsContextType {
     importVcf: (content: string) => Promise<{ imported: number; skipped: number }>;
     searchContacts: (query: string) => Promise<Contact[]>;
     // Sincronización entre dispositivos
-    syncing: boolean;
-    syncEnabled: boolean;
-    lastSyncAt: number | null;
-    setSyncEnabled: (enabled: boolean) => Promise<void>;
-    syncNow: () => Promise<{ changed: boolean; error?: string }>;
 }

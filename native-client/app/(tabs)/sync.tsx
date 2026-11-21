@@ -2,14 +2,13 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { checkBackupExists, downloadDB, uploadDB } from '../../utils/driveSync';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { downloadBackup, findBackup, uploadBackup } from '../../utils/driveSync';
+import { syncNow as syncNowApi } from '../../utils/apiSync';
 import {
   exportDatabaseToFile,
   importDatabaseFromFile,
   isTauri,
-  readDatabaseAsBase64,
-  writeDatabaseFromBase64,
 } from '../../utils/db';
 import { useAuth } from '../../utils/authContext';
 import { useContacts } from '../../utils/context';
@@ -45,13 +44,12 @@ async function pickDocument() {
 export default function SyncScreen() {
   const [status, setStatus] = useState<string | null>(null);
   const [driveStatus, setDriveStatus] = useState<string | null>(null);
-  const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [loadingOp, setLoadingOp] = useState<string | null>(null);
   const [hasBackup, setHasBackup] = useState<boolean | null>(null);
   const { user, apiSession, driveToken, refreshDriveToken, signIn } = useAuth();
   const [dataStatus, setDataStatus] = useState<{ text: string; error: boolean } | null>(null);
-  const { fetchContacts, importVcf, syncing, syncEnabled, lastSyncAt, setSyncEnabled, syncNow } = useContacts();
-  const { t, lang } = useI18n();
+  const { fetchContacts, importVcf } = useContacts();
+  const { t } = useI18n();
   const { isDesktop } = useResponsive();
   const { colors } = useTheme();
   const router = useRouter();
@@ -60,8 +58,8 @@ export default function SyncScreen() {
   useEffect(() => {
     if (!driveToken) { setHasBackup(null); return; }
     let cancelled = false;
-    checkBackupExists(driveToken).then(exists => {
-      if (!cancelled) setHasBackup(exists);
+    findBackup(driveToken).then(backup => {
+      if (!cancelled) setHasBackup(!!backup);
     }).catch(() => {
       if (!cancelled) setHasBackup(false);
     });
@@ -153,6 +151,24 @@ export default function SyncScreen() {
     }
   };
 
+  /** Merges an export document into the account on the server and refreshes this device. */
+  const restoreFromText = async (text: string): Promise<{ text: string; error: boolean }> => {
+    try {
+      const doc = parseExportFile(text);
+      const res = await requestApi('/api/import', { method: 'POST', body: JSON.stringify(doc) });
+      if (res.status < 200 || res.status >= 300) {
+        return { text: t.accountData[mapDataFailure(res.status)], error: true };
+      }
+      // The server merged the file; pull it so this device shows the same contacts.
+      await syncNowApi();
+      await fetchContacts();
+      const { created, updated, skipped } = importCounts(res.data);
+      return { text: t.accountData.importDone(created, updated, skipped), error: false };
+    } catch (e) {
+      return { text: e instanceof InvalidExportFile ? t.accountData.invalid : t.accountData.failed, error: true };
+    }
+  };
+
   const handleServerImport = async () => {
     try {
       setLoadingOp('serverImport');
@@ -162,19 +178,9 @@ export default function SyncScreen() {
       const text = isWeb
         ? await (asset.file ? asset.file.text() : (await fetch(asset.uri)).text())
         : await FileSystem.readAsStringAsync(asset.uri);
-      const doc = parseExportFile(text);
-      const res = await requestApi('/api/import', { method: 'POST', body: JSON.stringify(doc) });
-      if (res.status < 200 || res.status >= 300) {
-        setDataStatus({ text: t.accountData[mapDataFailure(res.status)], error: true });
-        return;
-      }
-      // The server merged the file; pull it so this device shows the same contacts.
-      await syncNow();
-      await fetchContacts();
-      const { created, updated, skipped } = importCounts(res.data);
-      setDataStatus({ text: t.accountData.importDone(created, updated, skipped), error: false });
-    } catch (e) {
-      setDataStatus({ text: e instanceof InvalidExportFile ? t.accountData.invalid : t.accountData.failed, error: true });
+      setDataStatus(await restoreFromText(text));
+    } catch {
+      setDataStatus({ text: t.accountData.failed, error: true });
     } finally {
       setLoadingOp(null);
     }
@@ -274,23 +280,6 @@ export default function SyncScreen() {
     );
   };
 
-  const handleToggleSync = async (value: boolean) => {
-    if (value && !driveToken) { promptSignIn(); return; }
-    await setSyncEnabled(value);
-  };
-
-  const handleSyncNow = async () => {
-    if (!driveToken) { promptSignIn(); return; }
-    setSyncStatus(null);
-    const res = await syncNow();
-    if (res.error) setSyncStatus(t.sync.errorPrefix + res.error);
-    else setSyncStatus(res.changed ? t.sync.imported : t.sync.upToDate);
-  };
-
-  const lastSyncLabel = lastSyncAt
-    ? `${t.sync.lastSync}: ${new Date(lastSyncAt).toLocaleString(lang === 'es' ? 'es' : 'en')}`
-    : t.sync.never;
-
   const promptSignIn = () => {
     const title = driveToken === null && !user ? t.drive.notLoggedInTitle : t.drive.sessionExpiredTitle;
     const msg   = driveToken === null && !user ? t.drive.notLoggedInMsg   : t.drive.sessionExpiredMsg;
@@ -317,78 +306,59 @@ export default function SyncScreen() {
     }
   };
 
-  const handleDriveUpload = async () => {
-    let token = driveToken;
-    if (!token) {
-      token = await refreshDriveToken();
-      if (!token) { promptSignIn(); return; }
+  /** Runs a Drive call with a valid token, renewing it once. False when the user must sign in again. */
+  const runDrive = async (fn: (token: string) => Promise<void>): Promise<boolean> => {
+    const token = driveToken ?? (await refreshDriveToken());
+    if (!token) { promptSignIn(); return false; }
+    try {
+      await fn(token);
+    } catch (e: any) {
+      if (e.message !== 'TOKEN_EXPIRED') throw e;
+      const fresh = await refreshDriveToken();
+      if (!fresh) { promptSignIn(); return false; }
+      await fn(fresh);
     }
+    return true;
+  };
+
+  const handleDriveUpload = async () => {
     try {
       setLoadingOp('upload');
       setDriveStatus(null);
-      const base64 = await readDatabaseAsBase64();
-      await uploadDB(token, base64);
-      setDriveStatus(t.drive.uploadSuccess);
-      setHasBackup(true);
-    } catch (e: any) {
-      if (e.message === 'TOKEN_EXPIRED') {
-        const newToken = await refreshDriveToken();
-        if (newToken) {
-          try {
-            const base64 = await readDatabaseAsBase64();
-            await uploadDB(newToken, base64);
-            setDriveStatus(t.drive.uploadSuccess);
-            setHasBackup(true);
-          } catch {
-            promptSignIn();
-          }
-        } else {
-          promptSignIn();
-        }
-      } else {
-        setDriveStatus(t.drive.errorPrefix + e.message);
+      const res = await requestApi('/api/export', {}, { raw: true });
+      if (res.status < 200 || res.status >= 300 || !res.data) {
+        setDriveStatus(t.drive.errorPrefix + t.accountData[mapDataFailure(res.status)]);
+        return;
       }
+      const json = JSON.stringify(res.data);
+      if (await runDrive((token) => uploadBackup(token, json))) {
+        setDriveStatus(t.drive.uploadSuccess);
+        setHasBackup(true);
+      }
+    } catch (e: any) {
+      setDriveStatus(t.drive.errorPrefix + (e?.message ?? String(e)));
     } finally {
       setLoadingOp(null);
     }
   };
 
   const handleDriveRestore = async () => {
-    if (!driveToken) { promptSignIn(); return; }
-
-    const doRestore = async () => {
-      let token = driveToken ?? await refreshDriveToken();
-      if (!token) { promptSignIn(); return; }
-      try {
-        setLoadingOp('restore');
-        setDriveStatus(null);
-        const base64 = await downloadDB(token);
-        await writeDatabaseFromBase64(base64);
-        await fetchContacts();
-        setDriveStatus(t.drive.restoreSuccess);
-      } catch (e: any) {
-        if (e.message === 'NO_BACKUP') {
-          setDriveStatus(t.drive.notFound);
-          setHasBackup(false);
-        } else if (e.message === 'TOKEN_EXPIRED') {
-          const newToken = await refreshDriveToken();
-          if (newToken) doRestore();
-          else promptSignIn();
-        } else {
-          setDriveStatus(t.drive.errorPrefix + e.message);
-        }
-      } finally {
-        setLoadingOp(null);
+    try {
+      setLoadingOp('restore');
+      setDriveStatus(null);
+      let text = '';
+      if (!(await runDrive(async (token) => { text = await downloadBackup(token); }))) return;
+      const result = await restoreFromText(text);
+      setDriveStatus(result.error ? t.drive.errorPrefix + result.text : result.text);
+    } catch (e: any) {
+      if (e?.message === 'NO_BACKUP') {
+        setDriveStatus(t.drive.notFound);
+        setHasBackup(false);
+      } else {
+        setDriveStatus(t.drive.errorPrefix + (e?.message ?? String(e)));
       }
-    };
-
-    if (isWeb) {
-      if (confirm(t.config.importConfirm)) doRestore();
-    } else {
-      Alert.alert(t.config.importTitle, t.config.importConfirm, [
-        { text: t.common.cancel, style: 'cancel' },
-        { text: t.config.importContinue, style: 'destructive', onPress: doRestore },
-      ]);
+    } finally {
+      setLoadingOp(null);
     }
   };
 
@@ -470,8 +440,8 @@ export default function SyncScreen() {
         </View>
       )}
 
-      {/* Google Drive */}
-      {user && (
+      {/* Google Drive: the account's JSON export, available when connected with Google */}
+      {user && apiSession && (
         <View style={[styles.card, { marginTop: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
           <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.drive.title}</Text>
           <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t.drive.desc}</Text>
@@ -506,36 +476,6 @@ export default function SyncScreen() {
         </View>
       )}
 
-      {/* Sincronización entre dispositivos */}
-      {user && (
-        <View style={[styles.card, { marginTop: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
-          <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>{t.sync.title}</Text>
-          <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t.sync.desc}</Text>
-          <View style={styles.syncRow}>
-            <Text style={[styles.syncLabel, { color: colors.text }]}>{t.sync.autoLabel}</Text>
-            <Switch
-              value={syncEnabled}
-              onValueChange={handleToggleSync}
-              disabled={!driveToken || syncing}
-            />
-          </View>
-          <Pressable accessibilityRole="button" accessibilityLabel={t.sync.syncNow}
-            style={[styles.button, styles.buttonSync, (syncing || !driveToken) && styles.buttonDisabled]}
-            onPress={handleSyncNow}
-            disabled={syncing || !driveToken}
-          >
-            {syncing
-              ? <ActivityIndicator color="#1A73E8" />
-              : <Text style={styles.buttonTextSync}>{t.sync.syncNow}</Text>}
-          </Pressable>
-          <Text style={[styles.syncHint, { color: colors.textSecondary }]}>{lastSyncLabel}</Text>
-          {syncStatus && (
-            <View style={[styles.statusBox, { backgroundColor: colors.statusSuccessBg }, { backgroundColor: syncStatus.startsWith('Error') ? colors.statusErrorBg : colors.statusSuccessBg }]}>
-              <Text accessibilityLiveRegion="polite" accessibilityRole={syncStatus.startsWith('Error') ? 'alert' : undefined} style={[styles.statusText, { color: colors.text }]}>{syncStatus}</Text>
-            </View>
-          )}
-        </View>
-      )}
     </ScrollView>
   );
 }
@@ -561,11 +501,6 @@ const styles = StyleSheet.create({
   buttonText: { fontSize: 16, fontWeight: '600', color: '#fff' },
   buttonDrive: { backgroundColor: '#1a73e8' },
   buttonDriveRestore: { backgroundColor: '#34A853' },
-  buttonSync: { backgroundColor: '#F0F4FF', borderWidth: 1, borderColor: '#1A73E8' },
-  buttonTextSync: { fontSize: 16, fontWeight: '600', color: '#1A73E8' },
-  syncRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  syncLabel: { fontSize: 15, fontWeight: '500' },
-  syncHint: { fontSize: 12, color: '#6C6C70', marginTop: 4, marginBottom: 4 },
   statusBox: { marginTop: 8, padding: 12, backgroundColor: '#E8F5E9', borderRadius: 8 },
   statusBoxError: { backgroundColor: '#FFEBEE' },
   statusText: { fontSize: 14, color: '#333' },

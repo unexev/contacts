@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '../../utils/authContext';
 import { requestApi } from '../../utils/apiClient';
 import { mapDeleteFailure } from '../../utils/authApi';
@@ -42,6 +42,19 @@ export default function Config() {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Accounts created with Google have no password: they confirm deletion with Google instead.
+  const [noPassword, setNoPassword] = useState(false);
+
+  const startDelete = async () => {
+    setDeleting(true);
+    try {
+      const me = await requestApi('/api/auth/me');
+      setNoPassword((me.data as { has_password?: boolean } | undefined)?.has_password === false);
+    } catch {
+      setNoPassword(false);
+    }
+  };
+
   const cancelDelete = () => {
     setDeleting(false);
     setDeletePassword('');
@@ -50,17 +63,23 @@ export default function Config() {
 
   const handleDeleteAccount = async () => {
     if (deleteBusy) return;
-    if (!deletePassword) {
+    if (!noPassword && !deletePassword) {
       setDeleteError(t.config.deletePasswordRequired);
       return;
     }
     setDeleteBusy(true);
     setDeleteError(null);
     try {
-      const res = await requestApi('/api/auth/me', {
-        method: 'DELETE',
-        body: JSON.stringify({ current_password: deletePassword }),
-      });
+      let body: Record<string, string> = { current_password: deletePassword };
+      if (noPassword) {
+        if (Platform.OS === 'web') throw new Error('google reauth unavailable');
+        const { GoogleSignin } = require('@react-native-google-signin/google-signin');
+        const info = await GoogleSignin.signIn();
+        const idToken = info.data?.idToken;
+        if (!idToken) throw new Error('no id token');
+        body = { id_token: idToken };
+      }
+      const res = await requestApi('/api/auth/me', { method: 'DELETE', body: JSON.stringify(body) });
       if (res.status >= 200 && res.status < 300) {
         // The server data is gone; signing out also wipes this device's copy and the tokens.
         await signOutUser();
@@ -200,14 +219,14 @@ export default function Config() {
                 <Pressable
                   accessibilityRole="button"
                   style={[styles.deleteBtn, { borderColor: colors.destructive }]}
-                  onPress={() => setDeleting(true)}
+                  onPress={startDelete}
                 >
                   <Text style={[styles.deleteBtnText, { color: colors.destructiveText }]}>{t.config.deleteAction}</Text>
                 </Pressable>
               ) : (
                 <>
                   <Text style={[styles.cardDesc, { color: colors.text }]}>{t.config.deletePrompt}</Text>
-                  <TextInput
+                  {!noPassword && <TextInput
                     style={[styles.deleteInput, { color: colors.text, borderColor: colors.textSecondary, backgroundColor: colors.bg }]}
                     value={deletePassword}
                     onChangeText={setDeletePassword}
@@ -220,7 +239,7 @@ export default function Config() {
                     secureTextEntry
                     editable={!deleteBusy}
                     onSubmitEditing={handleDeleteAccount}
-                  />
+                  />}
                   {deleteError && (
                     <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={[styles.error, { color: colors.destructiveText }]}>{deleteError}</Text>
                   )}

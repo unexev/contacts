@@ -33,6 +33,11 @@ type Config struct {
 	EmailFrom    string
 	APIURL       string
 	AppURL       string
+
+	// GoogleClientIDs are the OAuth client ids whose Google ID tokens the
+	// backend accepts for sign-in (comma separated in GOOGLE_CLIENT_IDS);
+	// without any, /api/auth/google answers 503.
+	GoogleClientIDs []string
 }
 
 func Load(required bool) (Config, error) {
@@ -53,6 +58,7 @@ func Load(required bool) (Config, error) {
 		EmailFrom:           os.Getenv("EMAIL_FROM"),
 		APIURL:              strings.TrimRight(os.Getenv("API_URL"), "/"),
 		AppURL:              strings.TrimRight(os.Getenv("APP_URL"), "/"),
+		GoogleClientIDs:     strings.Split(os.Getenv("GOOGLE_CLIENT_IDS"), ","),
 	}
 
 	if v := os.Getenv("JWT_TTL_MINUTES"); v != "" {

@@ -10,7 +10,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { API_BASE, initApiTokens, setApiTokens } from './apiClient';
-import { type ApiSession, type AuthResult, loginRequest, registerRequest } from './authApi';
+import { type ApiSession, type AuthResult, googleLoginRequest, loginRequest, registerRequest } from './authApi';
 import { resetSyncState } from './apiSync';
 import { db, isTauri } from './db';
 import { auth, db_firebase } from './firebase';
@@ -33,6 +33,7 @@ interface AuthState {
   licensed: boolean;
   loading: boolean;
   driveToken: string | null;
+  loginWithGoogleIdToken: (idToken: string) => Promise<AuthResult>;
   loginWithPassword: (email: string, password: string) => Promise<AuthResult>;
   registerWithPassword: (email: string, name: string, password: string) => Promise<AuthResult>;
   signIn: () => Promise<void>;
@@ -51,6 +52,7 @@ const AuthContext = createContext<AuthState>({
   loading: true,
   driveToken: null,
   loginWithPassword: async () => ({ ok: false, errorKey: 'authGeneric' }),
+  loginWithGoogleIdToken: async () => ({ ok: false, errorKey: 'authGeneric' }),
   registerWithPassword: async () => ({ ok: false, errorKey: 'authGeneric' }),
   signIn: async () => {},
   signOutUser: async () => {},
@@ -183,6 +185,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [startApiSession]
   );
 
+  const loginWithGoogleIdToken = useCallback(
+    async (idToken: string) => startApiSession(await googleLoginRequest(fetch, API_BASE, idToken)),
+    [startApiSession]
+  );
+
   const registerWithPassword = useCallback(
     async (email: string, name: string, password: string) =>
       startApiSession(await registerRequest(fetch, API_BASE, email, name, password)),
@@ -243,7 +250,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [persistDriveToken]);
 
   return (
-    <AuthContext.Provider value={{ user, isGuest, apiSession, isAuthenticated: !!user || isGuest || apiSession, licensed, loading, driveToken, loginWithPassword, registerWithPassword, signIn, signOutUser, continueAsGuest, setDriveToken, refreshDriveToken }}>
+    <AuthContext.Provider value={{ user, isGuest, apiSession, isAuthenticated: !!user || isGuest || apiSession, licensed, loading, driveToken, loginWithPassword, loginWithGoogleIdToken, registerWithPassword, signIn, signOutUser, continueAsGuest, setDriveToken, refreshDriveToken }}>
       {children}
     </AuthContext.Provider>
   );
