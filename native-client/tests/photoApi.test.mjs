@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PHOTO_MAX_BYTES, validatePhotoFile, mapPhotoFailure, photoUrlFrom, contactInitials } from '../utils/photoApi.ts';
+import { PHOTO_MAX_BYTES, validatePhotoFile, mapPhotoFailure, photoUrlFrom, photoUrlsFrom, contactInitials } from '../utils/photoApi.ts';
 
 test('validatePhotoFile accepts JPEG, PNG and WebP up to 2 MB', () => {
   for (const mimeType of ['image/jpeg', 'image/png', 'image/webp']) {
@@ -40,4 +40,17 @@ test('contactInitials uses the first letters of first name and surname', () => {
   assert.equal(contactInitials('ana', 'garcía'), 'AG');
   assert.equal(contactInitials('  ', 'Lee'), 'L');
   assert.equal(contactInitials('', ''), '?');
+});
+
+test('photoUrlsFrom maps contact ids to web URLs and skips the rest', () => {
+  const urls = photoUrlsFrom([
+    { contact_id: 'a', photo_url: 'https://cdn.example/a.jpg?sig=1' },
+    { contact_id: 'b' },
+    { contact_id: 'c', photo_url: 'javascript:alert(1)' },
+    { photo_url: 'https://cdn.example/x.jpg' },
+    null,
+  ]);
+  assert.deepEqual(urls, { a: 'https://cdn.example/a.jpg?sig=1' });
+  assert.deepEqual(photoUrlsFrom(undefined), {});
+  assert.deepEqual(photoUrlsFrom({ photo_url: 'https://x' }), {});
 });

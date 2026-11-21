@@ -160,7 +160,7 @@ export default function CalendarScreen() {
                 >
                   <Text style={[
                     styles.dayNum,
-                    { color: hasBday || todayCell ? colors.text : colors.textTertiary },
+                    { color: colors.text },
                     todayCell && { color: '#FFFFFF' },
                   ]}>
                     {day}
@@ -179,12 +179,14 @@ export default function CalendarScreen() {
         ))}
       </ScrollView>
 
-      <View style={[styles.legend, { borderTopColor: colors.separator, backgroundColor: colors.surface }]}>
-        <View style={[styles.legendDot, { backgroundColor: colors.birthdayDot }]} />
-        <Text style={[styles.legendText, { color: colors.textSecondary }]}>
-          {t.calendar.hasBirthdays(monthlyBirthdaysTotal)}
-        </Text>
-      </View>
+      {monthlyBirthdaysTotal > 0 && (
+        <View style={[styles.legend, { borderTopColor: colors.separator, backgroundColor: colors.surface }]}>
+          <View style={[styles.legendDot, { backgroundColor: colors.birthdayDot }]} />
+          <Text style={[styles.legendText, { color: colors.textSecondary }]}>
+            {t.calendar.hasBirthdays(monthlyBirthdaysTotal)}
+          </Text>
+        </View>
+      )}
 
       <Modal
         visible={modalVisible}

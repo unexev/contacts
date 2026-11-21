@@ -2,6 +2,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Image } from 'expo-image';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { avatarColorFor } from '../../utils/avatarColor';
 import { requestApi } from '../../utils/apiClient';
 import { useI18n } from '../../utils/i18n';
 import { contactInitials, mapPhotoFailure, photoUrlFrom, PHOTO_TYPES, validatePhotoFile } from '../../utils/photoApi';
@@ -81,7 +83,7 @@ export default function ContactPhoto({ contactId, firstName, surname, enabled }:
 
   const showPhoto = !!url && failedUrl !== url;
   const avatar = (
-    <View style={[styles.circle, { backgroundColor: colors.accentFill, opacity: busy ? 0.5 : 1 }]}>
+    <View style={[styles.circle, { backgroundColor: avatarColorFor(firstName, surname), opacity: busy ? 0.5 : 1 }]}>
       {showPhoto ? (
         <Image source={{ uri: url! }} style={styles.image} contentFit="cover" onError={() => setFailedUrl(url)} accessibilityIgnoresInvertColors />
       ) : (
@@ -100,12 +102,16 @@ export default function ContactPhoto({ contactId, firstName, surname, enabled }:
       accessibilityHint={url ? t.contactPhoto.change : t.contactPhoto.add}
     >
       {avatar}
+      <View style={[styles.badge, { backgroundColor: colors.surface, borderColor: colors.border }]} pointerEvents="none">
+        <Ionicons name="camera" size={16} color={colors.accent} />
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: 12 },
+  badge: { position: 'absolute', right: -2, bottom: -2, width: 32, height: 32, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   circle: { width: SIZE, height: SIZE, borderRadius: SIZE / 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   image: { width: SIZE, height: SIZE },
   initials: { color: '#fff', fontSize: 34, fontWeight: '600' },

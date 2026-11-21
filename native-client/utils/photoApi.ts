@@ -31,3 +31,15 @@ export function contactInitials(firstName: string, surname: string): string {
   const letters = [firstName, surname].map((s) => s.trim().charAt(0).toUpperCase()).join('');
   return letters || '?';
 }
+
+/** contact_id -> signed photo URL from a contact list answer; contacts without a usable URL are left out. */
+export function photoUrlsFrom(data: unknown): Record<string, string> {
+  const urls: Record<string, string> = {};
+  if (!Array.isArray(data)) return urls;
+  for (const item of data) {
+    const id = (item as { contact_id?: unknown } | null)?.contact_id;
+    const url = photoUrlFrom(item);
+    if (typeof id === 'string' && url) urls[id] = url;
+  }
+  return urls;
+}

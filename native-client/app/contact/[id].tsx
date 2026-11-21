@@ -8,6 +8,7 @@ import ContactInfoCard from '../../components/contact/ContactInfoCard';
 import DetailInfoRow from '../../components/contact/DetailInfoRow';
 import LocationsCard from '../../components/contact/LocationsCard';
 import NationalitiesCard from '../../components/contact/NationalitiesCard';
+import MoreDetails from '../../components/contact/MoreDetails';
 import KeywordsCard from '../../components/contact/KeywordsCard';
 import DocumentsCard from '../../components/contact/DocumentsCard';
 import EditContactModal from '../../components/contact/EditContactModal';
@@ -51,6 +52,7 @@ export default function ContactDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [editVisible, setEditVisible] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [collapsedKeys, setCollapsedKeys] = useState<string[]>([]);
 
   const handleDelete = () => {
     const doDelete = async () => {
@@ -90,17 +92,29 @@ export default function ContactDetailScreen() {
       const data = await getContact(contactId);
       if (!data) { setError(t.detail.notFound); return; }
       setContact(data as ContactDetail);
-      setIdentityCards(await getIdentityCards(contactId));
-      setRelationships(await getRelationships(contactId));
-      setOrganizations(await getContactOrganizations(contactId));
+      const cards = await getIdentityCards(contactId);
+      setIdentityCards(cards);
+      const rels = await getRelationships(contactId);
+      setRelationships(rels);
+      const orgs = await getContactOrganizations(contactId);
+      setOrganizations(orgs);
       setPhones(await getContactPhones(contactId));
       setEmails(await getContactEmails(contactId));
-      setKeywords(await getContactKeywords(contactId));
-      setBankAccounts(await getBankAccounts(contactId));
-      setLocations(await getLocations(contactId));
-      setNationalities(await getNationalities(contactId));
+      const kws = await getContactKeywords(contactId);
+      setKeywords(kws);
+      const banks = await getBankAccounts(contactId);
+      setBankAccounts(banks);
+      const locs = await getLocations(contactId);
+      setLocations(locs);
+      const nats = await getNationalities(contactId);
+      setNationalities(nats);
       setNotes(await getContactNotes(contactId));
-      setContactUrls(await getContactUrls(contactId));
+      const urls = await getContactUrls(contactId);
+      setContactUrls(urls);
+      setCollapsedKeys([
+        ['documents', cards], ['relationships', rels], ['organizations', orgs], ['keywords', kws],
+        ['nationalities', nats], ['locations', locs], ['bank', banks], ['urls', urls],
+      ].filter(([, list]) => (list as unknown[]).length === 0).map(([k]) => k as string));
       const statuses = await getMaritalStatuses();
       setMaritalLabels(Object.fromEntries(statuses.map(ms => [ms.status_id, ms.marital_status])));
     } catch {
@@ -167,6 +181,19 @@ export default function ContactDetailScreen() {
     } : null,
   ].filter(Boolean) as { key: string; label: string; value: string; helperText?: string | null }[];
 
+  // Optional cards the contact has no data for stay folded; the fold is decided once when the contact loads.
+  const sections: { key: string; label: string; node: React.ReactNode }[] = [
+    { key: 'documents', label: t.documents.title, node: <DocumentsCard contactId={contactId} initialCards={identityCards} /> },
+    { key: 'relationships', label: t.relationships.title, node: <RelationshipsCard contactId={contactId} initialRelationships={relationships} onNavigate={cid => router.push(`/contact/${cid}`)} /> },
+    { key: 'organizations', label: t.organizations.title, node: <OrganizationsCard contactId={contactId} birthdate={contact.birthdate} initialOrganizations={organizations} /> },
+    { key: 'keywords', label: t.keywords.title, node: <KeywordsCard contactId={contactId} initialKeywords={keywords} /> },
+    { key: 'nationalities', label: t.nationalities.title, node: <NationalitiesCard contactId={contactId} initialNationalities={nationalities} /> },
+    { key: 'locations', label: t.locations.title, node: <LocationsCard contactId={contactId} initialLocations={locations} /> },
+    { key: 'bank', label: t.bankAccounts.title, node: <BankAccountCard contactId={contactId} initialAccounts={bankAccounts} /> },
+    { key: 'urls', label: t.urls.title, node: <UrlsCard contactId={contactId} initialUrls={contactUrls} /> },
+  ];
+  const collapsedSections = sections.filter(x => collapsedKeys.includes(x.key));
+
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <Stack.Screen options={{
@@ -211,9 +238,6 @@ export default function ContactDetailScreen() {
               <Pressable accessibilityRole="button" style={[styles.editButton, { borderColor: colors.accent }]} onPress={() => setEditVisible(true)} accessibilityLabel={t.common.edit}>
                 <Text style={[styles.editButtonText, { color: colors.accent }]}>{t.common.edit}</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" style={[styles.deleteButton, { borderColor: colors.destructive }]} onPress={handleDelete} accessibilityLabel={t.common.delete}>
-                <Text style={[styles.deleteButtonText, { color: colors.destructiveText }]}>{t.common.delete}</Text>
-              </Pressable>
             </View>
           </View>
 
@@ -236,15 +260,23 @@ export default function ContactDetailScreen() {
         </View>
 
         <ContactInfoCard contactId={contactId} initialPhones={phones} initialEmails={emails} />
-        <DocumentsCard contactId={contactId} initialCards={identityCards} />
-        <RelationshipsCard contactId={contactId} initialRelationships={relationships} onNavigate={cid => router.push(`/contact/${cid}`)} />
-        <OrganizationsCard contactId={contactId} birthdate={contact.birthdate} initialOrganizations={organizations} />
-        <KeywordsCard contactId={contactId} initialKeywords={keywords} />
-        <NationalitiesCard contactId={contactId} initialNationalities={nationalities} />
-        <LocationsCard contactId={contactId} initialLocations={locations} />
-        <BankAccountCard contactId={contactId} initialAccounts={bankAccounts} />
-        <UrlsCard contactId={contactId} initialUrls={contactUrls} />
+        {sections.filter(x => !collapsedKeys.includes(x.key)).map(x => <React.Fragment key={x.key}>{x.node}</React.Fragment>)}
         <NotesCard contactId={contactId} initialNotes={notes} />
+        {collapsedSections.length > 0 && (
+          <MoreDetails count={collapsedSections.length} summary={collapsedSections.map(x => x.label).join(' · ')}>
+            {collapsedSections.map(x => <React.Fragment key={x.key}>{x.node}</React.Fragment>)}
+          </MoreDetails>
+        )}
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.common.deleteTitle}
+          style={[styles.deleteContact, { borderColor: colors.destructive }]}
+          onPress={handleDelete}
+        >
+          <Ionicons name="trash-outline" size={18} color={colors.destructiveText} />
+          <Text style={[styles.deleteButtonText, { color: colors.destructiveText }]}>{t.common.deleteTitle}</Text>
+        </Pressable>
 
       </ScrollView>
 
@@ -285,6 +317,7 @@ const styles = StyleSheet.create({
 
   editButton: { paddingHorizontal: 12, paddingVertical: 12, borderRadius: 8, borderWidth: 1, borderColor: '#0066D6', minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   editButtonText: { color: '#0066D6', fontSize: 14, fontWeight: '600' },
+  deleteContact: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48, borderRadius: 12, borderWidth: 1, marginTop: 8 },
   deleteButton: { paddingHorizontal: 12, paddingVertical: 12, borderRadius: 8, borderWidth: 1, borderColor: '#FF3B30', minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   deleteButtonText: { color: '#FF3B30', fontSize: 14, fontWeight: '600' },
 

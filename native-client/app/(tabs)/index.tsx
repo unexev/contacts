@@ -59,36 +59,18 @@ import {
   getContactIdsWithOrganization,
 } from '../../utils/organizationFilter';
 import { MaritalStatus, useContacts } from '../../utils/context';
+import ContactAvatar from '../../components/ContactAvatar';
+import { useAuth } from '../../utils/authContext';
+import { requestApi } from '../../utils/apiClient';
+import { photoUrlsFrom } from '../../utils/photoApi';
+import { showError } from '../../utils/showError';
+import { useToast } from '../../utils/toast';
 import { useTheme } from '../../utils/theme';
 import { useI18n } from '../../utils/i18n';
 import { listLabel } from '../../utils/listLabels';
 import { useResponsive } from '../../utils/responsive';
 import { calcularEdad, edadEnFecha } from '../../utils/contactUtils';
 import { rescheduleExpiredBirthdayNotifications } from '../../utils/notifications';
-
-// ─── Avatar ──────────────────────────────────────────────────────────────────
-
-const AVATAR_COLORS = [
-  '#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#30B0C7',
-  '#007AFF', '#5856D6', '#BF5AF2', '#FF2D55', '#AC8E68',
-];
-
-function getAvatarColor(name: string): string {
-  if (!name) return '#8E8E93';
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-
-function InitialsAvatar({ firstName, surname, size = 44 }: { firstName?: string | null; surname?: string | null; size?: number }) {
-  const initials = [firstName?.[0], surname?.[0]].filter(Boolean).join('').toUpperCase() || '?';
-  const bg = getAvatarColor(`${firstName ?? ''}${surname ?? ''}`);
-  return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: '#fff', fontSize: Math.round(size * 0.38), fontWeight: '600', letterSpacing: 0.5 }}>{initials}</Text>
-    </View>
-  );
-}
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -133,6 +115,15 @@ export default function HomeScreen() {
   const router = useRouter();
   const { contacts, contactsLoading, fetchContacts, createContact, getMaritalStatuses, addIdentityCard, searchContacts } = useContacts();
   const { t, lang } = useI18n();
+  const showToast = useToast();
+  const { apiSession } = useAuth();
+  // Photos are not part of the local data: the signed URLs come from the API and expire after an hour.
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
+  const loadPhotoUrls = useCallback(async () => {
+    if (!apiSession) { setPhotoUrls({}); return; }
+    const res = await requestApi('/api/contacts?limit=100000');
+    if (res.status === 200) setPhotoUrls(photoUrlsFrom(res.data));
+  }, [apiSession]);
   const { isDesktop, isTablet, r } = useResponsive();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -289,13 +280,15 @@ export default function HomeScreen() {
     await refreshCedulaIds();
     await refreshPhoneIds();
     await refreshOrganizationData();
-  }, [fetchContacts, refreshCedulaIds, refreshPhoneIds, refreshOrganizationData]);
+    await loadPhotoUrls();
+  }, [fetchContacts, refreshCedulaIds, refreshPhoneIds, refreshOrganizationData, loadPhotoUrls]);
 
   useFocusEffect(useCallback(() => {
     fetchContacts();
+    loadPhotoUrls();
     setModalVisible(false);
     setSortModalVisible(false);
-  }, []));
+  }, [loadPhotoUrls]));
 
   const baseContacts = searchQuery.trim() ? searchResults : contacts;
   const genderFiltered = filterContactsByGender(baseContacts, genderFilter);
@@ -487,12 +480,12 @@ export default function HomeScreen() {
 
   const handleSaveContact = async () => {
     if (!firstName.trim() || !surname.trim()) {
-      alert(t.contacts.nameRequired);
+      showError(t.common.error, t.contacts.nameRequired);
       return;
     }
     const children = normalizeChildrenCount(childrenCount);
     if (childrenCount.trim() && children === null) {
-      alert(t.contacts.childrenInvalid);
+      showError(t.common.error, t.contacts.childrenInvalid);
       return;
     }
 
@@ -517,10 +510,10 @@ export default function HomeScreen() {
         await fetchContacts();
         router.push(`/contact/${newContact.contact_id}`);
       } else {
-        alert(t.contacts.createError);
+        showError(t.common.error, t.contacts.createError);
       }
     } catch (error) {
-      alert(t.common.error + ': ' + (error instanceof Error ? error.message : String(error)));
+      showError(t.common.error, error instanceof Error ? error.message : String(error));
     }
   };
 
@@ -534,13 +527,13 @@ export default function HomeScreen() {
         headerShadowVisible: false,
         headerRight: () => (
           <View style={{ flexDirection: 'row', gap: 20, marginRight: 12 }}>
-            <Pressable accessibilityRole="button" onPress={handleRefresh} hitSlop={8} accessibilityLabel={t.common.refresh}>
+            <Pressable accessibilityRole="button" onPress={handleRefresh} onLongPress={() => showToast(t.common.refresh)} hitSlop={12} accessibilityLabel={t.common.refresh}>
               <Ionicons name="refresh" size={20} color={colors.accent} />
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={openFilters} hitSlop={8} accessibilityLabel={t.contactList.filters}>
+            <Pressable accessibilityRole="button" onPress={openFilters} onLongPress={() => showToast(t.contactList.filters)} hitSlop={12} accessibilityLabel={t.contactList.filters}>
               <Ionicons name="filter" size={20} color={colors.accent} />
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => setSortModalVisible(true)} hitSlop={8} accessibilityLabel={t.contactList.sortBy}>
+            <Pressable accessibilityRole="button" onPress={() => setSortModalVisible(true)} onLongPress={() => showToast(t.contactList.sortBy)} hitSlop={12} accessibilityLabel={t.contactList.sortBy}>
               <Ionicons name="swap-vertical" size={20} color={colors.accent} />
             </Pressable>
           </View>
@@ -605,6 +598,7 @@ export default function HomeScreen() {
           {contactsLoading ? <ContactListSkeleton /> : (
           <SectionList
             sections={sections}
+            extraData={photoUrls}
             keyExtractor={(item) => item.contact_id}
             stickySectionHeadersEnabled
             renderSectionHeader={({ section: { title } }) =>
@@ -627,7 +621,7 @@ export default function HomeScreen() {
                 ]}
                 onPress={() => router.push(`/contact/${item.contact_id}`)}
               >
-                <InitialsAvatar firstName={item.first_name} surname={item.surname} size={r(44, 46, 48)} />
+                <ContactAvatar firstName={item.first_name} surname={item.surname} size={r(44, 46, 48)} photoUrl={photoUrls[item.contact_id]} />
                 <View style={styles.contactInfo}>
                   <Text style={[styles.contactName, isDesktop && styles.contactNameDesktop, { color: colors.text }]} numberOfLines={1}>
                     {`${item.first_name ?? ''} ${item.middle_name ?? ''} ${item.surname ?? ''}`.replace(/\s+/g, ' ').trim()}

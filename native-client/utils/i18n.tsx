@@ -68,7 +68,7 @@ const translations = {
     },
     contacts: {
       search: 'Buscar',
-      searchHint: 'Buscar (edad:23)',
+      searchHint: 'Buscar por nombre',
       searchAgeLabel: 'Edad',
       searchA11yHint: 'Podés filtrar por edad, por ejemplo edad:>30, y combinar filtros con &.',
       all: 'Todos',
@@ -173,6 +173,7 @@ const translations = {
     },
     detail: {
       details: 'Detalles',
+      moreDetails: 'Más detalles',
       firstNameLabel: 'NOMBRE',
       surnameLabel: 'APELLIDO',
       dobLabel: 'FECHA DE NACIMIENTO',
@@ -678,7 +679,7 @@ const translations = {
     },
     contacts: {
       search: 'Search',
-      searchHint: 'Search (age:23)',
+      searchHint: 'Search by name',
       searchAgeLabel: 'Age',
       searchA11yHint: 'You can filter by age, for example age:>30, and combine filters with &.',
       all: 'All',
@@ -783,6 +784,7 @@ const translations = {
     },
     detail: {
       details: 'Details',
+      moreDetails: 'More details',
       firstNameLabel: 'FIRST NAME',
       surnameLabel: 'SURNAME',
       dobLabel: 'BIRTHDAY',
