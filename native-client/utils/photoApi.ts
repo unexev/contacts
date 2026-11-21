@@ -43,3 +43,8 @@ export function photoUrlsFrom(data: unknown): Record<string, string> {
   }
   return urls;
 }
+
+/** Stable cache key for a signed photo URL: the token and expiry change on every request, the object path does not. */
+export function photoCacheKey(url: string): string {
+  return url.split('#')[0].split('?')[0];
+}

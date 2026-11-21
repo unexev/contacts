@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { avatarColorFor } from '../../utils/avatarColor';
 import { requestApi } from '../../utils/apiClient';
 import { useI18n } from '../../utils/i18n';
-import { contactInitials, mapPhotoFailure, photoUrlFrom, PHOTO_TYPES, validatePhotoFile } from '../../utils/photoApi';
+import { contactInitials, photoCacheKey, mapPhotoFailure, photoUrlFrom, PHOTO_TYPES, validatePhotoFile } from '../../utils/photoApi';
 import { useTheme } from '../../utils/theme';
 import { useToast } from '../../utils/toast';
 
@@ -57,6 +57,8 @@ export default function ContactPhoto({ contactId, firstName, surname, enabled }:
     const res = await requestApi(`/api/contacts/${encodeURIComponent(contactId)}/photo`, { method: 'PUT', body: form });
     setBusy(false);
     if (res.status !== 200) return fail(mapPhotoFailure(res.status));
+    // The object path is the same for every photo of a contact, so drop the cached copy.
+    await Promise.all([Image.clearDiskCache(), Image.clearMemoryCache()]);
     setUrl(photoUrlFrom(res.data));
     setFailedUrl(null);
     showToast(t.contactPhoto.updated);
@@ -67,6 +69,7 @@ export default function ContactPhoto({ contactId, firstName, surname, enabled }:
     const res = await requestApi(`/api/contacts/${encodeURIComponent(contactId)}/photo`, { method: 'DELETE' });
     setBusy(false);
     if (res.status !== 200) return fail(mapPhotoFailure(res.status));
+    await Promise.all([Image.clearDiskCache(), Image.clearMemoryCache()]);
     setUrl(null);
     showToast(t.contactPhoto.removed);
   }, [contactId, fail, showToast, t]);
@@ -85,7 +88,7 @@ export default function ContactPhoto({ contactId, firstName, surname, enabled }:
   const avatar = (
     <View style={[styles.circle, { backgroundColor: avatarColorFor(firstName, surname), opacity: busy ? 0.5 : 1 }]}>
       {showPhoto ? (
-        <Image source={{ uri: url! }} style={styles.image} contentFit="cover" onError={() => setFailedUrl(url)} accessibilityIgnoresInvertColors />
+        <Image source={{ uri: url!, cacheKey: photoCacheKey(url!) }} cachePolicy="disk" style={styles.image} contentFit="cover" onError={() => setFailedUrl(url)} accessibilityIgnoresInvertColors />
       ) : (
         <Text style={styles.initials}>{contactInitials(firstName, surname)}</Text>
       )}

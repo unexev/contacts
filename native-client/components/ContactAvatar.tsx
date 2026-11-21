@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { avatarColorFor } from '../utils/avatarColor';
-import { contactInitials } from '../utils/photoApi';
+import { contactInitials, photoCacheKey } from '../utils/photoApi';
 
 interface Props {
   firstName?: string | null;
@@ -20,7 +20,10 @@ export default function ContactAvatar({ firstName, surname, size = 44, photoUrl 
     <View style={[styles.circle, { width: size, height: size, borderRadius: size / 2, backgroundColor: avatarColorFor(firstName, surname) }]}>
       {showPhoto ? (
         <Image
-          source={{ uri: photoUrl! }}
+          source={{ uri: photoUrl!, cacheKey: photoCacheKey(photoUrl!) }}
+          cachePolicy="disk"
+          recyclingKey={photoCacheKey(photoUrl!)}
+          transition={120}
           style={{ width: size, height: size }}
           contentFit="cover"
           onError={() => setFailedUrl(photoUrl!)}

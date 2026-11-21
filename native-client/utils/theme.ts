@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useColorScheme } from 'react-native';
-import { useAuth } from './authContext';
 
 const light = {
   bg:              '#F2F2F7',
@@ -93,7 +92,6 @@ const ThemeContext = createContext<ThemeContextValue>({
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { licensed } = useAuth();
   const systemScheme = useColorScheme();
   const [preference, setPreferenceState] = useState<ThemePref>('system');
 
@@ -111,11 +109,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const isDark = useMemo(() => {
-    if (!licensed) return false;
     if (preference === 'dark') return true;
     if (preference === 'light') return false;
     return systemScheme === 'dark';
-  }, [licensed, preference, systemScheme]);
+  }, [preference, systemScheme]);
 
   const value = useMemo<ThemeContextValue>(() => ({
     colors: isDark ? dark : light,

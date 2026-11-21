@@ -41,24 +41,7 @@
 
     <div class="section-card">
       <div class="section-card-header">
-        <span class="section-card-title">Tema</span>
-      </div>
-      <div class="theme-switcher" role="group" aria-label="Tema">
-        <button class:active={userPrefersMode.current === 'light'} onclick={() => setMode('light')}>
-          <Sun size={16} /> Claro
-        </button>
-        <button class:active={userPrefersMode.current === 'dark'} onclick={() => setMode('dark')}>
-          <Moon size={16} /> Oscuro
-        </button>
-        <button class:active={userPrefersMode.current === 'system'} onclick={resetMode}>
-          <Monitor size={16} /> Sistema
-        </button>
-      </div>
-    </div>
-
-    <div class="section-card">
-      <div class="section-card-header">
-        <span class="section-card-title">{t('configUser')}</span>
+        <span class="section-card-title">{t('configAccount')}</span>
       </div>
       <div class="section-card-body">
         <div class="field-row">
@@ -69,14 +52,29 @@
           <span class="field-label">{t('configEmail')}</span>
           <span class="field-value">{A.user?.email || '--'}</span>
         </div>
+        <a class="btn btn-secondary btn-full account-btn" href="/account">{t('configAccount')}</a>
+        <button class="btn btn-danger btn-full logout-btn" onclick={handleLogout}>
+          {t('configLogout')}
+        </button>
       </div>
     </div>
 
-    <a class="btn btn-secondary btn-full" href="/account">{t('configAccount')}</a>
-
-    <button class="btn btn-danger btn-full logout-btn" onclick={handleLogout}>
-      {t('configLogout')}
-    </button>
+    <div class="section-card">
+      <div class="section-card-header">
+        <span class="section-card-title">Tema</span>
+      </div>
+      <div class="theme-switcher" role="group" aria-label="Tema">
+        <button class:active={userPrefersMode.current === 'light'} onclick={() => setMode('light')}>
+          <Sun size={16} /> Claro
+        </button>
+        <button class:active={userPrefersMode.current === 'system'} onclick={resetMode}>
+          <Monitor size={16} /> Sistema
+        </button>
+        <button class:active={userPrefersMode.current === 'dark'} onclick={() => setMode('dark')}>
+          <Moon size={16} /> Oscuro
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -131,6 +129,8 @@
 
 
 
+
+  .account-btn { margin-top: 12px; }
 
   .logout-btn {
     margin-top: 8px;

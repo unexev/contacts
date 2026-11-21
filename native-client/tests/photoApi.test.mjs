@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PHOTO_MAX_BYTES, validatePhotoFile, mapPhotoFailure, photoUrlFrom, photoUrlsFrom, contactInitials } from '../utils/photoApi.ts';
+import { PHOTO_MAX_BYTES, validatePhotoFile, mapPhotoFailure, photoUrlFrom, photoUrlsFrom, contactInitials, photoCacheKey } from '../utils/photoApi.ts';
 
 test('validatePhotoFile accepts JPEG, PNG and WebP up to 2 MB', () => {
   for (const mimeType of ['image/jpeg', 'image/png', 'image/webp']) {
@@ -53,4 +53,11 @@ test('photoUrlsFrom maps contact ids to web URLs and skips the rest', () => {
   assert.deepEqual(urls, { a: 'https://cdn.example/a.jpg?sig=1' });
   assert.deepEqual(photoUrlsFrom(undefined), {});
   assert.deepEqual(photoUrlsFrom({ photo_url: 'https://x' }), {});
+});
+
+test('photoCacheKey ignores the signed token', () => {
+  assert.equal(
+    photoCacheKey('https://x.supabase.co/storage/v1/object/sign/photos/u/c.jpg?token=abc'),
+    photoCacheKey('https://x.supabase.co/storage/v1/object/sign/photos/u/c.jpg?token=def'),
+  );
 });

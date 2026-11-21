@@ -284,12 +284,12 @@ export default function Config() {
       )}
 
       {/* Modo oscuro */}
-      {user && (
+      {(
         <View style={[styles.card, { marginBottom: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowOpacity: 0, elevation: 0 }]}>
           <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>
             {t.config.darkMode}
           </Text>
-          {licensed ? (
+          {(
             <View style={styles.themeRow}>
               {THEME_OPTIONS.map(opt => (
                 <Pressable accessibilityRole="button"
@@ -305,10 +305,6 @@ export default function Config() {
                 </Pressable>
               ))}
             </View>
-          ) : (
-            <Text style={[styles.premiumHint, { color: colors.textSecondary }]}>
-              {t.config.darkModePremium}
-            </Text>
           )}
         </View>
       )}
